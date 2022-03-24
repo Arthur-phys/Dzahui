@@ -2,7 +2,7 @@
 name = "Dzahui"
 version = "0.1.0"
 edition = "2021"
-license = "Creative Commons"
+license = "MIT"
 description = "CFD Library for 2D simulation"
 homepage = "https://github.com/Arthur-phys/Dzahui"
 documentation = "https://github.com/Arthur-phys/Dzahui"
