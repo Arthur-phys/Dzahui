@@ -7,7 +7,7 @@ description = "CFD Library for 2D simulation"
 homepage = "None"
 documentation = "Coming soon"
 repository = "https://github.com/Arthur-phys/Dzahui"
-readme = "Work in progress"
+readme = "Readme.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
