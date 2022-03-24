@@ -2,7 +2,12 @@
 name = "Dzahui"
 version = "0.1.0"
 edition = "2021"
-
+license = "Creative Commons"
+description = "CFD Library for 2D simulation"
+homepage = "None"
+documentation = "Coming soon"
+repository = "https://github.com/Arthur-phys/Dzahui"
+readme = "Work in progress"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
