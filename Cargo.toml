@@ -5,7 +5,7 @@ edition = "2021"
 license = "Creative Commons"
 description = "CFD Library for 2D simulation"
 homepage = "https://github.com/Arthur-phys/Dzahui"
-documentation = "Coming soon"
+documentation = "https://github.com/Arthur-phys/Dzahui"
 repository = "https://github.com/Arthur-phys/Dzahui"
 readme = "Readme.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
