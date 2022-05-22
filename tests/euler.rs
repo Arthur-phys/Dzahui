@@ -47,7 +47,7 @@ fn radioactive_decay_Radium_ODE() {
     let step: f32 = 0.5; // years
     let mut time: f32 = -1600.0; // years
     let mut quantity: f32 = 1000.0; // parent nuclei
-    while time <= 0.0 {
+    while time <= 0.0 { // Should give approximately half the original amount of nuclei
         if let [_quantity,_time] = &euler_step(vec![quantity,time], step, decay_function)[..] {
             quantity = *_quantity;
             time = *_time;
