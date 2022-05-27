@@ -18,26 +18,7 @@ mod mesh;
 /// - Vec<f32>
 ///   A vector of values corresponding to the new approximation. The derivatives are delivered as in 'initial_val'
 /// 
-pub fn euler_step<T: Fn(&Vec<f32>) -> f32>(mut initial_val: Vec<f32>, step: f32, f: T) -> Vec<f32> {
-    let f_eval: f32 = f(&initial_val);
-    let mut next_values: Vec<f32> = vec![];
-    
-    let mut value: f32 = initial_val.get(0).unwrap() + step*f_eval;
-    let t_new: f32 = initial_val.get(initial_val.len()-1).unwrap() + step;
-    
-    next_values.push(value);
-
-    initial_val[1..initial_val.len()-1].into_iter().for_each(|x| {
-        let new_val: f32 = x + step*value;
-        value = new_val;
-        next_values.push(new_val);
-    });
-    next_values.push(t_new);
-
-    next_values
-}
-
-trait FunctionArguments: Into<Vec<f64>> + Clone + std::convert::TryFrom<Vec<f64>> {
+pub trait FunctionArguments: Into<Vec<f64>> + Clone + std::convert::TryFrom<Vec<f64>> {
 }
 
 impl FunctionArguments for [f64; 2]{}
@@ -45,12 +26,12 @@ impl FunctionArguments for [f64; 3]{}
 impl FunctionArguments for [f64; 4]{}
 impl FunctionArguments for [f64; 5]{}
 
-struct EulerSolver<A, F> {
+pub struct EulerSolver<A, F> {
     derivative_function: F,
     phantom: std::marker::PhantomData<A>
 }
 
-impl<A: FunctionArguments, F: Fn(A) -> f64> EulerSolver<A, F> {
+impl<A: FunctionArguments, F: Fn(&A) -> f64> EulerSolver<A, F> {
     pub fn new(derivative_function: F) -> EulerSolver<A, F> {
         EulerSolver {
             derivative_function,
@@ -58,28 +39,27 @@ impl<A: FunctionArguments, F: Fn(A) -> f64> EulerSolver<A, F> {
         }
     }
 
-    pub fn do_step(&self, values: A) -> A {
-        let as_vec: Vec<f64> = values.into();
-        /*
-        let f_eval: f32 = self.derivative_function(&initial_val);
-
-        let mut next_values: Vec<f32> = vec![];
+    pub fn do_step(&self, values: A, step: f64) -> A {
         
-        let mut value: f32 = initial_val.get(0).unwrap() + step*f_eval;
-        let t_new: f32 = initial_val.get(initial_val.len()-1).unwrap() + step;
+        let f_eval: f64 = (self.derivative_function)(&values);
+        let as_vec: Vec<f64> = values.into();
+        
+
+        let mut next_values: Vec<f64> = vec![];
+        
+        let mut value: f64 = as_vec.get(0).unwrap() + step*f_eval;
+        let t_new: f64 = as_vec.get(as_vec.len()-1).unwrap() + step;
         
         next_values.push(value);
 
-        initial_val[1..initial_val.len()-1].into_iter().for_each(|x| {
-            let new_val: f32 = x + step*value;
+        as_vec[1..as_vec.len()-1].into_iter().for_each(|x| {
+            let new_val: f64 = x + step*value;
             value = new_val;
             next_values.push(new_val);
         });
         next_values.push(t_new);
-
-        next_values
-        */
-        match as_vec.try_into() {
+        
+        match A::try_from(next_values) {
             Ok(v) => v,
             Err(_) => panic!("Nooo")
         }
