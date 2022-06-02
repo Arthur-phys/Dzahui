@@ -4,12 +4,12 @@ use std::collections::HashMap;
 
 pub struct Mesh {
     vertices: Vec<[f64;2]>,
-    trangles: Vec<[f64;3]>
+    triangles: Vec<[f64;3]>
 }   
 
 impl Mesh {
     pub fn new(file: File) {
-        Mesh::verify_coordinates(&file);
+        let ignored_coordinate = Mesh::verify_coordinates(&file);
     }
 
     pub fn verify_coordinates(file: &File) -> &str {

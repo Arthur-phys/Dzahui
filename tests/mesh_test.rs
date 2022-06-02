@@ -5,4 +5,5 @@ use std::fs::File;
 fn verify_mesh() {
     let f = File::open("/home/Arthur/Tesis/Dzahui/files/untitled.obj").unwrap();
     let y = Mesh::verify_coordinates(&f);
+    assert!(y == "y");
 }

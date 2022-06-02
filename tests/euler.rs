@@ -4,7 +4,7 @@ use Dzahui::EulerSolver;
 #[test]
 fn first_order_ode() {
 
-    let new_solver = EulerSolver::new(|initial_val: &[f64;2]| {1.0});
+    let new_solver = EulerSolver::new(|_initial_val: &[f64;2]| {1.0});
 
     let step = 0.01;
     let mut time: f64 = 0.0;
