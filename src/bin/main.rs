@@ -9,7 +9,7 @@ fn main() {
     let mut time: f64 = 0.0; // s
     let mut pos_x: f64 = 10.0; // m
     let mut pos_y: f64 = 500.0; // m
-    let mut vel_y: f64 = -60.0; // m/s
+    let mut vel_y: f64 = -100.0; // m/s
     let x_solver = EulerSolver::new(|init_vals: &[f64;2]| 20.0);
     let y_solver = EulerSolver::new(|init_vals: &[f64;3]| 9.81);
     
