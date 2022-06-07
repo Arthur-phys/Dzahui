@@ -1,12 +1,14 @@
 use std::fs::File;
-use std::io::{BufReader,BufRead, Seek};
+use std::io::{BufReader, BufRead, Seek};
 use std::collections::HashMap;
+use piston_window;
+use piston_window::types::Matrix2d;
 
-use piston_window::math::triangle_face;
 
 pub struct Mesh {
     pub vertices: Vec<[f64;2]>,
-    pub triangles: Vec<[i64;3]>
+    pub triangles: Vec<[usize;3]>,
+    pub ignored_coordinate: usize
 }   
 
 impl Mesh {
@@ -16,6 +18,7 @@ impl Mesh {
         let (vertices, triangles) = Mesh::generate_coordinates(&file, ignored_coordinate);
 
         Mesh {
+            ignored_coordinate,
             vertices,
             triangles
         }
@@ -37,7 +40,7 @@ impl Mesh {
                     let mut coordinates_iter = coordinates.split(" ");
                     coordinates_iter.next(); // skip the 'v'
                     let coordinates_vec: [(String,f64);3] = coordinates_iter.map(|c_str| {
-                        if c_str.contains("0.0") {
+                        if c_str.starts_with("0.0") || c_str.starts_with("-0.0") { // Necessary for -0.0 and 0.0 equality
                             (String::from("0.0"),c_str.parse::<f64>().unwrap())
                         } else {
                             (c_str.to_string(),c_str.parse::<f64>().unwrap())
@@ -62,10 +65,10 @@ impl Mesh {
         }
     }
 
-    fn generate_coordinates(file: &File, ignored_coordinate: usize) -> (Vec<[f64;2]>,Vec<[i64;3]>) {
+    fn generate_coordinates(file: &File, ignored_coordinate: usize) -> (Vec<[f64;2]>,Vec<[usize;3]>) {
 
         let mut coordinates: Vec<[f64;2]> = Vec::new();
-        let mut triangles: Vec<[i64;3]> = Vec::new();
+        let mut triangles: Vec<[usize;3]> = Vec::new();
 
         let reader = BufReader::new(file).lines();
         reader.for_each(|line| {
@@ -81,8 +84,8 @@ impl Mesh {
                     else if content.starts_with("f ") {
                         let mut triangles_iter = content.split(" ");
                         triangles_iter.next(); // skip the f
-                        let triangle: Vec<i64> = triangles_iter.map(|c| {
-                            let vertex: i64 = c.split("/").next().unwrap().parse::<i64>().unwrap(); // do not use unwrap so much
+                        let triangle: Vec<usize> = triangles_iter.map(|c| {
+                            let vertex: usize = c.split("/").next().unwrap().parse::<usize>().unwrap(); // do not use unwrap so much
                             vertex
                         }).collect();
                         triangles.push(triangle.try_into().expect(".obj file formatted incorrectly. Please check the faces (f) section"));
@@ -95,8 +98,12 @@ impl Mesh {
         (coordinates,triangles)
     }
 
-    pub fn run_graphical() {
-        
+    pub fn run_graphical<G: piston_window::Graphics>(&self, color:[f32;4], transform: Matrix2d, g: &mut G) {
+        self.triangles.iter().for_each(|triangle| {
+            let traingle_vertices = [self.vertices[triangle[0]-1],self.vertices[triangle[1]-1],self.vertices[triangle[2]-1]];
+            // .obj index starts on 1
+            piston_window::polygon(color,&traingle_vertices,transform,g);
+        });
     }
 }
 
