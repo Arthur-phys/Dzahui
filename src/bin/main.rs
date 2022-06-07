@@ -1,5 +1,6 @@
+use std::fs::File;
 use piston_window::*;
-use Dzahui::EulerSolver;
+use Dzahui::{EulerSolver, Mesh};
 
 fn main() {
     const GREEN: [f32;4] = [0.1, 0.73, 0.09, 1.0]; // Green color (values must be between 0 and 1. Divide R,G,B by 255)
