@@ -1,8 +1,7 @@
 use std::fs::File;
 use std::io::{BufReader, BufRead, Seek};
 use std::collections::HashMap;
-use piston_window;
-use piston_window::types::Matrix2d;
+use piston_window::{self,Graphics,types::Matrix2d};
 
 
 pub struct Mesh {
@@ -98,7 +97,7 @@ impl Mesh {
         (coordinates,triangles)
     }
 
-    pub fn run_graphical<G: piston_window::Graphics>(&self, color:[f32;4], transform: Matrix2d, g: &mut G) {
+    pub fn run_graphical<G: Graphics>(&self, color:[f32;4], transform: Matrix2d, g: &mut G) {
         self.triangles.iter().for_each(|triangle| {
             let traingle_vertices = [self.vertices[triangle[0]-1],self.vertices[triangle[1]-1],self.vertices[triangle[2]-1]];
             // .obj index starts on 1

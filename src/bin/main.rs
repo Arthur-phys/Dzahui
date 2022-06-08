@@ -19,9 +19,15 @@ fn main() {
     // #####################################################################
     // Parabolla Example ###################################################
     // #####################################################################
-
-    let f = File::open("/home/Arthur/Tesis/Dzahui/assets/untitled.obj").unwrap();
+    
+    // #####################################################################
+    // Mesh Example ###################################################
+    // #####################################################################
+    let f = File::open("/home/Arthur/Tesis/Dzahui/assets/test.obj").unwrap();
     let new_mesh = Mesh::new(f);
+    // #####################################################################
+    // Mesh Example ###################################################
+    // #####################################################################
     
     // Creation of window with: title, size, graphics api
     
@@ -32,20 +38,24 @@ fn main() {
         .build()
         .unwrap();
 
-    println!("{:?}",new_mesh.vertices);
-    println!("{:?}",new_mesh.triangles);
-    println!("{:?}",new_mesh.ignored_coordinate);
     // Event loop
     while let Some(e) = window.next() { // As long as there is an event e: Event
         
-        // #####################################################################
-        // Parabolla Example ###################################################
-        // #####################################################################
         // Drawing of components at every update
         window.draw_2d(&e, |c, g, _| {
-            println!("{:?}",c.transform);
             clear([1.0; 4], g); // Clears screen with color [R,G,B,A] given a graphics implementation
-            new_mesh.run_graphical(GREEN, c.transform, g);
+            
+            // #####################################################################
+            // Mesh Example ###################################################
+            // #####################################################################
+            new_mesh.run_graphical(GREEN, [[0.0,-1.0,0.0],[1.0,0.0,0.0]], g);
+            // #####################################################################
+            // Mesh Example ###################################################
+            // #####################################################################
+
+            // #####################################################################
+            // Parabolla Example ###################################################
+            // #####################################################################
             // e.render_args(); from here viewport and others can be obtained
             //circle_arc(GREEN,10.0, 0.0, f64::_360(),[pos_x,pos_y,10.0,10.0], c.transform, g); // Draws a circle arc over a rectangle drawn like [x,y,width,height]
             
