@@ -60,17 +60,5 @@ fn main() {
             //circle_arc(GREEN,10.0, 0.0, f64::_360(),[pos_x,pos_y,10.0,10.0], c.transform, g); // Draws a circle arc over a rectangle drawn like [x,y,width,height]
             
         });
-
-        // // Update values of position based on dt
-        // if let Some(args) = e.update_args() { // From here dt can be obtained
-
-        //     [pos_x,_] = x_solver.do_step([pos_x,time],args.dt*MULTIPLIER);
-        //     [vel_y,pos_y,time] = y_solver.do_step([vel_y,pos_y,time],args.dt*MULTIPLIER);
-        // }
-        // #####################################################################
-        // Parabolla Example ###################################################
-        // #####################################################################
-
-
     }
 }

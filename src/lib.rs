@@ -1,6 +1,7 @@
+mod mesh;
+mod camera;
 pub use self::mesh::Mesh;
 
-mod mesh;
 
 // FIRST EXCERCISE
 /// Euler's method for ordinary differential equations.
