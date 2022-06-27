@@ -1,6 +1,7 @@
 mod camera;
 mod mesh;
 mod shader;
+mod window;
 pub use self::mesh::{Mesh,Dimension};
 
 
