@@ -1,4 +1,4 @@
-use Dzahui::EulerSolver;
+use dzahui::EulerSolver;
 
 
 #[test]
