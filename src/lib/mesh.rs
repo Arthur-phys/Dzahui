@@ -129,7 +129,7 @@ impl Mesh {
     fn distance(point: [f64;3], point2: [f64;3]) -> f64 {
         let mut d = 0.0;
         for j in 0..2 {
-            d += (point[j] - point2[j]).exp2();
+            d += (point[j] - point2[j]).powf(2.0);
         }
         d.sqrt()
     }
