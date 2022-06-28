@@ -1,8 +1,8 @@
 use glutin::{event_loop::{EventLoop},window::WindowBuilder,dpi::PhysicalSize,ContextBuilder,GlRequest, Api, GlProfile, ContextWrapper, PossiblyCurrent, window::Window};
 use std::{time::Instant};
+use crate::shader::Shader;
 use gl;
 
-use crate::{shader::Shader, Mesh};
 // Hold everything for window simulation
 pub struct DzahuiWindow {
     gl_version: (u8,u8), // OpenGL version (normally 3.3)
