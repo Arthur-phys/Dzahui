@@ -8,7 +8,7 @@ pub struct DzahuiWindow {
     gl_version: (u8,u8), // OpenGL version (normally 3.3)
     pub context: ContextWrapper<PossiblyCurrent,Window>, // Only one instance should be active at once
     pub timer: Instant,  // Timer for window
-    shader: Shader, // Indicates the vertex and fragment shaders to compile and run
+    pub shader: Shader, // Indicates the vertex and fragment shaders to compile and run
 }
 
 impl DzahuiWindow {

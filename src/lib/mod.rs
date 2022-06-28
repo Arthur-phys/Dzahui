@@ -4,6 +4,7 @@ mod shader;
 mod window;
 pub use self::window::{DzahuiWindow};
 pub use self::mesh::{Mesh,Dimension};
+pub use self::camera::{Camera,Vector3D};
 
 
 // FIRST EXCERCISE
