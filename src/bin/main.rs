@@ -18,6 +18,7 @@ fn main() {
     // Creation of Mesh
     let mesh_file = File::open("/home/Arthur/Tesis/Dzahui/assets/simple_triangle.obj").unwrap();
     let mut mesh = Mesh::new(mesh_file,Dimension::D2);
+    println!("{}",mesh.max_length);
     // Mesh setup. Can only be done once window object has been created. Find a way to relate the two.
     mesh.setup();
     
