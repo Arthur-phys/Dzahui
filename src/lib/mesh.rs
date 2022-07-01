@@ -7,6 +7,12 @@ pub enum Dimension {
     D3,
     D2,
 }
+
+// Boundary Enum to know wether something is a maximum or minimum
+pub enum Boundary<S> {
+    Max(S),
+    Min(S),
+}
 // Mesh should work for 2d and 3d
 // Contains vertices and indices to generate triangles via gl
 pub struct Mesh {
@@ -105,64 +111,83 @@ impl Mesh {
             panic!("Only coordinates over a plane paralell to x, y or z axis are accepted. Check .obj file.");
         }
     }
+
+    fn compare_distances(max_min: HashMap<&str,f64>) -> f64 {
+        let x_min = max_min.get("x_min").unwrap();
+        let y_min = max_min.get("y_min").unwrap();
+        let x_max = max_min.get("x_max").unwrap();
+        let y_max = max_min.get("y_max").unwrap();
+        let d_x = *x_max-*x_min;
+        let d_y = *y_max-*y_min;
+        if d_x > d_y {
+            d_x
+        } else {
+            d_y
+        }
+
+    }
     
-    fn max_distance(graph: &HashMap<u32,HashMap<u32,u32>>, vertices: &Vec<f64>) -> f64 {
-        // Algorithm to acquire maximum length between vertices of graph
-        let mut distance = 0.0;
-        for index in graph.keys() {
-            // Obtain nodes connected to specified index
-            let nodes_connected_to_index = graph.get(index).unwrap();
-            for i in nodes_connected_to_index.keys() {
-                let beg_index = (3*index) as usize;
-                let beg_i = (3*i) as usize;
-                let node_index = [vertices[beg_index],vertices[beg_index + 1],vertices[beg_index + 2]];
-                let node_i = [vertices[beg_i],vertices[beg_i + 1],vertices[beg_i + 2]];
-                let i_index_distance = Mesh::distance(node_index, node_i);
-                if i_index_distance > distance {
-                    distance = i_index_distance;
-                }
-            }
-        }
-        distance
-    }
-
-    fn distance(point: [f64;3], point2: [f64;3]) -> f64 {
-        let mut d = 0.0;
-        for j in 0..2 {
-            d += (point[j] - point2[j]).powf(2.0);
-        }
-        d.sqrt()
-    }
-
     fn generate_coordinates(file: &File, ignored_coordinate: Option<usize>) -> (Vec<f64>,Vec<u32>,f64) {
-
         // Initial variables
         let mut coordinates: Vec<f64> = Vec::new();
         let mut triangles: Vec<u32> = Vec::new();
-        // Node graph to calculate max distance
-        let mut node_graph: HashMap<u32,HashMap<u32,u32>> = HashMap::new();
-        let reader = BufReader::new(file).lines();
 
-                reader.for_each(|line| {
-                    // Each line we're interested in is either a 'v ' or an 'f '
-                    match line {
-                        Ok(content) => {
-                            // Whenever there is a v
-                            if content.starts_with("v ") {
-                                // Splitting via single space
-                                let mut coordinates_iter = content.split(" ");
-                                // Skip the v
-                                coordinates_iter.next();
-                                // Every coordinate is added. They need to be parsed to f64.
-                                let mut coordinate: Vec<f64> = coordinates_iter.map(|c| c.parse::<f64>().unwrap()).collect();
-                                match ignored_coordinate {
-                                    Some(ic) => {
+        // Coordinates to calculate max length
+        let mut max_min = HashMap::from([
+            ("x_min",0.0),
+            ("y_min",0.0),
+            ("z_min",0.0),
+            ("x_max",0.0),
+            ("y_max",0.0),
+            ("z_max",0.0),
+            ]);
+            let reader = BufReader::new(file).lines();
+            
+            reader.for_each(|line| {
+                // Each line we're interested in is either a 'v ' or an 'f '
+                match line {
+                    Ok(content) => {
+                        // Whenever there is a v
+                        if content.starts_with("v ") {
+                            // Splitting via single space
+                            let mut coordinates_iter = content.split(" ");
+                            // Skip the v
+                            coordinates_iter.next();
+                            // Every coordinate is added. They need to be parsed to f64.
+                            let mut coordinate: Vec<f64> = coordinates_iter.map(|c| c.parse::<f64>().unwrap()).collect();
+                            match ignored_coordinate {
+                                Some(ic) => {
                                         // If there is an ignored coordinate:
                                         coordinate.remove(ic);
                                         // Last coordinate (z) becomes zero
                                         coordinate.push(0.0);
                                     },
-                                    None => {}
+                                    None => {
+                                        let z_min = max_min.get_mut("z_min").unwrap();
+                                        if &coordinate[2] < z_min {
+                                            *z_min = coordinate[2];
+                                        }
+                                        let z_max = max_min.get_mut("z_max").unwrap();
+                                        if &coordinate[2] > z_max {
+                                            *z_max = coordinate[2];
+                                        }
+                                    }
+                                }
+                                let x_min = max_min.get_mut("x_min").unwrap();
+                                if &coordinate[0] < x_min {
+                                    *x_min = coordinate[0];
+                                }
+                                let x_max = max_min.get_mut("x_max").unwrap();
+                                if &coordinate[0] > x_max {
+                                    *x_max = coordinate[0];
+                                }
+                                let y_min = max_min.get_mut("y_min").unwrap();
+                                if &coordinate[1] < y_min {
+                                    *y_min = coordinate[0];
+                                }
+                                let y_max = max_min.get_mut("y_max").unwrap();
+                                if &coordinate[1] < y_max {
+                                    *y_max = coordinate[1];
                                 }
                                 // If 'get_ignored_coordinate' passes (in the case of D2), this unwrap is warranted to succeed.
                                 coordinates.append(&mut coordinate);
@@ -179,29 +204,8 @@ impl Mesh {
                                     let mut vertex: u32 = c.split("/").next().unwrap().parse::<u32>().unwrap();
                                     // Return vertex-1 to match with index start in opengl (not_it/it/not_it)
                                     vertex = vertex-1;
-                                    // Populate node_graph with all nodes
-                                    if !node_graph.contains_key(&vertex) {
-                                        node_graph.insert(vertex,HashMap::new());
-                                    }
                                     vertex
                                 }).collect();
-                                // Update node_graph
-                                let index = &triangle[0];
-                                // Filtering to prevent self-connections
-                                // Only insert new discovered connections
-                                for i in &triangle[1..] {
-                                    // Next line should always work based on line 158
-                                    let nodes_connected_to_i = node_graph.get(i).unwrap();
-                                    let index_connected_to_i = nodes_connected_to_i.contains_key(index);
-                                    // Check if reverse connection exists (directed graph), that way distance is not calculated twice per line
-                                    // Obtain index's underlying HashMap
-                                    // Next line should always work based on line 158
-                                    let nodes_connected_to_index = node_graph.get_mut(index).unwrap();
-                                    // It also checks if connection already existed
-                                    if !nodes_connected_to_index.contains_key(i) && !index_connected_to_i {
-                                        nodes_connected_to_index.insert(*i,*i);
-                                    }
-                                }
                                 // Push into triangles vector of u32
                                 triangles.append(&mut triangle);
                             }
@@ -210,19 +214,19 @@ impl Mesh {
                         Err(error) => panic!("Unable to read file propperly {:?}",error)
                     }
                 });
-        let max_distance = Mesh::max_distance(&node_graph,&coordinates);
-        (coordinates,triangles,max_distance)
-    }
+                let max_distance = Mesh::compare_distances(max_min);
+                (coordinates,triangles,max_distance)
+            }
 
     pub fn setup(&mut self) {
-
+        
         unsafe {
             // Create VAO
             gl::GenVertexArrays(1,&mut self.vao);
             // Bind Vertex Array Object first
             // Since it is bound first, it binds to tthe EBO and VBO (because they are the only ones being bound after it)
             gl::BindVertexArray(self.vao);
-
+            
             // Generates a VBO in GPU
             gl::GenBuffers(1, &mut self.vbo);
             // Generates a EBO in GPU
@@ -234,44 +238,56 @@ impl Mesh {
                 (self.vertices.len() * mem::size_of::<GLdouble>()) as GLsizeiptr,
                 &self.vertices[0] as *const f64 as *const c_void,
                 gl::STATIC_DRAW);// Double casting to raw pointer. Equivalent to C's void type when used as pointer.
-            
-            // Bind EBO
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER,self.ebo);
-            // Point to data, specify data length and hot it should be drawn
-            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
-                (self.triangles.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
-                &self.triangles[0] as *const u32 as *const c_void,
-                gl::STATIC_DRAW);
-
-            // How should coordinates be read.
-            // Reading starts at index 0
-            // Each coordinate is composed of 3 values
-            // No normalized coordinates
-            // The next coordinate is located 3 values after the first index of the previous one
-            // The offset to start reading coordinates (for position it's normally zero. It is used when having texture and/or color coordinates)
-            gl::VertexAttribPointer(0,3,gl::DOUBLE,
-            gl::FALSE,
-            (3*mem::size_of::<GLdouble>()) as GLsizei,
-            ptr::null());
-
-            // Enable vertex atributes giving vertex location (setup in vertex shader).
-            gl::EnableVertexAttribArray(0);
-            // Comment to see the traingles filled instead of only the lines that form them
-            // gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
-        }
-    }
-
-    pub fn draw(&self) {
-        let indices_len: i32 = self.triangles.len() as i32;
-        // Draw only when window is created and inside loop
-        // Drawn as triangles
-        unsafe {
-            gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
+                
+                // Bind EBO
+                gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER,self.ebo);
+                // Point to data, specify data length and hot it should be drawn
+                gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
+                    (self.triangles.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
+                    &self.triangles[0] as *const u32 as *const c_void,
+                    gl::STATIC_DRAW);
+                    
+                    // How should coordinates be read.
+                    // Reading starts at index 0
+                    // Each coordinate is composed of 3 values
+                    // No normalized coordinates
+                    // The next coordinate is located 3 values after the first index of the previous one
+                    // The offset to start reading coordinates (for position it's normally zero. It is used when having texture and/or color coordinates)
+                    gl::VertexAttribPointer(0,3,gl::DOUBLE,
+                        gl::FALSE,
+                        (3*mem::size_of::<GLdouble>()) as GLsizei,
+                        ptr::null());
+                        
+                        // Enable vertex atributes giving vertex location (setup in vertex shader).
+                        gl::EnableVertexAttribArray(0);
+                        // Comment to see the traingles filled instead of only the lines that form them
+                        match self.ignored_coordinate {
+                            Some(_) => {
+                                gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+                            },
+                            None => {
+                                gl::Enable(gl::DEPTH_TEST);
+                            },
+                        }
+                    }
+                }
+                
+                pub fn draw(&self) {
+                    let indices_len: i32 = self.triangles.len() as i32;
+                    // clear depth buffer
+                    
+                    // Draw only when window is created and inside loop
+                    // Drawn as triangles
+                    unsafe {
+                        if let None = self.ignored_coordinate {
+                            gl::Clear(gl::DEPTH_BUFFER_BIT);
+                        }
+                        gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
         }
     }
 }
 
 #[cfg(test)]
 mod test {
-
+    
 }

@@ -3,36 +3,40 @@ use crate::mesh::Mesh;
 
 // Wrapper to convert vector to point when needed
 // Use with caution
-#[derive(Clone)]
-#[derive(Debug)]
-pub struct Vector3D<S> {
-    vector : Vector3<S>
-}
+// #[derive(Clone)]
+// #[derive(Debug)]
+// pub struct Vector3D<S> {
+//     vector : Vector3<S>
+// }
 
-impl<S> Vector3D<S> {
-    pub fn new(x:S,y:S,z:S) -> Self {
-        let vector = Vector3::new(x,y,z);
-        Vector3D { vector }
-    }
-}
+// impl<S> Vector3D<S> {
+//     pub fn new(x:S,y:S,z:S) -> Self {
+//         let vector = Vector3::new(x,y,z);
+//         Vector3D { vector }
+//     }
+// }
 
-impl<S> Into<Point3<S>> for Vector3D<S> {
-    fn into(self) -> Point3<S> {
-        let vec = self.vector;
-        Point3 { x: vec.x, y: vec.y, z: vec.z }
-    }
-}
+// impl<S> Into<Point3<S>> for Vector3D<S> {
+//     fn into(self) -> Point3<S> {
+//         let vec = self.vector;
+//         Point3 { x: vec.x, y: vec.y, z: vec.z }
+//     }
+// }
+
 #[derive(Debug)]
 pub struct Camera {
 
-    pub camera_direction: Vector3D<f32>,
-    pub camera_position: Vector3D<f32>,
-    pub camera_target:  Vector3D<f32>,
-    up_vector: Vector3<f32>,
+    pub camera_direction: Vector3<f32>,
+    pub camera_position: Point3<f32>,
+    pub camera_target:  Point3<f32>,
+    pub view_matrix: Matrix4<f32>,
+    pub projection_matrix: Matrix4<f32>,
+    pub up_vector: Vector3<f32>,
     camera_sensitivity: f32,
     camera_speed: f32,
+    aspect_ratio: f32,
     pitch: f32,
-    near: f32,
+    pub near: f32,
     far: f32,
     fov: f32,
     yaw: f32,
@@ -40,10 +44,13 @@ pub struct Camera {
 
 impl Camera {
 
-    pub fn new(mesh: &Mesh) -> Camera {
+    pub fn new(mesh: &Mesh, height: f32, width: f32) -> Camera {
         // The easier values to obtain from mesh
         // near is obtained from max_length
-        let near: f32 = (mesh.max_length/2.0 - 50.0) as f32;
+        let mut near: f32 = (mesh.max_length * 2.0 - 50.0 ) as f32;
+        if near <= 0.0 {
+            near = 0.1;
+        }
         // far is always 100 away from near
         let far: f32 = near + 100.0;
         // Predetermied values
@@ -55,22 +62,34 @@ impl Camera {
         let pitch: f32 = 0.0;
         // Camera speed starts at 0.5
         let camera_speed: f32 = 0.5;
+        // Camera aspect_ratio
+        let aspect_ratio: f32 = width/height;
         // Camera sensitivity for zoom and change direction starts at 0.1
         let camera_sensitivity: f32 = 0.1;
         // Up vector is always (0,0,1)
-        let up_vector = Vector3::new(0.0,0.0,1.0);
+        let up_vector = Vector3::new(0.0,1.0,0.0);
         // Direction is obtained from yaw and pitch
-        let camera_direction = Vector3D::new(yaw.to_radians().cos()*pitch.to_radians().cos(),
+        let camera_direction = Vector3::new(yaw.to_radians().cos()*pitch.to_radians().cos(),
         pitch.to_radians().sin(),yaw.to_radians().sin()*pitch.to_radians().cos());
         // Starts at near from first proyection plane
-        let camera_position = Vector3D::new(0.0,0.0,near);
+        let camera_position: Point3<f32> = Point3::new(0.0,0.0,(mesh.max_length * 2.0) as f32 );
         // Starts looking at origin of coordinates
-        let camera_target = Vector3D::new(0.0,0.0,0.0);
-        Camera { camera_direction, camera_position, camera_target, up_vector, camera_sensitivity, camera_speed, pitch, near, far, fov, yaw}
+        let camera_target: Point3<f32> = Point3::new(0.0,0.0,0.0);
+        // View and projection matrix
+        // They are closely correlated, that's why they're both in the same structure.
+        let view_matrix = Matrix4::look_at_rh(camera_position, camera_target, up_vector);
+        let projection_matrix = cgmath::perspective(Deg(fov), aspect_ratio, near, far);
+
+        Camera { camera_direction, camera_position, camera_target, up_vector, projection_matrix,
+            view_matrix, camera_sensitivity, camera_speed, aspect_ratio, pitch, near, far, fov, yaw}
     }
 
-    pub fn get_view_matrix(&self) -> Matrix4<f32> {
-        Matrix4::look_at_lh(Point3::new(0.0,0.0,3.0), Point3::new(0.0,0.0,2.0), Vector3::new(0.0,0.0,1.0))
+    pub fn modify_view_matrix(&self) -> Matrix4<f32> {
+        Matrix4::from_translation(Vector3::new(0.0,0.0,0.0))
+    }
+
+    pub fn modfy_projection_matrix(&self) -> Matrix4<f32> {
+        Matrix4::from_translation(Vector3::new(0.0,0.0,0.0))
     }
 
 
