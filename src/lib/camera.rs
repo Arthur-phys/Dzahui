@@ -26,20 +26,24 @@ use crate::mesh::Mesh;
 #[derive(Debug)]
 pub struct Camera {
 
-    pub camera_direction: Vector3<f32>,
-    pub camera_position: Point3<f32>,
-    pub camera_target:  Point3<f32>,
-    pub view_matrix: Matrix4<f32>,
-    pub projection_matrix: Matrix4<f32>,
-    pub up_vector: Vector3<f32>,
-    camera_sensitivity: f32,
-    camera_speed: f32,
-    aspect_ratio: f32,
-    pitch: f32,
-    pub near: f32,
-    far: f32,
-    fov: f32,
-    yaw: f32,
+    pub camera_direction: Vector3<f32>, // Change direction via euler angles without changing target.
+    pub camera_position: Point3<f32>, // Camera position from original coordinate system (world coordinate system).
+    pub camera_target:  Point3<f32>, // Camera target. Normally set to (0,0,0) but could change.
+    pub view_matrix: Matrix4<f32>, // View matrix to change how camera sees objects.
+    pub active_view_change: bool, // Yo know wether we can change view matrix.
+    pub projection_matrix: Matrix4<f32>, // Matrix to see final results in screeen (it's normally a perspective matrix)
+    pub up_vector: Vector3<f32>, // Vector to create a coordinate system for camera relative to it's position (position ends up in (0,0,0))
+    pub camera_sensitivity: f32, // How much should camera get close when zooming
+    pub theta: f32, // y axis - position angle to move camera
+    pub phi: f32, // xz plane- position angle to move camera
+    pub radius: f32, // length of camera position vector
+    camera_speed: f32, // How fast should camera move
+    aspect_ratio: f32, // Screen information to create projection matrix
+    pitch: f32, // Euler angle: To look up and down
+    near: f32, // How close should first plane be to camera for projection matrix
+    far: f32, // How close should second plane be to camera for projection matrix
+    fov: f32, // Angle of view
+    yaw: f32, // Euler angle: to look left or right
 }
 
 impl Camera {
@@ -60,6 +64,16 @@ impl Camera {
         let yaw: f32 = -90.0;
         // Pitch starts starts camera looking straight (not up nor down)
         let pitch: f32 = 0.0;
+        
+        // sphere parametrization for camera position
+        // raidus to make camera move around objective
+        let radius = (mesh.max_length * 2.0) as f32;
+        // angles
+        // y axis - position angle
+        let theta: f32 = 90.0;
+        // zx plane - position angle
+        let phi: f32 = 0.0;
+
         // Camera speed starts at 0.5
         let camera_speed: f32 = 0.5;
         // Camera aspect_ratio
@@ -72,20 +86,23 @@ impl Camera {
         let camera_direction = Vector3::new(yaw.to_radians().cos()*pitch.to_radians().cos(),
         pitch.to_radians().sin(),yaw.to_radians().sin()*pitch.to_radians().cos());
         // Starts at near from first proyection plane
-        let camera_position: Point3<f32> = Point3::new(0.0,0.0,(mesh.max_length * 2.0) as f32 );
+        let camera_position: Point3<f32> = Point3::new(theta.to_radians().sin()*phi.to_radians().sin(),
+            theta.to_radians().cos(),theta.to_radians().sin()*phi.to_radians().cos()) * radius;
         // Starts looking at origin of coordinates
         let camera_target: Point3<f32> = Point3::new(0.0,0.0,0.0);
         // View and projection matrix
         // They are closely correlated, that's why they're both in the same structure.
         let view_matrix = Matrix4::look_at_rh(camera_position, camera_target, up_vector);
         let projection_matrix = cgmath::perspective(Deg(fov), aspect_ratio, near, far);
+        // change view matrix defaults to false
+        let active_view_change = false;
 
-        Camera { camera_direction, camera_position, camera_target, up_vector, projection_matrix,
-            view_matrix, camera_sensitivity, camera_speed, aspect_ratio, pitch, near, far, fov, yaw}
+        Camera { camera_direction, camera_position, camera_target, up_vector, projection_matrix, theta, phi, radius,
+            view_matrix, active_view_change, camera_sensitivity, camera_speed, aspect_ratio, pitch, near, far, fov, yaw}
     }
 
-    pub fn modify_view_matrix(&self) -> Matrix4<f32> {
-        Matrix4::from_translation(Vector3::new(0.0,0.0,0.0))
+    pub fn modify_view_matrix(&mut self) {
+        self.view_matrix = Matrix4::look_at_rh(self.camera_position, self.camera_target, self.up_vector);
     }
 
     pub fn modfy_projection_matrix(&self) -> Matrix4<f32> {
