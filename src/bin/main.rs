@@ -1,26 +1,29 @@
-use dzahui::{DzahuiWindow, Mesh, Dimension, Camera};
-use glutin::{event_loop::{ControlFlow},event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use glutin::event_loop::EventLoop;
+use glutin::{event_loop::{ControlFlow, EventLoop},event::{Event, WindowEvent, DeviceEvent, ElementState}};
 use cgmath::{Matrix4, SquareMatrix, Point3};
-use std::{fs::File};
+use dzahui::{DzahuiWindow, Mesh2D, Camera, Drawable, Binder};
+use std::fs::File;
 use gl;
 
 fn main() {
     // Creating EventLoop
     let event_loop = EventLoop::new();
 
-    // Creating DzahuiWindow
+    // Creating window with predetermined configuration
     let window = DzahuiWindow::new(600,800,(3,3), &event_loop,
     "/home/Arthur/Tesis/Dzahui/assets/vertex_shader.vs","/home/Arthur/Tesis/Dzahui/assets/fragment_shader.fs");
 
     // Creation of Mesh and setup
     let mesh_file = File::open("/home/Arthur/Tesis/Dzahui/assets/untitled.obj").unwrap();
-    let mut mesh = Mesh::new(mesh_file,Dimension::D2);
+    let mut mesh = Mesh2D::new(mesh_file);
+
+    // Creation of binding variables
+    let mut binder = Binder::new(0,0,0);
+
     // translation for mesh to always be near (0,0)
     window.shader.set_mat4("model", &Matrix4::identity());
     println!("{:?}",mesh.model_matrix);
     // Mesh setup. Can only be done once window object has been created. Find a way to relate the two.
-    mesh.setup();
+    mesh.setup(&mut binder);
 
     // Creation of camera. Soon to be not static
     let mut camera = Camera::new(&mesh, 600.0, 800.0);

@@ -1,9 +1,12 @@
 mod camera;
-mod mesh;
 mod shader;
 mod window;
+mod drawable;
+
+
+// Reimports
+pub use self::drawable::{Drawable,mesh2d::Mesh2D, Binder};
 pub use self::window::{DzahuiWindow};
-pub use self::mesh::{Mesh,Dimension};
 pub use self::camera::Camera;
 
 

@@ -1,5 +1,5 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3, Matrix};
-use crate::mesh::Mesh;
+use crate::drawable::mesh2d::Mesh2D;
 
 // Wrapper to convert vector to point when needed
 // Use with caution
@@ -48,7 +48,7 @@ pub struct Camera {
 
 impl Camera {
 
-    pub fn new(mesh: &Mesh, height: f32, width: f32) -> Camera {
+    pub fn new(mesh: &Mesh2D, height: f32, width: f32) -> Camera {
         // The easier values to obtain from mesh
         // near is obtained from max_length
         let mut near: f32 = (mesh.max_length * 2.0 - 50.0 ) as f32;
