@@ -1,7 +1,6 @@
 use glutin::{event_loop::{ControlFlow, EventLoop},event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use cgmath::{Matrix4, SquareMatrix, Point3};
 use dzahui::{DzahuiWindow, Mesh2D, Camera, Drawable, Binder};
-use std::fs::File;
+use cgmath::{Point3};
 use gl;
 
 fn main() {
@@ -13,14 +12,13 @@ fn main() {
     "/home/Arthur/Tesis/Dzahui/assets/vertex_shader.vs","/home/Arthur/Tesis/Dzahui/assets/fragment_shader.fs");
 
     // Creation of Mesh and setup
-    let mesh_file = File::open("/home/Arthur/Tesis/Dzahui/assets/untitled.obj").unwrap();
-    let mut mesh = Mesh2D::new(mesh_file);
+    let mesh = Mesh2D::new("/home/Arthur/Tesis/Dzahui/assets/big_mesh.obj");
 
     // Creation of binding variables
     let mut binder = Binder::new(0,0,0);
 
     // translation for mesh to always be near (0,0)
-    window.shader.set_mat4("model", &Matrix4::identity());
+    window.shader.set_mat4("model", &mesh.model_matrix);
     println!("{:?}",mesh.model_matrix);
     // Mesh setup. Can only be done once window object has been created. Find a way to relate the two.
     mesh.setup(&mut binder);

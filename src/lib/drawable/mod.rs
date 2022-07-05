@@ -1,27 +1,10 @@
-use std::fs::File;
-
 // Common functions in drawable (2D or 3D objects)
+
+use std::{collections::HashMap,ptr,mem,fs::File,os::raw::c_void,io::{BufReader, BufRead, Seek}};
+use gl::{self,types::{GLdouble, GLsizei, GLsizeiptr, GLuint}};
+
 pub mod mesh2d;
 pub mod mesh3d;
-
-// All drawable objects implment a draw and setup function
-pub trait Drawable {
-    fn setup(&self, binder: &mut Binder);
-    fn draw(&self);
-}
-
-// If a drawable can come from a file, then the file needs a certain format
-// Therefore, it needs to be checked
-pub trait FromObj: Drawable {
-    
-    fn check_file(file: &str) {
-        if !file.ends_with(".obj") {
-            panic!("FIle chosen does not match extension allowed");
-        }
-        
-    }
-    fn generate_fields();
-}
 
 // Variables asocciated with GPU and drawable object
 pub struct Binder {
@@ -33,5 +16,215 @@ pub struct Binder {
 impl Binder {
     pub fn new(vbo: u32, vao: u32, ebo: u32) -> Binder {
         Binder { vbo, vao, ebo }
+    }
+}
+
+// All drawable objects implment a draw and setup function
+pub trait Drawable {
+    // Getters
+    fn get_vertices(&self) -> &Vec<f64>;
+    fn get_triangles(&self) -> &Vec<u32>;
+
+    // Needed methods
+    fn setup(&self, binder: &mut Binder) {
+        unsafe {
+            // Create VAO
+            gl::GenVertexArrays(1,&mut binder.vao);
+            // Bind Vertex Array Object first
+            // Since it is bound first, it binds to tthe EBO and VBO (because they are the only ones being bound after it)
+            gl::BindVertexArray(binder.vao);
+            
+            // Generates a VBO in GPU
+            gl::GenBuffers(1, &mut binder.vbo);
+            // Generates a EBO in GPU
+            gl::GenBuffers(1, &mut binder.ebo);
+            // Bind VBO
+            gl::BindBuffer(gl::ARRAY_BUFFER,binder.vbo);
+            // Point to data, specify data length and how it should be drawn (static draw serves to only draw once).
+            gl::BufferData(gl::ARRAY_BUFFER,
+                (self.get_vertices().len() * mem::size_of::<GLdouble>()) as GLsizeiptr,
+                &self.get_vertices()[0] as *const f64 as *const c_void,
+                gl::STATIC_DRAW);// Double casting to raw pointer. Equivalent to C's void type when used as pointer.
+                
+            // Bind EBO
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER,binder.ebo);
+            // Point to data, specify data length and hot it should be drawn
+            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
+                (self.get_triangles().len() * mem::size_of::<GLuint>()) as GLsizeiptr,
+                &self.get_triangles()[0] as *const u32 as *const c_void,
+                gl::STATIC_DRAW);
+                
+            // How should coordinates be read.
+            // Reading starts at index 0
+            // Each coordinate is composed of 3 values
+            // No normalized coordinates
+            // The next coordinate is located 3 values after the first index of the previous one
+            // The offset to start reading coordinates (for position it's normally zero. It is used when having texture and/or color coordinates)
+            gl::VertexAttribPointer(0,3,gl::DOUBLE,
+                gl::FALSE,
+                (3*mem::size_of::<GLdouble>()) as GLsizei,
+                ptr::null());
+                        
+            // Enable vertex atributes giving vertex location (setup in vertex shader).
+            gl::EnableVertexAttribArray(0);
+            // Comment to see the traingles filled instead of only the lines that form them
+            gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+        }
+    }
+
+    fn draw(&self) {
+        let indices_len: i32 = self.get_triangles().len() as i32;
+        // Draw only when window is created and inside loop
+        // Drawn as triangles
+        unsafe {
+            gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
+        }
+    }
+}
+
+// If a drawable can come from a file, then the file needs a certain format
+// Therefore, it needs to be checked
+pub trait FromObj: Drawable {
+
+    fn compare_distances(max_min: &HashMap<&str,f64>) -> f64 {
+        // Gets bigger distance from hashmap with specific entries.
+        let x_min = max_min.get("x_min").unwrap();
+        let y_min = max_min.get("y_min").unwrap();
+        let x_max = max_min.get("x_max").unwrap();
+        let y_max = max_min.get("y_max").unwrap();
+        let d_x = *x_max-*x_min;
+        let d_y = *y_max-*y_min;
+        if d_x > d_y {
+            d_x
+        } else {
+            d_y
+        }
+    }
+
+    fn generate_fields(file: &str, ignored_coordinate: Option<usize>) -> (Vec<f64>,Vec<u32>,f64,[f64;3]) {
+        // Initial variables
+        let mut coordinates: Vec<f64> = Vec::new();
+        let mut triangles: Vec<u32> = Vec::new();
+
+        if !file.ends_with(".obj") {
+            panic!("File chosen does not match extension allowed");
+        }
+        let file = File::open(file).expect("Error while opening file. Does file exists and is readable?");
+
+        // Coordinates to calculate max length and closest element to 0
+        let mut max_min = HashMap::from([
+            ("x_min",0.0),
+            ("y_min",0.0),
+            ("z_min",0.0),
+            ("x_max",0.0),
+            ("y_max",0.0),
+            ("z_max",0.0),
+            ("x_closest",f64::MAX),
+            ("y_closest",f64::MAX),
+            ("z_closest",f64::MAX),
+            ]);
+            let reader = BufReader::new(file).lines();
+            
+        reader.for_each(|line| {
+            // Each line we're interested in is either a 'v ' or an 'f '
+            match line {
+                Ok(content) => {
+                    // Whenever there is a v
+                    if content.starts_with("v ") {
+                        // Splitting via single space
+                        let mut coordinates_iter = content.split(" ");
+                        // Skip the v
+                        coordinates_iter.next();
+                        // Every coordinate is added. They need to be parsed to f64.
+                        let mut coordinate: Vec<f64> = coordinates_iter.map(|c| c.parse::<f64>().unwrap()).collect();
+                        if coordinate.len() != 3 {
+                            panic!("Every line starting with 'v ' should be three elements long")
+                        }
+
+                        // If there is an ignored coordinate:
+                        if let Some(ic) = ignored_coordinate {
+                            coordinate.remove(ic);
+                            // Last coordinate (z) becomes zero
+                            coordinate.push(0.0);
+                        } else {
+                            // Check for z only on 3d
+                            // Chech min and max value
+                            let z_min = max_min.get_mut("z_min").unwrap();
+                            if &coordinate[2] < z_min {
+                                *z_min = coordinate[2];
+                            }
+                            let z_max = max_min.get_mut("z_max").unwrap();
+                            if &coordinate[2] > z_max {
+                                *z_max = coordinate[2];
+                            }
+                            // Check closest vbalue to 0 to translate
+                            let z_closest = max_min.get_mut("z_closest").unwrap();
+                            if &coordinate[2].abs() < z_closest {
+                                *z_closest = coordinate[2].abs();
+                            }
+
+                        }
+                        // Check for min and max
+                        let x_min = max_min.get_mut("x_min").unwrap();
+                        if &coordinate[0] < x_min {
+                            *x_min = coordinate[0];
+                        }
+                        let x_max = max_min.get_mut("x_max").unwrap();
+                        if &coordinate[0] > x_max {
+                            *x_max = coordinate[0];
+                        }
+                        let y_min = max_min.get_mut("y_min").unwrap();
+                        if &coordinate[1] < y_min {
+                            *y_min = coordinate[1];
+                        }
+                        let y_max = max_min.get_mut("y_max").unwrap();
+                        if &coordinate[1] < y_max {
+                            *y_max = coordinate[1];
+                        }
+
+                        // Check for closest value to 0
+                        let x_closest = max_min.get_mut("x_closest").unwrap();
+                        if &coordinate[0].abs() < x_closest {
+                            *x_closest = coordinate[0].abs();
+                        }
+                        let y_closest = max_min.get_mut("y_closest").unwrap();
+                        if &coordinate[1].abs() < y_closest {
+                            *y_closest = coordinate[1].abs();
+                        }
+
+
+                        // If 'get_ignored_coordinate' passes (in the case of D2), this unwrap is warranted to succeed.
+                        coordinates.append(&mut coordinate);
+                    }
+                        // Whenever there is a f
+                        else if content.starts_with("f ") {
+                            // Splitting via single space
+                            let mut triangles_iter = content.split(" ");
+                            // Skip the f
+                            triangles_iter.next();
+                            // Vertices are sepparated via '/'
+                            let mut triangle: Vec<u32> = triangles_iter.map(|c| {
+                                // Do not use unwrap so much
+                                let mut vertex: u32 = c.split("/").next().unwrap().parse::<u32>().unwrap();
+                                // Return vertex-1 to match with index start in opengl (not_it/it/not_it)
+                                vertex = vertex-1;
+                                vertex
+                            }).collect();
+                            // Push into triangles vector of u32
+                            triangles.append(&mut triangle);
+                        }
+                    },
+                // Error case of line matching
+                Err(error) => panic!("Unable to read file propperly {:?}",error)
+            }
+        });
+            
+        let x_closest = *max_min.get("x_closest").unwrap();
+        let y_closest = *max_min.get("y_closest").unwrap();
+        let z_closest = *max_min.get("z_closest").unwrap();
+        
+        let max_distance = Self::compare_distances(&max_min);
+        
+        (coordinates,triangles,max_distance,[x_closest,y_closest,z_closest])
     }
 }
