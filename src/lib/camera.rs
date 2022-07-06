@@ -1,5 +1,5 @@
-use cgmath::{self, Matrix4, Deg, Vector3, Point3, Matrix};
-use crate::drawable::{mesh2d::Mesh2D, FromObj};
+use cgmath::{self, Matrix4, Deg, Vector3, Point3};
+use crate::drawable::FromObj;
 
 // Wrapper to convert vector to point when needed
 // Use with caution
@@ -78,8 +78,8 @@ impl Camera {
         let camera_speed: f32 = 0.5;
         // Camera aspect_ratio
         let aspect_ratio: f32 = width/height;
-        // Camera sensitivity for zoom and change direction starts at 0.1
-        let camera_sensitivity: f32 = 0.1;
+        // Camera sensitivity for zoom and change direction starts at 0.5
+        let camera_sensitivity: f32 = 0.5;
         // Up vector is always (0,0,1)
         let up_vector = Vector3::new(0.0,1.0,0.0);
         // Direction is obtained from yaw and pitch

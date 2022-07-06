@@ -130,6 +130,7 @@ pub trait FromObj: Drawable {
             ("x_closest",f64::MAX),
             ("y_closest",f64::MAX),
             ("z_closest",f64::MAX),
+            ("min_distance", f64::MAX)
             ]);
             let reader = BufReader::new(file).lines();
             
@@ -165,12 +166,6 @@ pub trait FromObj: Drawable {
                             if &coordinate[2] > z_max {
                                 *z_max = coordinate[2];
                             }
-                            // Check closest vbalue to 0 to translate
-                            let z_closest = max_min.get_mut("z_closest").unwrap();
-                            if &coordinate[2].abs() < z_closest {
-                                *z_closest = coordinate[2].abs();
-                            }
-
                         }
                         // Check for min and max
                         let x_min = max_min.get_mut("x_min").unwrap();
@@ -191,15 +186,19 @@ pub trait FromObj: Drawable {
                         }
 
                         // Check for closest value to 0
-                        let x_closest = max_min.get_mut("x_closest").unwrap();
-                        if &coordinate[0].abs() < x_closest {
-                            *x_closest = coordinate[0].abs();
+                        let min_distance = max_min.get_mut("min_distance").unwrap();
+                        let new_distance = coordinate[0].powf(2.0) + coordinate[1].powf(2.0) + coordinate[2].powf(2.0);
+                        let new_distance = new_distance.sqrt();
+                        
+                        if new_distance < *min_distance {
+                            *min_distance = new_distance;
+                            let x_closest = max_min.get_mut("x_closest").unwrap();
+                            *x_closest = coordinate[0];
+                            let y_closest = max_min.get_mut("y_closest").unwrap();
+                            *y_closest = coordinate[1];
+                            let z_closest = max_min.get_mut("z_closest").unwrap();
+                            *z_closest = coordinate[2];
                         }
-                        let y_closest = max_min.get_mut("y_closest").unwrap();
-                        if &coordinate[1].abs() < y_closest {
-                            *y_closest = coordinate[1].abs();
-                        }
-
 
                         // If 'get_ignored_coordinate' passes (in the case of D2), this unwrap is warranted to succeed.
                         coordinates.append(&mut coordinate);

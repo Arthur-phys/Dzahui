@@ -1,6 +1,6 @@
 use glutin::{event_loop::{ControlFlow, EventLoop},event::{Event, WindowEvent, DeviceEvent, ElementState}};
 use dzahui::{DzahuiWindow, Mesh2D, Mesh3D, Camera, Drawable, Binder};
-use cgmath::{Point3};
+use cgmath::{Point3, Matrix4, SquareMatrix};
 use gl;
 
 fn main() {
@@ -18,7 +18,7 @@ fn main() {
     let mut binder = Binder::new(0,0,0);
 
     // translation for mesh to always be near (0,0)
-    window.shader.set_mat4("model", &mesh.model_matrix);
+    window.shader.set_mat4("model", &Matrix4::identity());
     println!("{:?}",mesh.model_matrix);
     // Mesh setup. Can only be done once window object has been created. Find a way to relate the two.
     mesh.setup(&mut binder);
@@ -76,14 +76,14 @@ fn main() {
                         if camera.active_view_change {
                             let x_offset = (x as f32) * camera.camera_sensitivity;
                             let y_offset = (y as f32) * camera.camera_sensitivity;
-                            camera.theta += y_offset;
-                            camera.phi += x_offset;
+                            camera.theta -= y_offset;
+                            camera.phi -= x_offset;
                             
                             // Do not allow 0 (or 180) degree angle (coincides with y-axis)
                             if camera.theta < 1.0 {
                                 camera.theta = 1.0;
-                            } else if camera.theta < -179.0 {
-                                camera.theta = -179.0;
+                            } else if camera.theta > 179.0 {
+                                camera.theta = 179.0;
                             }
     
                             // update position
