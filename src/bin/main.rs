@@ -1,5 +1,5 @@
 use glutin::{event_loop::{ControlFlow, EventLoop},event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use dzahui::{DzahuiWindow, Mesh2D, Camera, Drawable, Binder};
+use dzahui::{DzahuiWindow, Mesh2D, Mesh3D, Camera, Drawable, Binder};
 use cgmath::{Point3};
 use gl;
 
@@ -12,7 +12,7 @@ fn main() {
     "/home/Arthur/Tesis/Dzahui/assets/vertex_shader.vs","/home/Arthur/Tesis/Dzahui/assets/fragment_shader.fs");
 
     // Creation of Mesh and setup
-    let mesh = Mesh2D::new("/home/Arthur/Tesis/Dzahui/assets/big_mesh.obj");
+    let mesh = Mesh3D::new("/home/Arthur/Tesis/Dzahui/assets/3dmesh.obj");
 
     // Creation of binding variables
     let mut binder = Binder::new(0,0,0);

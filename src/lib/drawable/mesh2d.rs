@@ -1,4 +1,4 @@
-use std::{fs::File,io::{BufReader, BufRead, Seek}};
+use std::{fs::File,io::{BufReader, BufRead}};
 use std::collections::HashMap;
 use cgmath::{Matrix4, Vector3};
 use super::{Drawable, FromObj};
@@ -21,6 +21,10 @@ impl Drawable for Mesh2D {
 
     fn get_vertices(&self) -> &Vec<f64> {
         &self.vertices
+    }
+
+    fn get_max_length(&self) -> f64 {
+        self.max_length
     }
 }
 

@@ -24,6 +24,7 @@ pub trait Drawable {
     // Getters
     fn get_vertices(&self) -> &Vec<f64>;
     fn get_triangles(&self) -> &Vec<u32>;
+    fn get_max_length(&self) -> f64;
 
     // Needed methods
     fn setup(&self, binder: &mut Binder) {
@@ -90,14 +91,21 @@ pub trait FromObj: Drawable {
         // Gets bigger distance from hashmap with specific entries.
         let x_min = max_min.get("x_min").unwrap();
         let y_min = max_min.get("y_min").unwrap();
+        let z_min = max_min.get("z_min").unwrap();
         let x_max = max_min.get("x_max").unwrap();
         let y_max = max_min.get("y_max").unwrap();
+        let z_max = max_min.get("z_max").unwrap();
+        
         let d_x = *x_max-*x_min;
         let d_y = *y_max-*y_min;
-        if d_x > d_y {
+        let d_z = *z_max-*z_min;
+
+        if d_x >= d_y && d_x >= d_z {
             d_x
-        } else {
+        } else if d_y >= d_z && d_y >= d_x {
             d_y
+        } else {
+            d_z
         }
     }
 
@@ -204,7 +212,7 @@ pub trait FromObj: Drawable {
                             triangles_iter.next();
                             // Vertices are sepparated via '/'
                             let mut triangle: Vec<u32> = triangles_iter.map(|c| {
-                                // Do not use unwrap so much
+                                // There's no checking the line goes like 'f 1/2/2/ 1/1/1/ 2/3/2/'
                                 let mut vertex: u32 = c.split("/").next().unwrap().parse::<u32>().unwrap();
                                 // Return vertex-1 to match with index start in opengl (not_it/it/not_it)
                                 vertex = vertex-1;

@@ -1,5 +1,5 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3, Matrix};
-use crate::drawable::mesh2d::Mesh2D;
+use crate::drawable::{mesh2d::Mesh2D, FromObj};
 
 // Wrapper to convert vector to point when needed
 // Use with caution
@@ -48,10 +48,10 @@ pub struct Camera {
 
 impl Camera {
 
-    pub fn new(mesh: &Mesh2D, height: f32, width: f32) -> Camera {
+    pub fn new<A: FromObj>(mesh: &A, height: f32, width: f32) -> Camera {
         // The easier values to obtain from mesh
         // near is obtained from max_length
-        let mut near: f32 = (mesh.max_length * 2.0 - 50.0 ) as f32;
+        let mut near: f32 = (mesh.get_max_length() * 2.0 - 50.0 ) as f32;
         if near <= 0.0 {
             near = 0.1;
         }
@@ -67,7 +67,7 @@ impl Camera {
         
         // sphere parametrization for camera position
         // raidus to make camera move around objective
-        let radius = (mesh.max_length * 2.0) as f32;
+        let radius = (mesh.get_max_length() * 2.0) as f32;
         // angles
         // y axis - position angle
         let theta: f32 = 90.0;
