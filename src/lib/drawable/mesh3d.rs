@@ -33,7 +33,7 @@ impl Mesh3D {
             &file, None);
 
         let model_matrix = Matrix4::from_translation(Vector3::new(closest_point[0] as f32,
-            closest_point[1] as f32,0.0));
+            closest_point[1] as f32,closest_point[2] as f32));
 
         Mesh3D {
             vertices,

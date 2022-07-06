@@ -12,7 +12,7 @@ fn main() {
     "/home/Arthur/Tesis/Dzahui/assets/vertex_shader.vs","/home/Arthur/Tesis/Dzahui/assets/fragment_shader.fs");
 
     // Creation of Mesh and setup
-    let mesh = Mesh3D::new("/home/Arthur/Tesis/Dzahui/assets/3dmesh.obj");
+    let mesh = Mesh3D::new("/home/Arthur/Tesis/Dzahui/assets/cube.obj");
 
     // Creation of binding variables
     let mut binder = Binder::new(0,0,0);
