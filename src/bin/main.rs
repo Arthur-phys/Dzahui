@@ -1,5 +1,5 @@
 use glutin::{event_loop::{ControlFlow, EventLoop},event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use dzahui::{DzahuiWindow, Mesh2D, Mesh3D, Camera, Drawable, Binder};
+use dzahui::{DzahuiWindow, Mesh2D, Mesh3D, Camera, Drawable, Binder, HighlightableVertices};
 use cgmath::{Point3, Matrix4, SquareMatrix};
 use gl;
 
@@ -12,21 +12,25 @@ fn main() {
     "/home/Arthur/Tesis/Dzahui/assets/vertex_shader.vs","/home/Arthur/Tesis/Dzahui/assets/fragment_shader.fs");
 
     // Creation of Mesh and setup
-    let mesh = Mesh3D::new("/home/Arthur/Tesis/Dzahui/assets/cube.obj");
+    let mesh = Mesh2D::new("/home/Arthur/Tesis/Dzahui/assets/untitled.obj");
+    // Creating temporary spheres
+    let spheres = mesh.create_highlightable_vertices(0.06,"/home/Arthur/Tesis/Dzahui/assets/sphere.obj");
 
     // Creation of binding variables
-    let mut binder = Binder::new(0,0,0);
+    let mut binder_mesh = Binder::new(0,0,0);
+    let mut binder_spheres = Binder::new(1,1,1);
 
     // translation for mesh to always be near (0,0)
     window.shader.set_mat4("model", &Matrix4::identity());
-    println!("{:?}",mesh.model_matrix);
-    // Mesh setup. Can only be done once window object has been created. Find a way to relate the two.
-    mesh.setup(&mut binder);
 
-    // Creation of camera. Soon to be not static
+    // Mesh setup. Can only be done once window object has been created. Find a way to relate the two.
+    mesh.setup(&mut binder_mesh);
+    // Spheres setup
+    spheres.setup(&mut binder_spheres);
+
+    // Creation of camera
     let mut camera = Camera::new(&mesh, 600.0, 800.0);
-    println!("{:?}",camera.view_matrix);
-    println!("{:?}",camera.projection_matrix);
+
     window.shader.set_mat4("view", &camera.view_matrix);
     window.shader.set_mat4("projection", &camera.projection_matrix);
 
@@ -111,10 +115,12 @@ fn main() {
             gl::ClearColor(0.33, 0.33, 0.33, 0.8);
             // Clear Screem
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            // send new view matrix
-            window.shader.set_mat4("view", &camera.view_matrix);
+            // Draw sphere(s)
+            spheres.draw_list(&window, &binder_spheres);
+            // set camera
+            camera.position_camera(&window);
             // Draw triangles via ebo (indices)
-            mesh.draw();
+            mesh.draw(&window, &binder_mesh);
         }
         // Need to change old and new buffer to redraw
         window.context.swap_buffers().unwrap();

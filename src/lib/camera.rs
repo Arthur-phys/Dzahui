@@ -1,5 +1,5 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3};
-use crate::drawable::FromObj;
+use crate::{drawable::Drawable, DzahuiWindow};
 
 // Wrapper to convert vector to point when needed
 // Use with caution
@@ -48,7 +48,7 @@ pub struct Camera {
 
 impl Camera {
 
-    pub fn new<A: FromObj>(mesh: &A, height: f32, width: f32) -> Camera {
+    pub fn new<A: Drawable>(mesh: &A, height: f32, width: f32) -> Camera {
         // The easier values to obtain from mesh
         // near is obtained from max_length
         let mut near: f32 = (mesh.get_max_length() * 2.0 - 50.0 ) as f32;
@@ -107,6 +107,11 @@ impl Camera {
 
     pub fn modfy_projection_matrix(&self) -> Matrix4<f32> {
         Matrix4::from_translation(Vector3::new(0.0,0.0,0.0))
+    }
+
+    pub fn position_camera(&self, window: &DzahuiWindow) {
+        // send new view matrix
+        window.shader.set_mat4("view", &self.view_matrix);
     }
 
 

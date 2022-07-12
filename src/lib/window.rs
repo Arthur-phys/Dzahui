@@ -9,6 +9,8 @@ pub struct DzahuiWindow {
     pub context: ContextWrapper<PossiblyCurrent,Window>, // Only one instance should be active at once
     pub timer: Instant,  // Timer for window
     pub shader: Shader, // Indicates the vertex and fragment shaders to compile and run
+    pub height: i32,
+    pub width: i32,
 }
 
 impl DzahuiWindow {
@@ -49,7 +51,7 @@ impl DzahuiWindow {
         // Start clock for delta time
         let timer = Instant::now();
 
-        DzahuiWindow { context, gl_version, timer, shader}
+        DzahuiWindow { context, gl_version, timer, shader, height, width}
     }
 
     // Grab cursor if needed to stop it from going outside the window

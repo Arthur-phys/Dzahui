@@ -1,5 +1,5 @@
 use cgmath::{Matrix4, Vector3};
-use super::{Drawable, FromObj};
+use super::{Drawable, FromObj, HighlightableVertices};
 
 pub struct Mesh3D {
     pub vertices: Vec<f64>, // Vertices in 3d space (normally used in triads, but that's specified in the gl configuration)
@@ -24,6 +24,7 @@ impl Drawable for Mesh3D {
 }
 
 impl FromObj for Mesh3D {}
+impl HighlightableVertices for Mesh3D {}
 
 impl Mesh3D {
     // New implementation differs in 3d and 2d because in one there has to be an ignored coordinate

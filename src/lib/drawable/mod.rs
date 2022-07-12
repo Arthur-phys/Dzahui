@@ -1,10 +1,13 @@
 // Common functions in drawable (2D or 3D objects)
 
-use std::{collections::HashMap,ptr,mem,fs::File,os::raw::c_void,io::{BufReader, BufRead, Seek}};
+use std::{collections::HashMap,ptr,mem,fs::File,os::raw::c_void,io::{BufReader, BufRead}};
 use gl::{self,types::{GLdouble, GLsizei, GLsizeiptr, GLuint}};
+use cgmath::{Matrix4,SquareMatrix, Vector3};
+use crate::{DzahuiWindow, SphereList};
 
 pub mod mesh2d;
 pub mod mesh3d;
+pub mod sphere;
 
 // Variables asocciated with GPU and drawable object
 pub struct Binder {
@@ -19,7 +22,20 @@ impl Binder {
     }
 }
 
-// All drawable objects implment a draw and setup function
+pub trait HighlightableVertices: Drawable {
+
+    fn create_highlightable_vertices(&self, radius: f32, file: &str) -> SphereList {
+    
+        let vertices = self.get_vertices();
+        let centers: Vec<Vector3<f32>> = (0..vertices.len()).step_by(3).map(|i| {
+            Vector3::new(vertices[i] as f32,vertices[i+1] as f32,vertices[i+2] as f32)
+        }).collect();
+
+        SphereList::new(centers,radius, file)
+        
+    }
+}
+// All drawable objects implement a draw and setup function
 pub trait Drawable {
     // Getters
     fn get_vertices(&self) -> &Vec<f64>;
@@ -28,6 +44,10 @@ pub trait Drawable {
 
     // Needed methods
     fn setup(&self, binder: &mut Binder) {
+
+        let vertices = self.get_vertices();
+        let triangles = self.get_triangles();
+
         unsafe {
             // Create VAO
             gl::GenVertexArrays(1,&mut binder.vao);
@@ -43,16 +63,16 @@ pub trait Drawable {
             gl::BindBuffer(gl::ARRAY_BUFFER,binder.vbo);
             // Point to data, specify data length and how it should be drawn (static draw serves to only draw once).
             gl::BufferData(gl::ARRAY_BUFFER,
-                (self.get_vertices().len() * mem::size_of::<GLdouble>()) as GLsizeiptr,
-                &self.get_vertices()[0] as *const f64 as *const c_void,
+                (vertices.len() * mem::size_of::<GLdouble>()) as GLsizeiptr,
+                &vertices[0] as *const f64 as *const c_void,
                 gl::STATIC_DRAW);// Double casting to raw pointer. Equivalent to C's void type when used as pointer.
                 
             // Bind EBO
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER,binder.ebo);
             // Point to data, specify data length and hot it should be drawn
             gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
-                (self.get_triangles().len() * mem::size_of::<GLuint>()) as GLsizeiptr,
-                &self.get_triangles()[0] as *const u32 as *const c_void,
+                (triangles.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
+                &triangles[0] as *const u32 as *const c_void,
                 gl::STATIC_DRAW);
                 
             // How should coordinates be read.
@@ -73,11 +93,16 @@ pub trait Drawable {
         }
     }
 
-    fn draw(&self) {
+    fn draw(&self, window: &DzahuiWindow, binder: &Binder) {
         let indices_len: i32 = self.get_triangles().len() as i32;
+        // use mesh model matrix
+        window.shader.set_mat4("model", &Matrix4::identity());
         // Draw only when window is created and inside loop
         // Drawn as triangles
         unsafe {
+            // Bind mesh array
+            gl::BindVertexArray(binder.vao);
+            // Draw
             gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
         }
     }
@@ -85,7 +110,7 @@ pub trait Drawable {
 
 // If a drawable can come from a file, then the file needs a certain format
 // Therefore, it needs to be checked
-pub trait FromObj: Drawable {
+pub trait FromObj {
 
     fn compare_distances(max_min: &HashMap<&str,f64>) -> f64 {
         // Gets bigger distance from hashmap with specific entries.

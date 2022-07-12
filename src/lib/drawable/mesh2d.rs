@@ -1,7 +1,7 @@
 use std::{fs::File,io::{BufReader, BufRead}};
 use std::collections::HashMap;
 use cgmath::{Matrix4, Vector3};
-use super::{Drawable, FromObj};
+use super::{Drawable, FromObj, HighlightableVertices};
 
 // Mesh should work for 2d and 3d
 // Contains vertices and indices to generate triangles via gl
@@ -29,6 +29,7 @@ impl Drawable for Mesh2D {
 }
 
 impl FromObj for Mesh2D {}
+impl HighlightableVertices for Mesh2D {}
 
 
 impl Mesh2D {
