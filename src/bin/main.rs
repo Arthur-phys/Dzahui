@@ -14,7 +14,7 @@ fn main() {
     // Creation of Mesh and setup
     let mesh = Mesh2D::new("/home/Arthur/Tesis/Dzahui/assets/test.obj");
     // Creating temporary spheres
-    let spheres = SphereList::new(vec![Vector3::new(0.0,0.0,0.0),Vector3::new(1.0,0.0,0.0)],0.06,"/home/Arthur/Tesis/Dzahui/assets/sphere.obj");//mesh.create_highlightable_vertices(0.06,"/home/Arthur/Tesis/Dzahui/assets/sphere.obj");
+    let spheres = mesh.create_highlightable_vertices(0.06,"/home/Arthur/Tesis/Dzahui/assets/sphere.obj");
 
     // Creation of binding variables
     let mut binder_mesh = Binder::new(0,0,0);
@@ -51,7 +51,7 @@ fn main() {
 
                 // When cursor is moved, create new cone to select objects
                 WindowEvent::CursorMoved { device_id, position, .. } => {
-                    objectSelector = Cone::from_mouse_position(0.001, Point2::new(position.x,position.y), &camera, &window);
+                    objectSelector = Cone::from_mouse_position(13.0, Point2::new(position.x,position.y), &camera, &window);
                     println!("{:?}",objectSelector);
                 },
                 
@@ -82,7 +82,7 @@ fn main() {
                             },
                             1 => {
                                 if let ElementState::Pressed = state {
-                                    let selected_sphere = objectSelector.obtain_nearest_intersection(&spheres.spheres);
+                                    let selected_sphere = objectSelector.obtain_nearest_intersection(&spheres.spheres, &camera);
                                     println!("{:?}",selected_sphere);
                                 }
                             }

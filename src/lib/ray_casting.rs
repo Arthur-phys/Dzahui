@@ -28,18 +28,25 @@ impl Cone {
         Cone { anchorage_point, angle }
     }
 
-    pub fn obtain_nearest_intersection(&self, spheres: &Vec<Sphere>) -> (f32,usize) {
+    pub fn obtain_nearest_intersection(&self, spheres: &Vec<Sphere>, camera: &Camera) -> (f32,usize) {
         // Filter objects to only those that are partially or completelly inside cone
         let filtered_objects: Vec<&Sphere> = spheres.iter().filter(|sphere| {
-            let z = sphere.center.z;
-            let x = sphere.center.x;
-            let y = sphere.center.y;
-
+            let view_center = sphere.get_view_center(&camera);
+            let x = view_center.x;
+            let y = view_center.y;
+            let z = view_center.z;
+            println!("{:?}",view_center);
             // filters
             let mut is_z_in_range = z + sphere.radius < self.anchorage_point.z;
             is_z_in_range = is_z_in_range && z > self.anchorage_point.z - 100.0;
-            let is_x_y_smaller = (x.powf(2.0) + y.powf(2.0))*self.angle.cos().powf(2.0) <= z.powf(2.0)*self.angle.sin().powf(2.0);
-            is_z_in_range && is_x_y_smaller
+            println!("z is in range: {}",is_z_in_range);
+            let circle_first_part = (self.anchorage_point.x - x).powf(2.0) + (self.anchorage_point.y - y).powf(2.0);
+            let circle_second_part = (z-self.anchorage_point.z).abs().powf(2.0)*self.angle.to_radians().tan().powf(2.0);
+            println!("inside circle given by z and angle theta: {} <= {}",circle_first_part,circle_second_part);
+            let circle_ineq = circle_first_part <= circle_second_part;
+            println!("\nis inside circle: {}\n",circle_ineq);
+            
+            is_z_in_range && circle_ineq
         }).collect();
 
         // Obtain sphere closest to anchorage point

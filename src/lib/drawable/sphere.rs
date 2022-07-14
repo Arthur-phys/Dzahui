@@ -1,5 +1,5 @@
-use crate::{Drawable, FromObj, DzahuiWindow, Binder};
-use cgmath::{Vector3, Matrix4};
+use crate::{Drawable, FromObj, DzahuiWindow, Binder, Camera};
+use cgmath::{Vector3, Matrix4, Point3, Vector4};
 use std::ptr;
 
 #[derive(Debug)]
@@ -20,6 +20,11 @@ impl Sphere {
 
     pub fn get_scale_matrix(&self) -> Matrix4<f32> {
         Matrix4::from_scale(self.radius)
+    }
+
+    pub fn get_view_center(&self, camera: &Camera) -> Vector3<f32> {
+        let view_center = camera.view_matrix * Vector4::new(self.center.x,self.center.y,self.center.z,1.0);
+        Vector3::new(view_center.x,view_center.y,view_center.z)
     }
 }
 
