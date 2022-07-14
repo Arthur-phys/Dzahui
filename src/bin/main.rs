@@ -1,6 +1,6 @@
 use glutin::{event_loop::{ControlFlow, EventLoop},event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use dzahui::{DzahuiWindow, Mesh2D, Mesh3D, Camera, Drawable, Binder, HighlightableVertices};
-use cgmath::{Point3, Matrix4, SquareMatrix};
+use dzahui::{DzahuiWindow, Mesh2D, Mesh3D, Camera, Drawable, Binder, HighlightableVertices, Cone, SphereList};
+use cgmath::{Point3, Matrix4, SquareMatrix, Point2, Vector3};
 use gl;
 
 fn main() {
@@ -12,9 +12,9 @@ fn main() {
     "/home/Arthur/Tesis/Dzahui/assets/vertex_shader.vs","/home/Arthur/Tesis/Dzahui/assets/fragment_shader.fs");
 
     // Creation of Mesh and setup
-    let mesh = Mesh2D::new("/home/Arthur/Tesis/Dzahui/assets/untitled.obj");
+    let mesh = Mesh2D::new("/home/Arthur/Tesis/Dzahui/assets/test.obj");
     // Creating temporary spheres
-    let spheres = mesh.create_highlightable_vertices(0.06,"/home/Arthur/Tesis/Dzahui/assets/sphere.obj");
+    let spheres = SphereList::new(vec![Vector3::new(0.0,0.0,0.0),Vector3::new(1.0,0.0,0.0)],0.06,"/home/Arthur/Tesis/Dzahui/assets/sphere.obj");//mesh.create_highlightable_vertices(0.06,"/home/Arthur/Tesis/Dzahui/assets/sphere.obj");
 
     // Creation of binding variables
     let mut binder_mesh = Binder::new(0,0,0);
@@ -30,6 +30,10 @@ fn main() {
 
     // Creation of camera
     let mut camera = Camera::new(&mesh, 600.0, 800.0);
+    println!("{:?}",camera);
+
+    // ray casting cone
+    let mut objectSelector = Cone::new(Point3::new(0.0,0.0,0.0),0.1);
 
     window.shader.set_mat4("view", &camera.view_matrix);
     window.shader.set_mat4("projection", &camera.projection_matrix);
@@ -44,6 +48,12 @@ fn main() {
                 WindowEvent::Resized(physical_size) => window.context.resize(physical_size),
                 
                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+
+                // When cursor is moved, create new cone to select objects
+                WindowEvent::CursorMoved { device_id, position, .. } => {
+                    objectSelector = Cone::from_mouse_position(0.001, Point2::new(position.x,position.y), &camera, &window);
+                    println!("{:?}",objectSelector);
+                },
                 
                 // Close on esc
                 WindowEvent::KeyboardInput {input, is_synthetic, ..} => {
@@ -57,7 +67,6 @@ fn main() {
             
             Event::DeviceEvent { device_id, event } => {
                 match event {
-                    
                     // to activate moving camera
                     DeviceEvent::Button { button, state } => {
                         match button {
@@ -71,6 +80,12 @@ fn main() {
                                     }
                                 }
                             },
+                            1 => {
+                                if let ElementState::Pressed = state {
+                                    let selected_sphere = objectSelector.obtain_nearest_intersection(&spheres.spheres);
+                                    println!("{:?}",selected_sphere);
+                                }
+                            }
                             _ => {}
                         }
                     },
@@ -116,7 +131,7 @@ fn main() {
             // Clear Screem
             gl::Clear(gl::COLOR_BUFFER_BIT);
             // Draw sphere(s)
-            spheres.draw_list(&window, &binder_spheres);
+            spheres.draw(&window, &binder_spheres);
             // set camera
             camera.position_camera(&window);
             // Draw triangles via ebo (indices)

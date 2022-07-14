@@ -40,8 +40,8 @@ pub struct Camera {
     camera_speed: f32, // How fast should camera move
     aspect_ratio: f32, // Screen information to create projection matrix
     pitch: f32, // Euler angle: To look up and down
-    near: f32, // How close should first plane be to camera for projection matrix
-    far: f32, // How close should second plane be to camera for projection matrix
+    pub near: f32, // How close should first plane be to camera for projection matrix
+    pub far: f32, // How close should second plane be to camera for projection matrix
     fov: f32, // Angle of view
     yaw: f32, // Euler angle: to look left or right
 }

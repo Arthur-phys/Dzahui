@@ -31,7 +31,7 @@ pub trait HighlightableVertices: Drawable {
             Vector3::new(vertices[i] as f32,vertices[i+1] as f32,vertices[i+2] as f32)
         }).collect();
 
-        SphereList::new(centers,radius, file)
+        SphereList::new(centers, radius, file)
         
     }
 }
