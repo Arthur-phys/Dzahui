@@ -51,7 +51,7 @@ impl DzahuiWindow {
         // Start clock for delta time
         let timer = Instant::now();
 
-        DzahuiWindow { context, gl_version, timer, shader, height, width}
+        DzahuiWindow { context, gl_version, timer, shader, height, width }
     }
 
     // Grab cursor if needed to stop it from going outside the window

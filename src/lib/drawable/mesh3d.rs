@@ -29,6 +29,8 @@ impl HighlightableVertices for Mesh3D {}
 impl Mesh3D {
     // New implementation differs in 3d and 2d because in one there has to be an ignored coordinate
     pub fn new(file: &str) -> Mesh3D {
+        // Check obj integrity
+        Self::check_obj(file);
         // Obtained coordinates from 'generate_coordinates()' function
         let (vertices, triangles, max_length, closest_point) = Mesh3D::generate_fields(
             &file, None);

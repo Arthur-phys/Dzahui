@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use cgmath::{Matrix4, Vector3};
 use super::{Drawable, FromObj, HighlightableVertices};
 
-// Mesh should work for 2d and 3d
 // Contains vertices and indices to generate triangles via gl
 pub struct Mesh2D {
     pub vertices: Vec<f64>, // Vertices in 3d space (normally used in triads, but that's specified in the gl configuration)
@@ -28,20 +27,23 @@ impl Drawable for Mesh2D {
     }
 }
 
+// Generate mesh from .obj file
 impl FromObj for Mesh2D {}
+// Generate spheres to identify vertices of mesh
 impl HighlightableVertices for Mesh2D {}
 
 
 impl Mesh2D {
-    // New implementation differs in 3d and 2d because in one there has to be an ignored coordinate
+    // New implementation differs in 3d and 2d because in one there has to be an ignored coordinate.
     pub fn new(file: &str) -> Mesh2D {
         // First the integrity of .obj file is checked
         let ignored_coordinate = Mesh2D::get_ignored_coordinate(file);
 
-        // Obtained coordinates from 'generate_coordinates()' function
+        // Obtained coordinates from 'generate_fields()' function
         let (vertices, triangles, max_length, closest_point) = Mesh2D::generate_fields(
             &file, Some(ignored_coordinate));
 
+        // Translate matrix to given point
         let model_matrix = Matrix4::from_translation(Vector3::new(closest_point[0] as f32,
             closest_point[1] as f32,0.0));
 
@@ -54,11 +56,9 @@ impl Mesh2D {
         }
     }
 
-    
     pub fn get_ignored_coordinate(file: &str) -> usize {
-        if !file.ends_with(".obj") {
-            panic!("File chosen does not match extension allowed")
-        }
+        // Obtain unused coordinate index from .obj file.
+        
         let file = File::open(file).expect("Error while opening the file. Does the file exists and is readdable?");
         // Sets to check which one has only one element (i.e. which one should be ignored)
         // To implement set from list, use HashMap for better performance.

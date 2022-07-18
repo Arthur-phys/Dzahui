@@ -1,5 +1,5 @@
 use glutin::{event_loop::{ControlFlow, EventLoop},event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use dzahui::{DzahuiWindow, Mesh2D, Mesh3D, Camera, Drawable, Binder, HighlightableVertices, Cone, SphereList};
+use dzahui::{DzahuiWindow, Mesh2D, Mesh3D, Camera, Drawable, Binder, HighlightableVertices, Cone};
 use cgmath::{Point3, Matrix4, SquareMatrix, Point2, Vector3};
 use gl;
 
@@ -12,16 +12,16 @@ fn main() {
     "/home/Arthur/Tesis/Dzahui/assets/vertex_shader.vs","/home/Arthur/Tesis/Dzahui/assets/fragment_shader.fs");
 
     // Creation of Mesh and setup
-    let mesh = Mesh2D::new("/home/Arthur/Tesis/Dzahui/assets/test.obj");
+    let mesh = Mesh2D::new("/home/Arthur/Tesis/Dzahui/assets/big_mesh.obj");
     // Creating temporary spheres
-    let spheres = mesh.create_highlightable_vertices(0.06,"/home/Arthur/Tesis/Dzahui/assets/sphere.obj");
+    let spheres = mesh.create_highlightable_vertices(0.6,"/home/Arthur/Tesis/Dzahui/assets/sphere.obj");
 
     // Creation of binding variables
     let mut binder_mesh = Binder::new(0,0,0);
     let mut binder_spheres = Binder::new(1,1,1);
 
     // translation for mesh to always be near (0,0)
-    window.shader.set_mat4("model", &Matrix4::identity());
+    window.shader.set_mat4("model", &mesh.model_matrix);
 
     // Mesh setup. Can only be done once window object has been created. Find a way to relate the two.
     mesh.setup(&mut binder_mesh);
@@ -30,10 +30,9 @@ fn main() {
 
     // Creation of camera
     let mut camera = Camera::new(&mesh, 600.0, 800.0);
-    println!("{:?}",camera);
 
     // ray casting cone
-    let mut objectSelector = Cone::new(Point3::new(0.0,0.0,0.0),0.1);
+    let mut cone_sphere_selector = Cone::new(Point3::new(0.0,0.0,0.0),Vector3::new(0.0,0.0,1.0),0.1);
 
     window.shader.set_mat4("view", &camera.view_matrix);
     window.shader.set_mat4("projection", &camera.projection_matrix);
@@ -51,8 +50,7 @@ fn main() {
 
                 // When cursor is moved, create new cone to select objects
                 WindowEvent::CursorMoved { device_id, position, .. } => {
-                    objectSelector = Cone::from_mouse_position(13.0, Point2::new(position.x,position.y), &camera, &window);
-                    println!("{:?}",objectSelector);
+                    cone_sphere_selector = Cone::from_mouse_position(1.0, Point2::new(position.x,position.y), &camera, &window);
                 },
                 
                 // Close on esc
@@ -82,7 +80,7 @@ fn main() {
                             },
                             1 => {
                                 if let ElementState::Pressed = state {
-                                    let selected_sphere = objectSelector.obtain_nearest_intersection(&spheres.spheres, &camera);
+                                    let selected_sphere = cone_sphere_selector.obtain_nearest_intersection(&spheres.spheres, &camera);
                                     println!("{:?}",selected_sphere);
                                 }
                             }
