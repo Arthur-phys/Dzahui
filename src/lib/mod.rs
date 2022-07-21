@@ -4,6 +4,7 @@ mod window;
 mod drawable;
 mod euler;
 mod ray_casting;
+mod text;
 
 // Reimports
 pub use self::drawable::{Drawable, FromObj, mesh2d::Mesh2D, mesh3d::Mesh3D, Binder, sphere::SphereList, HighlightableVertices};

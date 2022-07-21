@@ -10,7 +10,7 @@ pub struct Cone {
 impl Cone {
     pub fn new(anchorage_point: Point3<f32>, direction: Vector3<f32>, angle: f32) -> Cone {
         let direction = direction.normalize();
-        Cone { anchorage_point, direction, angle}
+        Cone { anchorage_point, direction, angle }
     }
 
     pub fn from_mouse_position(angle: f32, mouse_coordinates: Point2<f64>, camera: &Camera, window: &DzahuiWindow) -> Cone {
