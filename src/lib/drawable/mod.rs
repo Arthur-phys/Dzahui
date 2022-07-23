@@ -8,6 +8,7 @@ use crate::{DzahuiWindow, SphereList};
 pub mod mesh2d;
 pub mod mesh3d;
 pub mod sphere;
+pub mod text;
 
 // Variables asocciated with GPU and drawable object(s)
 pub struct Binder {
@@ -35,6 +36,7 @@ pub trait HighlightableVertices: Drawable {
         
     }
 }
+
 // All drawable objects implement a draw and setup function
 pub trait Drawable {
     // Getters
