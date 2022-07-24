@@ -54,7 +54,7 @@ pub trait Drawable {
             // Create VAO
             gl::GenVertexArrays(1,&mut binder.vao);
             // Bind Vertex Array Object first
-            // Since it is bound first, it binds to tthe EBO and VBO (because they are the only ones being bound after it)
+            // Since it is bound first, it binds to the EBO and VBO (because they are the only ones being bound after it)
             gl::BindVertexArray(binder.vao);
             
             // Generates a VBO in GPU

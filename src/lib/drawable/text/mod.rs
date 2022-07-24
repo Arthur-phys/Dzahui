@@ -148,7 +148,7 @@ impl CharacterSet {
          }
     }
 
-    fn draw_text<A: AsRef<str>>(&self, text: A, binder: &Binder, window: &DzahuiWindow) {
+    fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> (Vec<f32>,Vec<u32>) {
         // Split text into chars. Should be feasible given the fact that we only operate with the alphabet, numbers and some special symbols such as '?','!'
         // Range of utf-8 values: 0,2^21 (given that there are at most 11 bits of metadata in a 4 byte sequence)
         let text_vec: Vec<char> = text.as_ref().chars().collect();
@@ -180,35 +180,40 @@ impl CharacterSet {
                         height,
                         0.0,
                         // Texture
-                        character.origin.0,
-                        character.origin.1,
+                        (character.origin.0)/(self.texture_size.0 as f32),
+                        1.0 - (character.origin.1)/(self.texture_size.1 as f32),
                         // Second point
                         // Coordinate
                         width,
                         height,
                         0.0,
                         // Texture
-                        character.origin.0 + character.size.0,
-                        character.origin.1,
+                        (character.origin.0 + character.size.0)/(self.texture_size.0 as f32),
+                        1.0 - (character.origin.1)/(self.texture_size.1 as f32),
                         // Third point
                         // Coordinate
                         width,
                         0.0,
                         0.0,
                         // Texture
-                        
+                        (character.origin.0 + character.size.0)/(self.texture_size.0 as f32),
+                        1.0 - (character.origin.1 + character.size.1)/(self.texture_size.1 as f32),
                         // Fourth point
+                        // Coordinate
                         width - character.size.0,
                         0.0, // y always starts on 0.0
                         0.0, // z will always be 0.0 initially
+                        // Texture
+                        (character.origin.0)/(self.texture_size.0 as f32),
+                        1.0 - (character.origin.1 + character.size.1)/(self.texture_size.1 as f32),
                     ];
                     let mut new_indices: Vec<u32> = vec![
                         // First index is the one passed from last iteration.
-                        // There are four indices total
-                        last_index,
-                        last_index + 1,
-                        last_index + 2,
-                        last_index + 3,
+                        // There are six indices total
+                        // First triangle
+                        last_index, last_index + 1, last_index + 2,
+                        // Second triangle
+                        last_index + 2, last_index + 3, last_index
                     ];
 
                     vertices.append(&mut new_vertices);
@@ -219,6 +224,7 @@ impl CharacterSet {
                 None => panic!("Character {} does not exist on CharacterSet",character_string)
             }
         });
+        (vertices,indices)
     }
 
 }
@@ -226,14 +232,19 @@ impl CharacterSet {
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
+    use crate::Binder;
+
     use super::{CharacterSet, Character};
     
     #[test]
     fn read_properly() {
         let set = CharacterSet::new("./assets/dzahui-font_test.fnt");
-        println!("{:?}",set);
         let should_be_set = CharacterSet {
-            characters: HashMap::from([(' ',Character::new(32, (0.0,0.0), (0.0,0.0), (5.0,18.0)))]),
+            characters: HashMap::from([
+                ('{', Character::new(123,(0.0,0.0),(21.0,61.0),(1.0,13.0))),
+                (' ',Character::new(32, (0.0,0.0), (0.0,0.0), (5.0,18.0))),
+                ('a',Character::new(97, (211.0,153.0), (35.0,37.0), (2.0,25.0))),
+            ]),
             font_type: "Liberation Sans".to_string(),
             font_size: 12,
             is_italic: false,
@@ -242,8 +253,17 @@ mod test {
             encoding: "unicode".to_string(),
             texture_file: "dzahui-font.png".to_string(),
             texture_size: (640, 394),
-            character_number: 1
+            character_number: 3
         };
         assert!( set == should_be_set );
+    }
+
+    #[test]
+    fn test_vertices_content() {
+        let set = CharacterSet::new("./assets/dzahui-font_test.fnt");
+        let (vertices, indices) = set.get_vertices_from_text("{a{{{a");
+        // number os squares (quads) should be 6, equal to the number of chars in text
+        assert!( indices.len()/6 == 6 );
+        assert!( vertices.len()/20 == 6 );
     }
 }
