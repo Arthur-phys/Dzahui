@@ -1,5 +1,5 @@
 use std::{fs::File,collections::HashMap,io::{BufReader, BufRead}};
-use crate::{Binder, DzahuiWindow};
+use crate::{Binder, DzahuiWindow, shader::Shader};
 
 #[derive(Debug)]
 struct Character {
@@ -44,6 +44,7 @@ struct CharacterSet {
     character_number: usize,
     texture_file: String,
     texture_size: (u32,u32), // Pixels
+    text_shader: Shader,
 }
 
 impl CharacterSet {
@@ -134,6 +135,7 @@ impl CharacterSet {
         Self { 
             font_type,
             characters,
+            text_shader: Shader {id: 0}, // Dummy shader to be set later
             font_size: property_map_one.remove("size").expect("Size parameter not found").parse().unwrap(),
             is_bold: property_map_one.get("bold").expect("Bold parameter not found") == "1",
             is_italic: property_map_one.get("bold").expect("Bold parameter not found") == "1",
@@ -227,18 +229,22 @@ impl CharacterSet {
         (vertices,indices)
     }
 
+    pub fn draw_text<A: AsRef<str>>(&self, text: A) {
+
+    }
+
 }
 
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
-    use crate::Binder;
+    use crate::{Binder, shader::Shader};
 
     use super::{CharacterSet, Character};
     
     #[test]
     fn read_properly() {
-        let set = CharacterSet::new("./assets/dzahui-font_test.fnt");
+        let mut set = CharacterSet::new("./assets/dzahui-font_test.fnt");
         let should_be_set = CharacterSet {
             characters: HashMap::from([
                 ('{', Character::new(123,(0.0,0.0),(21.0,61.0),(1.0,13.0))),
@@ -253,7 +259,8 @@ mod test {
             encoding: "unicode".to_string(),
             texture_file: "dzahui-font.png".to_string(),
             texture_size: (640, 394),
-            character_number: 3
+            character_number: 3,
+            text_shader: Shader {id:0}
         };
         assert!( set == should_be_set );
     }

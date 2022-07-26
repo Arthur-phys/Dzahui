@@ -1,5 +1,5 @@
 use cgmath::{Vector3, Vector4, Point3, Point2, Transform, Matrix4, InnerSpace};
-use crate::{Camera, DzahuiWindow, drawable::sphere::Sphere};
+use crate::{Camera, DzahuiWindow, drawable::mesh::sphere::Sphere};
 #[derive(Debug)]
 pub struct Cone {
     anchorage_point: Point3<f32>,

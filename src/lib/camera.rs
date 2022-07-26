@@ -1,27 +1,5 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3};
-use crate::{drawable::Drawable, DzahuiWindow};
-
-// Wrapper to convert vector to point when needed
-// Use with caution
-// #[derive(Clone)]
-// #[derive(Debug)]
-// pub struct Vector3D<S> {
-//     vector : Vector3<S>
-// }
-
-// impl<S> Vector3D<S> {
-//     pub fn new(x:S,y:S,z:S) -> Self {
-//         let vector = Vector3::new(x,y,z);
-//         Vector3D { vector }
-//     }
-// }
-
-// impl<S> Into<Point3<S>> for Vector3D<S> {
-//     fn into(self) -> Point3<S> {
-//         let vec = self.vector;
-//         Point3 { x: vec.x, y: vec.y, z: vec.z }
-//     }
-// }
+use crate::{drawable::Drawable, DzahuiWindow, HighlightableVertices};
 
 #[derive(Debug)]
 pub struct Camera {
@@ -48,7 +26,7 @@ pub struct Camera {
 
 impl Camera {
 
-    pub fn new<A: Drawable>(mesh: &A, height: f32, width: f32) -> Camera {
+    pub fn new(mesh: &Box<dyn HighlightableVertices>, height: f32, width: f32) -> Camera {
         // The easier values to obtain from mesh
         // near is obtained from max_length
         let mut near: f32 = (mesh.get_max_length() * 2.0 - 50.0 ) as f32;
@@ -111,7 +89,7 @@ impl Camera {
 
     pub fn position_camera(&self, window: &DzahuiWindow) {
         // send new view matrix
-        window.shader.set_mat4("view", &self.view_matrix);
+        window.geometry_shader.set_mat4("view", &self.view_matrix);
     }
 
 

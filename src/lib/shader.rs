@@ -4,15 +4,16 @@ use gl::types::{GLint};
 use std::io::Read;
 use gl;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Shader {
     pub id: u32,
 }
 
 impl Shader {
-    pub fn new(vertex_path: &str, fragment_path: &str) -> Self {
+    pub fn new(vertex_path: impl AsRef<str>, fragment_path: impl AsRef<str>) -> Self {
         // opening files
-        let mut vertex_shader = File::open(vertex_path).expect("Unable to open the requested file for vertex shader.");
-        let mut fragment_shader = File::open(fragment_path).expect("Unable to open the requested file for fragment shader.");
+        let mut vertex_shader = File::open(vertex_path.as_ref()).expect("Unable to open the requested file for vertex shader.");
+        let mut fragment_shader = File::open(fragment_path.as_ref()).expect("Unable to open the requested file for fragment shader.");
         // reading files
         let mut vertex_shader_read = String::new();
         let mut fragment_shader_read = String::new();

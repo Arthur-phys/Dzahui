@@ -1,5 +1,6 @@
 use crate::{Drawable, FromObj, DzahuiWindow, Binder, Camera};
-use cgmath::{Vector3, Matrix4, Point3, Vector4};
+use cgmath::{Vector3, Matrix4, Vector4};
+use num::Float;
 use std::ptr;
 
 #[derive(Debug)]
@@ -30,38 +31,47 @@ impl Sphere {
 
 pub struct SphereList {
     // List of spheres
-    pub spheres: Vec<Sphere>,
+    pub(crate) spheres: Vec<Sphere>,
     // only one radius
     radius: f32,
     // Store spheres' render information here
-    vertices: Vec<f64>,
+    vertices: Vec<f32>,
     triangles: Vec<u32>,
     // to scale sphere to radius given
-    pub scale_matrix: Matrix4<f32>
+    pub(crate) scale_matrix: Matrix4<f32>,
+    binder: Binder
 }
 
 impl Drawable for SphereList {
+    
     fn get_triangles(&self) -> &Vec<u32> {
         &self.triangles
     }
-    fn get_vertices(&self) -> &Vec<f64> {
+
+    fn get_vertices(&self) -> &Vec<f32> {
         &self.vertices
     }
-    fn get_max_length(&self) -> f64 {
-        (self.radius * 2.0) as f64
+
+    fn get_max_length(&self) -> f32 {
+        (self.radius * 2.0)
     }
-    fn draw(&self, window: &DzahuiWindow, binder: &Binder) {
+
+    fn get_binder(&self) -> &Binder {
+        &self.binder
+    }
+
+    fn draw(&self, window: &DzahuiWindow) {
         let indices_len: i32 = self.get_triangles().len() as i32;
         // Draw only when window is created and inside loop
         // Drawn as triangles
         unsafe {
-            gl::BindVertexArray(binder.vao);
+            gl::BindVertexArray(self.get_binder().vao);
             
             for sphere in &self.spheres {
                 // Obtaining final model matrix: translate + scale
                 let model_mat = self.get_translation_matrix_from_id(sphere.id) * self.scale_matrix;
                 // Sending to shader
-                window.shader.set_mat4("model", &model_mat);
+                window.geometry_shader.set_mat4("model", &model_mat);
                 // Drawing
                 gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
             }
@@ -82,7 +92,17 @@ impl SphereList {
         None);
         let scale_matrix = Matrix4::from_scale(radius);
 
-        SphereList {spheres, radius, vertices, triangles, scale_matrix}
+        let mut binder = Binder::new();
+        binder.setup();
+
+        SphereList {
+            spheres,
+            binder,
+            radius,
+            vertices,
+            triangles,
+            scale_matrix
+        }
     }
 
     pub fn get_translation_matrix_from_id(&self, id: usize) -> Matrix4<f32> {
