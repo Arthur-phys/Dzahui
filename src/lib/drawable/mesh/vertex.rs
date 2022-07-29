@@ -19,7 +19,7 @@ pub struct Vertex {
 
 impl Vertex {
     /// Creates new instance of Vertex.
-    pub fn new(center: Vector3<f32>, radius: f32, id: usize) -> Self {
+    pub fn new(center: Vector3<f32>, id: usize) -> Self {
         Vertex {
             center,
             id
@@ -103,7 +103,7 @@ impl VertexList {
     pub fn new(centers: Vec<Vector3<f32>>, size: f32, file: &str) -> Self {
 
         let list_of_vertices: Vec<Vertex> = centers.into_iter().enumerate().map(|(id,center)| {
-            Vertex::new(center,size,id)
+            Vertex::new(center,id)
         }).collect();
 
         let (vertices, triangles, ..) = VertexList::generate_fields(file,

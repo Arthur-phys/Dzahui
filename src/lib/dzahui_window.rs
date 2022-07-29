@@ -18,7 +18,6 @@ use glutin::{
     event::{Event, WindowEvent, DeviceEvent, ElementState}};
 use crate::{
     shader::Shader,
-    MeshDimension,
     Camera,
     Cone,
     Drawable,
@@ -72,7 +71,6 @@ pub struct DzahuiWindowBuilder<A, B, C, D, E,F>
     {
     geometry_vertex_shader: Option<A>,
     geometry_fragment_shader: Option<B>,
-    mesh_dimension: MeshDimension,
     text_vertex_shader: Option<C>,
     text_fragment_shader: Option<D>,
     camera: CameraBuilder,
@@ -95,7 +93,6 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         Self {
             geometry_vertex_shader: None,
             geometry_fragment_shader: None,
-            mesh_dimension: MeshDimension::Two,
             text_vertex_shader: None,
             text_fragment_shader: None,
             opengl_version: Some((3,3)),
@@ -179,7 +176,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             ..self
         }
     }
-    /// Changes vertex body (figure drawn at each vertex).
+    /// Changes vertices' body (figure drawn at each vertex).
     pub fn with_vertex_body(self, vertex_body: E) -> Self {
         Self {
             mesh: self.mesh.with_vertex_body(vertex_body),
@@ -189,7 +186,14 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
     /// Changes mesh dimension (originally in 2D)
     pub fn with_mesh_in_3d(self) -> Self {
         Self {
-            mesh_dimension: MeshDimension::Three,
+            mesh: self.mesh.with_mesh_in_3d(),
+            ..self
+        }
+    }
+    /// Changes vertices' body size
+    pub fn with_vertex_body_size(self, size: f32) -> Self {
+        Self {
+            mesh: self.mesh.with_size(size),
             ..self
         }
     }
@@ -276,10 +280,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         
         // Start clock for delta time
         let timer = Instant::now();
-        
-        // DEBUG
-        println!("\n Llego aquí con total normalidad (280) \n");
-        // DEBUG
+
         DzahuiWindow {
             context,
             timer,

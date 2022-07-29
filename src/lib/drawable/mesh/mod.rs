@@ -46,6 +46,7 @@ pub struct MeshBuilder<A: AsRef<str>, B: AsRef<str>> {
     location: B,
     dimension: MeshDimension, 
     vertex_body: Option<A>,
+    size: Option<f32>
 }
 
 impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
@@ -55,7 +56,8 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
         Self {
             location,
             dimension: MeshDimension::Two,
-            vertex_body: None
+            vertex_body: None,
+            size: None
         }
     }
     /// Obtains new vertex body to draw.
@@ -68,11 +70,17 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
     /// Changes mesh dimension.
     pub fn with_mesh_in_3d(self) -> Self {
         Self {
-            dimension: MeshDimension::Two,
+            dimension: MeshDimension::Three,
             ..self
         }
     }
-
+    /// Change size.
+    pub fn with_size(self, size: f32) -> Self {
+        Self {
+            size: Some(size),
+            ..self
+        }
+    }
     /// # General Information
     /// 
     /// ddd
@@ -100,7 +108,8 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
     /// 
     pub fn build(self) -> Mesh {
 
-        let vertex_body_file = if let Some(vertex_body_file) = self.vertex_body { vertex_body_file.as_ref().to_string() } else { "./assets/sphere.obj".to_string() };
+        let vertex_body_file = if let Some(vertex_body_file) = self.vertex_body { vertex_body_file.as_ref().to_string() } else 
+        { "./assets/sphere.obj".to_string() };
         let mut ignored_coordinate = None;
 
         let (vertices, triangles, max_length, closest_point) = match self.dimension {
@@ -131,8 +140,9 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
         binder.setup();
 
         // Selectable vertices
-        let vertices_len = vertices.len();
-        let selectable_vertices = Self::create_highlightable_vertices(&vertices, max_length/(vertices_len as f32),
+        let size = if let Some(size) = self.size { size } else { max_length/(vertices.len() as f32) };
+
+        let selectable_vertices = Self::create_highlightable_vertices(&vertices, size,
             vertex_body_file.as_str());
         
 
