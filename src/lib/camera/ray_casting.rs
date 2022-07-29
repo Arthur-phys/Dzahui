@@ -1,5 +1,6 @@
 use cgmath::{Vector3, Vector4, Point3, Point2, Transform, Matrix4, InnerSpace};
-use crate::{Camera, DzahuiWindow, drawable::mesh::sphere::Sphere};
+use crate::{Camera, DzahuiWindow, drawable::mesh::vertex::Vertex};
+
 #[derive(Debug)]
 pub struct Cone {
     anchorage_point: Point3<f32>,
@@ -43,9 +44,9 @@ impl Cone {
         Cone {anchorage_point, direction, angle}
     }
 
-    pub fn obtain_nearest_intersection(&self, spheres: &Vec<Sphere>, camera: &Camera) -> Option<(f32,usize)> {
+    pub fn obtain_nearest_intersection(&self, spheres: &Vec<Vertex>, camera: &Camera) -> Option<(f32,usize)> {
         // Filter objects to only those that are partially or completelly inside cone
-        let filtered_objects: Vec<&Sphere> = spheres.iter().filter(|sphere| {
+        let filtered_objects: Vec<&Vertex> = spheres.iter().filter(|sphere| {
             let view_center = sphere.get_view_center(&camera);
             let x = view_center.x;
             let y = view_center.y;

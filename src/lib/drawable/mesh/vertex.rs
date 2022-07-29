@@ -3,16 +3,19 @@ use cgmath::{Vector3, Matrix4, Vector4};
 use num::Float;
 use std::ptr;
 
+/// # General Information
+/// 
+/// C
 #[derive(Debug)]
-pub struct Sphere {
+pub struct Vertex {
     pub center: Vector3<f32>,
     pub radius: f32,
     pub id: usize
 }
 
-impl Sphere {
+impl Vertex {
     pub fn new(center: Vector3<f32>, radius: f32, id: usize) -> Self {
-        Sphere {center, radius, id}
+        Vertex {center, radius, id}
     }
 
     pub fn get_translation_matrix(&self) -> Matrix4<f32> {
@@ -31,7 +34,7 @@ impl Sphere {
 
 pub struct SphereList {
     // List of spheres
-    pub(crate) spheres: Vec<Sphere>,
+    pub(crate) spheres: Vec<Vertex>,
     // only one radius
     radius: f32,
     // Store spheres' render information here
@@ -84,8 +87,8 @@ impl FromObj for SphereList {}
 impl SphereList {
     pub fn new(centers: Vec<Vector3<f32>>, radius: f32, file: &str) -> Self {
 
-        let spheres: Vec<Sphere> = centers.into_iter().enumerate().map(|(id,center)| {
-            Sphere::new(center,radius,id)
+        let spheres: Vec<Vertex> = centers.into_iter().enumerate().map(|(id,center)| {
+            Vertex::new(center,radius,id)
         }).collect();
 
         let (vertices, triangles, ..) = SphereList::generate_fields(file,

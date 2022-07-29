@@ -1,10 +1,56 @@
 pub mod mesh_2d;
 pub mod mesh_3d;
-pub mod sphere;
+pub mod vertex;
 
 use super::Drawable;
-use sphere::SphereList;
+use vertex::SphereList;
 use cgmath::{Vector3, Matrix4};
+
+/// # General Information
+/// 
+/// Needed elements to create mesh (2D or 3D). Provides option to personalize vertices.
+/// 
+/// # Fields
+/// 
+/// * `location` - Path to mesh's `.obj`.
+/// * `dimension` - Enum with mesh's dimension. Needs to be set to enable/disable checkoing for repeated coordinate in `.obj` if it's 2D.
+/// * `vertex_body` - Allows vertex personalization if set.
+/// 
+pub struct MeshBuilder<A: AsRef<str>, B: AsRef<str>> {
+    location: A,
+    dimension: MeshDimension,
+    vertex_body: Option<B>
+}
+
+impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
+    
+    /// Creates default instance.
+    fn new(location: A, dimension: MeshDimension) -> Self {
+        Self {
+            location,
+            dimension,
+            vertex_body: None
+        }
+    }
+    /// Obtains new vertex body to draw
+    fn with_vertex_body(self, vertex_body: B) -> Self {
+        Self {
+            vertex_body: Some(vertex_body),
+            ..self
+        }
+    }
+    /// # General Information
+    /// 
+    /// ddd
+    /// 
+    /// # Parameters
+    /// 
+    /// ddd
+    /// 
+    fn build(self) -> Box<dyn HighlightableVertices> {
+
+    }
+}
 
 pub trait HighlightableVertices: Drawable {
 
@@ -30,7 +76,7 @@ pub trait HighlightableVertices: Drawable {
 /// 
 /// * `Two` - Plane figure. Additional check-up to confirm property will be applied simplifying final mesh.
 ///  * `Three` - 3D Body. No check-ups are done. Results depend solely on user's .obj
-pub enum MeshDimension<A: AsRef<str>> {
-    Two(A),
-    Three(A)
+pub enum MeshDimension {
+    Two,
+    Three
 }

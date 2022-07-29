@@ -6,7 +6,7 @@ use crate::HighlightableVertices;
 
 /// # General Information
 /// 
-/// Representation of a plane figure. Contains information to draw it to screen and move/rotate it to final position
+/// Representation of a plane figure. Contains information to draw to screen and move/rotate it to final position.
 /// 
 /// # Fields
 /// 
