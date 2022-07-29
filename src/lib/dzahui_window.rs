@@ -342,30 +342,14 @@ impl DzahuiWindow {
     /// * `mesh` - A file to draw a mesh from.
     /// 
     pub fn run(mut self) {
-        
-        // DEBUG
-        println!("\n Llego aquí con total normalidad (346) \n");
-        // DEBUG
 
         // Obtaining Event Loop is necessary since `event_loop.run()` consumes it alongside window if let inside struct instance.
         let event_loop = Option::take(&mut self.event_loop).unwrap();
 
         self.mesh.send_to_gpu();
 
-        // DEBUG
-        println!("\n Llego aquí con total normalidad (354). mesh: {:?}\n",self.mesh);
-        // DEBUG
-
-        // DEBUG
-        println!("\n Llego aquí con total normalidad (354) \n");
-        // DEBUG
-
         // Send ui vertices
         self.mesh.selectable_vertices.send_to_gpu();
-
-        // DEBUG
-        println!("\n Llego aquí con total normalidad (367) \n");
-        // DEBUG
 
         // COPYING LITERALLY EVERYTHING FROM MAIN. REFACTOR LATER
         // Use geometry shader
