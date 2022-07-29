@@ -25,7 +25,7 @@ use crate::{
     Camera,
     Cone,
     Drawable,
-    CameraBuilder};
+    CameraBuilder, drawable::mesh::MeshBuilder};
 
 /// # General Information
 /// 
@@ -65,27 +65,32 @@ pub struct DzahuiWindow {
 /// * `width` - Width of window. Defaults to 800 px.
 /// 
 #[derive(Default, Debug)]
-pub struct DzahuiWindowBuilder<A, B, C, D>
+pub struct DzahuiWindowBuilder<A, B, C, D, E, F>
     where A: AsRef<str>,
           B: AsRef<str>,
           C: AsRef<str>,
-          D: AsRef<str>
+          D: AsRef<str>,
+          E: AsRef<str>,
+          F: AsRef<str>,
     {
     geometry_vertex_shader: Option<A>,
     geometry_fragment_shader: Option<B>,
     text_vertex_shader: Option<C>,
     text_fragment_shader: Option<D>,
     camera: CameraBuilder,
+    mesh: MeshBuilder<E,F>,
     opengl_version: Option<(u8,u8)>,
     height: Option<u32>,
     width: Option<u32>
 }
 
-impl<A,B,C,D> DzahuiWindowBuilder<A,B,C,D>
+impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
     where A: AsRef<str>,
           B: AsRef<str>,
           C: AsRef<str>,
-          D: AsRef<str>
+          D: AsRef<str>,
+          E: AsRef<str>,
+          F: AsRef<str>,
     {
     /// Creates default instance.
     fn new() -> Self {
@@ -195,7 +200,7 @@ impl<A,B,C,D> DzahuiWindowBuilder<A,B,C,D>
     /// 
     /// * `self` - All configuration required is within self. Default shaders are hardcoded in here.
     /// 
-    pub fn build<E: AsRef<str>>(self, mesh: MeshDimension<E>) -> DzahuiWindow {
+    pub fn build(self) -> DzahuiWindow {
         
         let window_builder = WindowBuilder::new().
             with_title("Dzahui").

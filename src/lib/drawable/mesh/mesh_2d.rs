@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use cgmath::{Matrix4, Vector3};
 use super::super::{Drawable, from_obj::FromObj, Binder};
 use crate::HighlightableVertices;
+use super::VertexList;
 
 /// # General Information
 /// 
@@ -15,15 +16,16 @@ use crate::HighlightableVertices;
 /// * `ignored_coordinate` - 2D Mesh should ignore one entry: The one which is the same in all of .obj vertex specification.
 /// * `max_length` - Maximum length of figure. Used to center camera arround mesh.
 /// * `model_matrix` - Translates and rotates object to final world position.
-/// * `binder` - vao, vbo and ebo GPU variables bound to mesh drawable in GPU.
+/// * `binder` - vao, vbo and ebo variables bound to mesh drawable in GPU.
 /// 
 pub struct Mesh2D {
+    binder: Binder,
+    selectable_vertices: VertexList,
     pub vertices: Vec<f32>,
     pub triangles: Vec<u32>, 
     pub ignored_coordinate: usize,
     pub max_length: f32,
     pub model_matrix: Matrix4<f32>,
-    binder: Binder,
 }
 
 impl Drawable for Mesh2D {
@@ -55,7 +57,6 @@ impl HighlightableVertices for Mesh2D {
     }
     
 }
-
 
 impl Mesh2D {
 

@@ -3,8 +3,10 @@ pub mod mesh_3d;
 pub mod vertex;
 
 use super::Drawable;
-use vertex::SphereList;
+use vertex::VertexList;
 use cgmath::{Vector3, Matrix4};
+use mesh_2d::Mesh2D;
+use mesh_3d::Mesh3D;
 
 /// # General Information
 /// 
@@ -48,20 +50,26 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
     /// ddd
     /// 
     fn build(self) -> Box<dyn HighlightableVertices> {
-
+        
+        // Creating mesh placed in box to accept both Mesh2D and Mesh3D
+        let mesh: Box<dyn HighlightableVertices> = match self.dimension {
+            MeshDimension::Two => Box::new(Mesh2D::new(self.location)),
+            MeshDimension::Three => Box::new(Mesh3D::new(self.location))
+        };
+        mesh
     }
 }
 
 pub trait HighlightableVertices: Drawable {
 
-    fn create_highlightable_vertices(&self, radius: f32, file: &str) -> SphereList {
+    fn create_highlightable_vertices(&self, radius: f32, file: &str) -> VertexList {
     
         let vertices = self.get_vertices();
         let centers: Vec<Vector3<f32>> = (0..vertices.len()).step_by(3).map(|i| {
             Vector3::new(vertices[i] as f32,vertices[i+1] as f32,vertices[i+2] as f32)
         }).collect();
 
-        SphereList::new(centers, radius, file) 
+        VertexList::new(centers, radius, file) 
     }
 
     /// Obtains model matrix for a drawable object. Getter
