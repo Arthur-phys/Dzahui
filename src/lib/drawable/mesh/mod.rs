@@ -21,7 +21,7 @@ use vertex::VertexList;
 /// 
 pub struct Mesh {
     binder: Binder,
-    selectable_vertices: VertexList,
+    pub selectable_vertices: VertexList,
     dimension: MeshDimension,
     pub vertices: Vec<f32>,
     pub triangles: Vec<u32>, 
@@ -39,7 +39,8 @@ pub struct Mesh {
 /// * `location` - Path to mesh's `.obj`.
 /// * `dimension` - Enum with mesh's dimension. Needs to be set to enable/disable checkoing for repeated coordinate in `.obj` if it's 2D.
 /// * `vertex_body` - Allows vertex personalization if set.
-/// 
+///
+#[derive(Debug)]
 pub struct MeshBuilder<A: AsRef<str>, B: AsRef<str>> {
     location: B,
     dimension: MeshDimension, 
@@ -243,6 +244,7 @@ impl Mesh {
 /// 
 /// * `Two` - Plane figure. Additional check-up to confirm property will be applied simplifying final mesh.
 ///  * `Three` - 3D Body. No check-ups are done. Results depend solely on user's .obj
+#[derive(Debug)]
 pub enum MeshDimension {
     Two,
     Three

@@ -1,5 +1,5 @@
-use crate::{Drawable, FromObj, DzahuiWindow, Binder};
-use cgmath::{Vector3, Matrix4};
+use crate::{Drawable, FromObj, DzahuiWindow, Binder, Camera};
+use cgmath::{Vector3, Matrix4, Vector4};
 use std::ptr;
 
 /// # General Information
@@ -28,6 +28,11 @@ impl Vertex {
     /// Matrix to translate vertex to a given location (normally determined by a mesh instance).
     pub fn get_translation_matrix(&self) -> Matrix4<f32> {
         Matrix4::from_translation(self.center.clone())
+    }
+    /// Obtain center coordinates as viewed from camera
+    pub fn get_view_center(&self, camera: &Camera) -> Vector3<f32> {
+        let view_center = camera.view_matrix * Vector4::new(self.center.x,self.center.y,self.center.z,1.0);
+        Vector3::new(view_center.x,view_center.y,view_center.z)
     }
 }
 

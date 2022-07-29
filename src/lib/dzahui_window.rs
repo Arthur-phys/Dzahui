@@ -61,7 +61,7 @@ pub struct DzahuiWindow {
 /// * `height` - Height of window. Defaults to 600 px.
 /// * `width` - Width of window. Defaults to 800 px.
 /// 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct DzahuiWindowBuilder<A, B, C, D, E,F>
     where A: AsRef<str>,
           B: AsRef<str>,
@@ -91,7 +91,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
           F: AsRef<str>,
     {
     /// Creates default instance.
-    fn new() -> Self {
+    fn new(location: F) -> Self {
         Self {
             geometry_vertex_shader: None,
             geometry_fragment_shader: None,
@@ -100,7 +100,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             text_fragment_shader: None,
             opengl_version: Some((3,3)),
             camera: Camera::builder(),
-            mesh: MeshBuilder::new(),
+            mesh: Mesh::builder(location),
             height: Some(600),
             width: Some(800)
         }
@@ -293,7 +293,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
 
 impl DzahuiWindow {
 
-    pub fn builder<A,B,C,D,E,F>() -> DzahuiWindowBuilder<A,B,C,D,E,F> where 
+    pub fn builder<A,B,C,D,E,F>(location: F) -> DzahuiWindowBuilder<A,B,C,D,E,F> where 
     A: AsRef<str>,
     B: AsRef<str>,
     C: AsRef<str>,
@@ -301,7 +301,7 @@ impl DzahuiWindow {
     E: AsRef<str>, 
     F: AsRef<str> 
     {
-        DzahuiWindowBuilder::new()
+        DzahuiWindowBuilder::new(location)
     }
 
     /// # General Information
@@ -345,9 +345,8 @@ impl DzahuiWindow {
 
         self.mesh.send_to_gpu();
 
-        // Create highlightable vertices
-        let ui_vertices = self.mesh.create_highlightable_vertices(0.06, "./assets/sphere.obj");
-        ui_vertices.send_to_gpu();
+        // Send ui vertices
+        self.mesh.selectable_vertices.send_to_gpu();
 
         // COPYING LITERALLY EVERYTHING FROM MAIN. REFACTOR LATER
         // Use geometry shader
