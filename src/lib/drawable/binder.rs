@@ -10,6 +10,7 @@ use gl;
 /// * `vao` (Vertex Array Object) - Binds vertices and it's configuration with OpenGL.
 /// * `ebo` (Element Buffer Object) - // Indices to draw vertices.
 /// 
+#[derive(Debug)]
 pub struct Binder {
     pub(crate) vbo: u32,
     pub(crate) vao: u32,

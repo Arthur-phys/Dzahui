@@ -1,4 +1,4 @@
-use dzahui::{DzahuiWindowBuilder, MeshDimension, DzahuiWindow};
+use dzahui::{DzahuiWindowBuilder, DzahuiWindow};
 
 fn main() {
     // Creating window with predetermined configuration

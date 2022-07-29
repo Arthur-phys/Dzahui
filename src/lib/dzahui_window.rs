@@ -271,12 +271,15 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
 
         // Creating mesh placed in box to accept both Mesh2D and Mesh3D
         let mesh = self.mesh.build();
-
+        
         let camera = self.camera.build(&mesh, self.height.unwrap(), self.width.unwrap());
-
+        
         // Start clock for delta time
         let timer = Instant::now();
-
+        
+        // DEBUG
+        println!("\n Llego aquí con total normalidad (280) \n");
+        // DEBUG
         DzahuiWindow {
             context,
             timer,
@@ -339,14 +342,30 @@ impl DzahuiWindow {
     /// * `mesh` - A file to draw a mesh from.
     /// 
     pub fn run(mut self) {
+        
+        // DEBUG
+        println!("\n Llego aquí con total normalidad (346) \n");
+        // DEBUG
 
         // Obtaining Event Loop is necessary since `event_loop.run()` consumes it alongside window if let inside struct instance.
         let event_loop = Option::take(&mut self.event_loop).unwrap();
 
         self.mesh.send_to_gpu();
 
+        // DEBUG
+        println!("\n Llego aquí con total normalidad (354). mesh: {:?}\n",self.mesh);
+        // DEBUG
+
+        // DEBUG
+        println!("\n Llego aquí con total normalidad (354) \n");
+        // DEBUG
+
         // Send ui vertices
         self.mesh.selectable_vertices.send_to_gpu();
+
+        // DEBUG
+        println!("\n Llego aquí con total normalidad (367) \n");
+        // DEBUG
 
         // COPYING LITERALLY EVERYTHING FROM MAIN. REFACTOR LATER
         // Use geometry shader
@@ -451,12 +470,16 @@ impl DzahuiWindow {
                 gl::ClearColor(0.33, 0.33, 0.33, 0.8);
                 // Clear Screem
                 gl::Clear(gl::COLOR_BUFFER_BIT);
-                // Draw sphere(s)
+                // Draw vertices
                 self.mesh.selectable_vertices.draw(&self);
                 // set camera
                 self.camera.position_camera(&self);
                 // Draw triangles via ebo (indices)
-                self.mesh.draw(&self);
+                // DEBUG
+                // DEBUG
+                // self.mesh.draw(&self);
+                // DEBUG
+                // DEBUG
             }
             // Need to change old and new buffer to redraw
             self.context.swap_buffers().unwrap();

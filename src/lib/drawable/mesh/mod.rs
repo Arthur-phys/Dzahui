@@ -18,7 +18,8 @@ use vertex::VertexList;
 /// * `max_length` - Maximum length of figure. Used to center camera arround mesh.
 /// * `model_matrix` - Translates and rotates object to final world position.
 /// * `binder` - vao, vbo and ebo variables bound to mesh drawable in GPU.
-/// 
+///
+#[derive(Debug)]
 pub struct Mesh {
     binder: Binder,
     pub selectable_vertices: VertexList,
@@ -117,6 +118,7 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
         };
 
         // Translate matrix to given point
+        // NOT OK. model_matrix changes for 3d
         let model_matrix = Matrix4::from_translation(Vector3::new(
             closest_point[0] as f32,
             closest_point[1] as f32,
@@ -130,7 +132,8 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
 
         // Selectable vertices
         let vertices_len = vertices.len();
-        let selectable_vertices = Self::create_highlightable_vertices(&vertices, max_length/(vertices_len as f32), vertex_body_file.as_str());
+        let selectable_vertices = Self::create_highlightable_vertices(&vertices, max_length/(vertices_len as f32),
+            vertex_body_file.as_str());
         
 
         Mesh {

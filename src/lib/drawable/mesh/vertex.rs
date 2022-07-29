@@ -49,6 +49,7 @@ impl Vertex {
 /// * `list_of_vertices` - Vector of instances of Vertex.
 /// * `scale_matrix` - Matrix to scale vertices' body.
 /// 
+#[derive(Debug)]
 pub struct VertexList {
     triangles: Vec<u32>,
     vertices: Vec<f32>,
@@ -98,6 +99,7 @@ impl Drawable for VertexList {
 impl FromObj for VertexList {}
 
 impl VertexList {
+    
     pub fn new(centers: Vec<Vector3<f32>>, size: f32, file: &str) -> Self {
 
         let list_of_vertices: Vec<Vertex> = centers.into_iter().enumerate().map(|(id,center)| {

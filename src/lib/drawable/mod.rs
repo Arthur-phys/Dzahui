@@ -77,16 +77,31 @@ pub trait Drawable {
     }
 
     fn draw(&self, window: &DzahuiWindow) {
+
         let indices_len: i32 = self.get_triangles().len() as i32;
         // use mesh model matrix
         window.geometry_shader.set_mat4("model", &Matrix4::identity());
+
+        // DEBUG
+        println!("\n Llego aquí con total normalidad draw mesh - set_mat4 \n");
+        // DEBUG
+
         // Draw only when window is created and inside loop
         // Drawn as triangles
         unsafe {
             // Bind mesh array
             gl::BindVertexArray(self.get_binder().vao);
+
+            // DEBUG
+            println!("\n Llego aquí con total normalidad draw mesh - setting vao \n");
+            // DEBUG
+
             // Draw
             gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
+
+            // DEBUG
+            println!("\n Llego aquí con total normalidad draw mesh - drawing elements \n");
+            // DEBUG
         }
     }
 }
