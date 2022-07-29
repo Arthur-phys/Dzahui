@@ -42,7 +42,8 @@ pub trait Drawable {
         let triangles = self.get_triangles();
 
         unsafe {
-
+            // Always bind to object being drawn
+            gl::BindVertexArray(self.get_binder().vao);
             // Point to data, specify data length and how it should be drawn (static draw serves to only draw once).
             gl::BufferData(gl::ARRAY_BUFFER,
                 (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,

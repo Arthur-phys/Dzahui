@@ -477,7 +477,7 @@ impl DzahuiWindow {
                 // Draw triangles via ebo (indices)
                 // DEBUG
                 // DEBUG
-                // self.mesh.draw(&self);
+                self.mesh.draw(&self);
                 // DEBUG
                 // DEBUG
             }
