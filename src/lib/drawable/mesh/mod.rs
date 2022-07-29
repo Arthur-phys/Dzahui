@@ -80,7 +80,7 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
     /// 
     /// ddd
     /// 
-    fn create_highlightable_vertices(vertices: Vec<f32>, size: f32, file: &str) -> VertexList {
+    fn create_highlightable_vertices(vertices: &Vec<f32>, size: f32, file: &str) -> VertexList {
     
         let centers: Vec<Vector3<f32>> = (0..vertices.len()).step_by(3).map(|i| {
             Vector3::new(vertices[i] as f32,vertices[i+1] as f32,vertices[i+2] as f32)
@@ -99,13 +99,13 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
     /// 
     pub fn build(self) -> Mesh {
 
-        let vertex_body_file = if let Some(vertex_body_file) = self.vertex_body { vertex_body_file.as_ref() } else { "./assets/sphere.obj" };
+        let vertex_body_file = if let Some(vertex_body_file) = self.vertex_body { vertex_body_file.as_ref().to_string() } else { "./assets/sphere.obj".to_string() };
         let mut ignored_coordinate = None;
 
         let (vertices, triangles, max_length, closest_point) = match self.dimension {
 
             MeshDimension::Two => {
-                ignored_coordinate = Mesh::get_ignored_coordinate(self.location);
+                ignored_coordinate = Mesh::get_ignored_coordinate(self.location.as_ref().to_string());
                 // Obtained coordinates from 'generate_fields()' function
                 Mesh::generate_fields(self.location, ignored_coordinate)
 
@@ -129,7 +129,8 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
         binder.setup();
 
         // Selectable vertices
-        let selectable_vertices = Self::create_highlightable_vertices(vertices, max_length/(vertices.len() as f32), vertex_body_file);
+        let vertices_len = vertices.len();
+        let selectable_vertices = Self::create_highlightable_vertices(&vertices, max_length/(vertices_len as f32), vertex_body_file.as_str());
         
 
         Mesh {
@@ -168,6 +169,11 @@ impl Drawable for Mesh {
 impl FromObj for Mesh {}
 
 impl Mesh {
+
+    /// Getter for model_matrix
+    pub fn get_model_matrix(&self) -> &Matrix4<f32> {
+        &self.model_matrix
+    }
 
     /// Creates new instance of builder
     pub fn builder<A: AsRef<str>, B: AsRef<str>>(location: B) -> MeshBuilder<A,B> {

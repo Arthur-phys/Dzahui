@@ -214,7 +214,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
     /// 
     /// * `self` - All configuration required is within self. Default shaders are hardcoded in here.
     /// 
-    pub fn build(self, location: F) -> DzahuiWindow {
+    pub fn build(self) -> DzahuiWindow {
         
         let window_builder = WindowBuilder::new().
             with_title("Dzahui").
@@ -403,7 +403,7 @@ impl DzahuiWindow {
                                 },
                                 1 => {
                                     if let ElementState::Pressed = state {
-                                        let selected_sphere = cone_sphere_selector.obtain_nearest_intersection(&ui_vertices.spheres, &self.camera);
+                                        let selected_sphere = cone_sphere_selector.obtain_nearest_intersection(&self.mesh.selectable_vertices.list_of_vertices, &self.camera);
                                         println!("{:?}",selected_sphere);
                                     }
                                 }
@@ -452,7 +452,7 @@ impl DzahuiWindow {
                 // Clear Screem
                 gl::Clear(gl::COLOR_BUFFER_BIT);
                 // Draw sphere(s)
-                ui_vertices.draw(&self);
+                self.mesh.selectable_vertices.draw(&self);
                 // set camera
                 self.camera.position_camera(&self);
                 // Draw triangles via ebo (indices)
