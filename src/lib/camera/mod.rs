@@ -1,5 +1,5 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3};
-use crate::{DzahuiWindow, HighlightableVertices};
+use crate::{DzahuiWindow, Mesh, Drawable};
 
 pub mod ray_casting;
 
@@ -136,7 +136,7 @@ impl CameraBuilder {
     /// 
     /// * `self` -> All camera parameters are within self. Every parameter appearing in Camera struct but not here is derived from the ones that do appear.
     /// 
-    pub fn build(self, mesh: &Box<dyn HighlightableVertices>, height: u32, width: u32) -> Camera {
+    pub fn build(self, mesh: &Mesh, height: u32, width: u32) -> Camera {
         let fov = if let Some(fov) = self.fov { fov } else { 45.0 };
         // Obtain radius or get predetermined one (use the predetermined one is recommended)
         let radius = if let Some(radius) = self.radius {

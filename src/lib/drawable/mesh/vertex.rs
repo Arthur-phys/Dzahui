@@ -78,9 +78,9 @@ impl Drawable for VertexList {
         unsafe {
             gl::BindVertexArray(self.get_binder().vao);
             
-            for sphere in &self.spheres {
+            for vertex in &self.list_of_vertices {
                 // Obtaining final model matrix: translate + scale
-                let model_mat = self.get_translation_matrix_from_id(sphere.id) * self.scale_matrix;
+                let model_mat = self.get_translation_matrix_from_id(vertex.id) * self.scale_matrix;
                 // Sending to shader
                 window.geometry_shader.set_mat4("model", &model_mat);
                 // Drawing
@@ -117,6 +117,6 @@ impl VertexList {
     }
 
     pub fn get_translation_matrix_from_id(&self, id: usize) -> Matrix4<f32> {
-        self.spheres[id].get_translation_matrix()
+        self.list_of_vertices[id].get_translation_matrix()
     }
 }

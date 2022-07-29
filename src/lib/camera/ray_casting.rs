@@ -52,7 +52,7 @@ impl Cone {
             let y = view_center.y;
             let z = view_center.z;
             // filters
-            let mut is_z_in_range = z + sphere.radius < self.anchorage_point.z;
+            let mut is_z_in_range = z < self.anchorage_point.z;
             is_z_in_range = is_z_in_range && z > self.anchorage_point.z - 100.0;
 
             // obtaining values for circle center of cone

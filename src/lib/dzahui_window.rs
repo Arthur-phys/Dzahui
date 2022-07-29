@@ -19,13 +19,10 @@ use glutin::{
 use crate::{
     shader::Shader,
     MeshDimension,
-    Mesh2D,
-    Mesh3D,
-    HighlightableVertices,
     Camera,
     Cone,
     Drawable,
-    CameraBuilder, drawable::mesh::MeshBuilder};
+    CameraBuilder, drawable::mesh::MeshBuilder, Mesh};
 
 /// # General Information
 /// 
@@ -36,7 +33,7 @@ use crate::{
 /// * `context` - Holds an *instance* of OpenGL. This normally means that all configuration associated with rendering is stored here. Only one context is allowed.
 /// * `timer` - Gives current time since creation of window. Call with `timer.elapsed()`.
 /// * `geometry_shader` - Geometry_shaders to compile and use. Responsible for mesh drawing.
-///  * `text_shader` - Text shaders to compile and use. Responsible form text rendering.
+/// * `text_shader` - Text shaders to compile and use. Responsible form text rendering.
 /// * `height` - Height of window created.
 /// * `width` - Width of window created.
 /// 
@@ -44,7 +41,7 @@ pub struct DzahuiWindow {
     /// Only one instance should be active at once
     context: ContextWrapper<PossiblyCurrent,Window>,
     camera: Camera,
-    mesh: Box<dyn HighlightableVertices>,
+    mesh: Mesh,
     event_loop: Option<EventLoop<()>>,
     pub(crate) geometry_shader: Shader,
     pub(crate) text_shader: Shader,
@@ -65,7 +62,7 @@ pub struct DzahuiWindow {
 /// * `width` - Width of window. Defaults to 800 px.
 /// 
 #[derive(Default, Debug)]
-pub struct DzahuiWindowBuilder<A, B, C, D, E, F>
+pub struct DzahuiWindowBuilder<A, B, C, D, E,F>
     where A: AsRef<str>,
           B: AsRef<str>,
           C: AsRef<str>,
@@ -75,6 +72,7 @@ pub struct DzahuiWindowBuilder<A, B, C, D, E, F>
     {
     geometry_vertex_shader: Option<A>,
     geometry_fragment_shader: Option<B>,
+    mesh_dimension: MeshDimension,
     text_vertex_shader: Option<C>,
     text_fragment_shader: Option<D>,
     camera: CameraBuilder,
@@ -97,10 +95,12 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         Self {
             geometry_vertex_shader: None,
             geometry_fragment_shader: None,
+            mesh_dimension: MeshDimension::Two,
             text_vertex_shader: None,
             text_fragment_shader: None,
             opengl_version: Some((3,3)),
             camera: Camera::builder(),
+            mesh: MeshBuilder::new(),
             height: Some(600),
             width: Some(800)
         }
@@ -179,6 +179,20 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             ..self
         }
     }
+    /// Changes vertex body (figure drawn at each vertex).
+    pub fn with_vertex_body(self, vertex_body: E) -> Self {
+        Self {
+            mesh: self.mesh.with_vertex_body(vertex_body),
+            ..self
+        }
+    }
+    /// Changes mesh dimension (originally in 2D)
+    pub fn with_mesh_in_3d(self) -> Self {
+        Self {
+            mesh_dimension: MeshDimension::Three,
+            ..self
+        }
+    }
     /// # General Information
     /// 
     /// Builds DzahuiWindow from parameters given or sensible defaults.
@@ -200,7 +214,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
     /// 
     /// * `self` - All configuration required is within self. Default shaders are hardcoded in here.
     /// 
-    pub fn build(self) -> DzahuiWindow {
+    pub fn build(self, location: F) -> DzahuiWindow {
         
         let window_builder = WindowBuilder::new().
             with_title("Dzahui").
@@ -256,10 +270,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         let geometry_shader = Shader::new(vertex_shader,fragment_shader);
 
         // Creating mesh placed in box to accept both Mesh2D and Mesh3D
-        let mesh: Box<dyn HighlightableVertices> = match mesh {
-            MeshDimension::Two(path) => Box::new(Mesh2D::new(path.as_ref())),
-            MeshDimension::Three(path) => Box::new(Mesh3D::new(path.as_ref()))
-        };
+        let mesh = self.mesh.build();
 
         let camera = self.camera.build(&mesh, self.height.unwrap(), self.width.unwrap());
 
@@ -282,11 +293,14 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
 
 impl DzahuiWindow {
 
-    pub fn builder<A,B,C,D>() -> DzahuiWindowBuilder<A,B,C,D> where 
+    pub fn builder<A,B,C,D,E,F>() -> DzahuiWindowBuilder<A,B,C,D,E,F> where 
     A: AsRef<str>,
     B: AsRef<str>,
     C: AsRef<str>,
-    D: AsRef<str> {
+    D: AsRef<str>,
+    E: AsRef<str>, 
+    F: AsRef<str> 
+    {
         DzahuiWindowBuilder::new()
     }
 

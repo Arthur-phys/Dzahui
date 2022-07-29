@@ -91,14 +91,14 @@ pub trait FromObj {
         }
     }
 
-    fn generate_fields(file: &str, ignored_coordinate: Option<usize>) -> (Vec<f32>,Vec<u32>,f32,[f32;3]) {
+    fn generate_fields<A: AsRef<str>>(file: A, ignored_coordinate: Option<usize>) -> (Vec<f32>,Vec<u32>,f32,[f32;3]) {
         // Obtains variables from .obj. To use after file check.
 
         // Initial variables
         let mut coordinates: Vec<f32> = Vec::new();
         let mut triangles: Vec<u32> = Vec::new();
 
-        let file = File::open(file).expect("Error while opening file. Does file exists and is readable?");
+        let file = File::open(file.as_ref()).expect("Error while opening file. Does file exists and is readable?");
 
         // Coordinates to calculate max length and closest element to 0
         let mut max_min = HashMap::from([
