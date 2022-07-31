@@ -360,6 +360,8 @@ impl DzahuiWindow {
 
         // ray casting cone
         let mut cone_sphere_selector = Cone::new(Point3::new(0.0,0.0,0.0),Vector3::new(0.0,0.0,1.0),0.1);
+        let mut x: f64 = 0.0;
+        let mut y: f64 = 0.0;
 
         self.geometry_shader.set_mat4("view", &self.camera.view_matrix);
         self.geometry_shader.set_mat4("projection", &self.camera.projection_matrix);
@@ -377,7 +379,8 @@ impl DzahuiWindow {
     
                     // When cursor is moved, create new cone to select objects
                     WindowEvent::CursorMoved { device_id, position, .. } => {
-                        cone_sphere_selector = Cone::from_mouse_position(1.0, Point2::new(position.x,position.y), &self.camera, &self);
+                        x = position.x;
+                        y = position.y;
                     },
                     
                     // Close on esc
@@ -407,6 +410,7 @@ impl DzahuiWindow {
                                 },
                                 1 => {
                                     if let ElementState::Pressed = state {
+                                        cone_sphere_selector = Cone::from_mouse_position(1.0, Point2::new(x,y), &self.camera, &self);
                                         let selected_sphere = cone_sphere_selector.obtain_nearest_intersection(&self.mesh.selectable_vertices.list_of_vertices, &self.camera);
                                         println!("{:?}",selected_sphere);
                                     }
