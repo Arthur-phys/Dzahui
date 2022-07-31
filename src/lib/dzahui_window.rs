@@ -1,52 +1,36 @@
-use gl;
+use glutin::{event_loop::{EventLoop,ControlFlow},window::{WindowBuilder,Window},dpi::PhysicalSize,ContextBuilder,GlRequest,Api,GlProfile,ContextWrapper,PossiblyCurrent,event::{Event, WindowEvent, DeviceEvent, ElementState}};
+use crate::{shader::Shader,camera::{Camera, CameraBuilder, ray_casting::Cone},drawable::Drawable, drawable::mesh::{Mesh,MeshBuilder}};
+use cgmath::{Point3,Vector3,Point2};
 use std::time::Instant;
-use cgmath::{
-    Point3,
-    Vector3,
-    Point2};
-use glutin::{
-    event_loop::{EventLoop,ControlFlow},
-    window::WindowBuilder,
-    dpi::PhysicalSize,
-    ContextBuilder,
-    GlRequest,
-    Api,
-    GlProfile,
-    ContextWrapper,
-    PossiblyCurrent,
-    window::Window,
-    event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use crate::{
-    shader::Shader,
-    Camera,
-    Cone,
-    Drawable,
-    CameraBuilder, drawable::mesh::MeshBuilder, Mesh};
+use gl;
+
 
 /// # General Information
 /// 
-/// DzahuiWindow holds every important component to create an instancec of a simulator.
+/// DzahuiWindow holds every important component to create an instancec of a simulator. Only one instance should be active at once.
 /// 
 /// # Fields
 /// 
 /// * `context` - Holds an *instance* of OpenGL. This normally means that all configuration associated with rendering is stored here. Only one context is allowed.
-/// * `timer` - Gives current time since creation of window. Call with `timer.elapsed()`.
 /// * `geometry_shader` - Geometry_shaders to compile and use. Responsible for mesh drawing.
-/// * `text_shader` - Text shaders to compile and use. Responsible form text rendering.
+/// * `event_loop` - To obtain user input in window.
+/// * `text_shader` - Text shaders to compile and use. Responsible for text rendering.
 /// * `height` - Height of window created.
 /// * `width` - Width of window created.
+/// * `timer` - Gives current time since creation of window. Call with `timer.elapsed()`.
+/// * `camera` - Camera configuration creates view and projetion matrices, which directly tells OpenGL what to and not to render.
+/// * `mesh` - A mesh to draw to screen. Represents an object tessellated into triangles/traingular prisms.
 /// 
 pub struct DzahuiWindow {
-    /// Only one instance should be active at once
     context: ContextWrapper<PossiblyCurrent,Window>,
-    camera: Camera,
-    mesh: Mesh,
-    event_loop: Option<EventLoop<()>>,
     pub(crate) geometry_shader: Shader,
+    event_loop: Option<EventLoop<()>>,
     pub(crate) text_shader: Shader,
     pub(crate) height: u32,
     pub(crate) width: u32,
-    pub timer: Instant
+    pub timer: Instant,
+    camera: Camera,
+    mesh: Mesh
 }
 
 /// # General Information

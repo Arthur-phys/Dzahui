@@ -1,5 +1,5 @@
 use std::{fs::File,collections::HashMap,io::{BufReader, BufRead}};
-use crate::{Binder, DzahuiWindow, shader::Shader};
+use crate::shader::Shader;
 
 #[derive(Debug)]
 struct Character {
@@ -238,13 +238,13 @@ impl CharacterSet {
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
-    use crate::{Binder, shader::Shader};
+    use crate::shader::Shader;
 
     use super::{CharacterSet, Character};
     
     #[test]
     fn read_properly() {
-        let mut set = CharacterSet::new("./assets/dzahui-font_test.fnt");
+        let set = CharacterSet::new("./assets/dzahui-font_test.fnt");
         let should_be_set = CharacterSet {
             characters: HashMap::from([
                 ('{', Character::new(123,(0.0,0.0),(21.0,61.0),(1.0,13.0))),

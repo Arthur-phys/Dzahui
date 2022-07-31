@@ -1,4 +1,4 @@
-use crate::{Drawable, FromObj, DzahuiWindow, Binder, Camera};
+use crate::{drawable::Drawable, drawable::from_obj::FromObj, DzahuiWindow, drawable::binder::Binder, camera::Camera};
 use cgmath::{Vector3, Matrix4, Vector4};
 use std::ptr;
 

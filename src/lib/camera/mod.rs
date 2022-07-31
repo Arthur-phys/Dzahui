@@ -1,5 +1,5 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3};
-use crate::{DzahuiWindow, Mesh, Drawable};
+use crate::{DzahuiWindow, drawable::mesh::Mesh, drawable::Drawable};
 
 pub mod ray_casting;
 
