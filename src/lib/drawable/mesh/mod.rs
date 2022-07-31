@@ -8,7 +8,7 @@ use vertex::VertexList;
 
 /// # General Information
 /// 
-/// Representation of a plane figure. Contains information to draw to screen and move/rotate it to final position.
+/// Representation of a plane figure/ body. Contains information to draw to screen and move/rotate it to final position.
 /// 
 /// # Fields
 /// 
@@ -95,7 +95,15 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
             Vector3::new(vertices[i] as f32,vertices[i+1] as f32,vertices[i+2] as f32)
         }).collect();
 
-        VertexList::new(centers, size, file) 
+        VertexList::new(centers, size, file)
+    }
+
+    fn create_hv_without_setup(vertices: &Vec<f32>, size: f32, file: &str) -> VertexList {
+        let centers: Vec<Vector3<f32>> = (0..vertices.len()).step_by(3).map(|i| {
+            Vector3::new(vertices[i] as f32,vertices[i+1] as f32,vertices[i+2] as f32)
+        }).collect();
+
+        VertexList::new_without_setup(centers, size, file)
     }
 
     /// # General Information
@@ -145,6 +153,62 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
         let selectable_vertices = Self::create_highlightable_vertices(&vertices, size,
             vertex_body_file.as_str());
         
+
+        Mesh {
+            ignored_coordinate,
+            selectable_vertices,
+            vertices,
+            triangles,
+            max_length,
+            model_matrix,
+            binder,
+            dimension: self.dimension,
+        }
+    }
+
+    /// To use for testing purposes
+    pub fn build_without_setup(self) -> Mesh {
+
+        let vertex_body_file = if let Some(vertex_body_file) = self.vertex_body { vertex_body_file.as_ref().to_string() } else 
+        { "./assets/sphere.obj".to_string() };
+        println!("Todo ok");
+        
+        let mut ignored_coordinate = None;
+        
+        let (vertices, triangles, max_length, closest_point) = match self.dimension {
+            
+            MeshDimension::Two => {
+                ignored_coordinate = Mesh::get_ignored_coordinate(self.location.as_ref().to_string());
+                
+                Mesh::generate_fields(self.location, ignored_coordinate)
+                
+            },
+            
+            MeshDimension::Three => {
+                Mesh::generate_fields(self.location, None)
+            }
+        };
+        println!("Todo ok");
+        
+        // Translate matrix to given point
+        // NOT OK. model_matrix changes for 3d
+        let model_matrix = Matrix4::from_translation(Vector3::new(
+            closest_point[0] as f32,
+            closest_point[1] as f32,
+            0.0
+        ));
+        println!("Todo ok");
+        
+        // Binder
+        let binder = Binder::new();
+        
+        // Selectable vertices
+        let size = if let Some(size) = self.size { size } else { max_length/(vertices.len() as f32) };
+        
+        let selectable_vertices = Self::create_hv_without_setup(&vertices, size,
+            vertex_body_file.as_str());
+            
+        println!("Todo ok");
 
         Mesh {
             ignored_coordinate,

@@ -123,6 +123,27 @@ impl VertexList {
         }
     }
 
+    pub fn new_without_setup(centers: Vec<Vector3<f32>>, size: f32, file: &str) -> Self {
+        let list_of_vertices: Vec<Vertex> = centers.into_iter().enumerate().map(|(id,center)| {
+            Vertex::new(center,id)
+        }).collect();
+
+        let (vertices, triangles, ..) = VertexList::generate_fields(file,
+        None);
+        let scale_matrix = Matrix4::from_scale(size);
+
+        let binder = Binder::new();
+
+        VertexList {
+            list_of_vertices,
+            binder,
+            size,
+            vertices,
+            triangles,
+            scale_matrix
+        }
+    }
+
     pub fn get_translation_matrix_from_id(&self, id: usize) -> Matrix4<f32> {
         self.list_of_vertices[id].get_translation_matrix()
     }
