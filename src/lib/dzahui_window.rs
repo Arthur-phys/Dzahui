@@ -1,5 +1,5 @@
 use glutin::{event_loop::{EventLoop,ControlFlow},window::{WindowBuilder,Window},dpi::PhysicalSize,ContextBuilder,GlRequest,Api,GlProfile,ContextWrapper,PossiblyCurrent,event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use crate::{shader::Shader,camera::{Camera, CameraBuilder, ray_casting::Cone},drawable::Drawable, drawable::mesh::{Mesh,MeshBuilder}};
+use crate::{shader::Shader,camera::{Camera, CameraBuilder, ray_casting::Cone},drawable::Drawable, drawable::{mesh::{Mesh,MeshBuilder}, text::CharacterSet}};
 use cgmath::{Point3,Vector3,Point2};
 use std::time::Instant;
 use gl;
@@ -26,6 +26,7 @@ pub struct DzahuiWindow {
     pub(crate) geometry_shader: Shader,
     event_loop: Option<EventLoop<()>>,
     pub(crate) text_shader: Shader,
+    character_set: CharacterSet,
     pub(crate) height: u32,
     pub(crate) width: u32,
     pub timer: Instant,
@@ -53,13 +54,14 @@ pub struct DzahuiWindowBuilder<A, B, C, D, E,F>
           E: AsRef<str>,
           F: AsRef<str>,
     {
-    geometry_vertex_shader: Option<A>,
     geometry_fragment_shader: Option<B>,
-    text_vertex_shader: Option<C>,
+    geometry_vertex_shader: Option<A>,
     text_fragment_shader: Option<D>,
-    camera: CameraBuilder,
-    mesh: MeshBuilder<E,F>,
     opengl_version: Option<(u8,u8)>,
+    character_set: Option<String>,
+    text_vertex_shader: Option<C>,
+    mesh: MeshBuilder<E,F>,
+    camera: CameraBuilder,
     height: Option<u32>,
     width: Option<u32>
 }
@@ -77,6 +79,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         Self {
             geometry_vertex_shader: None,
             geometry_fragment_shader: None,
+            character_set: None,
             text_vertex_shader: None,
             text_fragment_shader: None,
             opengl_version: Some((3,3)),
@@ -213,7 +216,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
 
         // Generating event_loop to be used
         let event_loop = EventLoop::new();
-
+        
         // Creating context to use in application
         let context = ContextBuilder::new().
         with_gl(opengl_version).
@@ -222,18 +225,22 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         with_gl_profile(GlProfile::Core).
         build_windowed(window_builder, &event_loop).
         unwrap();
-
+        
         // The latest instance becomes the current context always
         let context = unsafe { 
             context.make_current().unwrap() 
         };
-
+        
         // Loading OpenGL functions. Only done once
         gl::load_with(&|s: &str| {context.get_proc_address(s)});
         // GL Viewport
         unsafe { 
             gl::Viewport(0,0,self.width.unwrap() as i32,self.height.unwrap() as i32);
         }
+        
+        // Default character set. Not modifiable for now
+        let character_set_file = if let Some(set_file) = self.character_set { set_file } else { "assets/dzahui-font_3.fnt".to_string() };
+        let character_set = CharacterSet::new(&character_set_file);
 
         // Use text_shaders chosen
         let vertex_shader: String = if let Some(vertex_shader) = self.text_vertex_shader {
@@ -270,6 +277,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             timer,
             geometry_shader,
             text_shader,
+            character_set,
             mesh,
             camera,
             event_loop: Some(event_loop),
@@ -281,6 +289,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
 
 impl DzahuiWindow {
 
+    /// Creates a new default builder.
     pub fn builder<A,B,C,D,E,F>(location: F) -> DzahuiWindowBuilder<A,B,C,D,E,F> where 
     A: AsRef<str>,
     B: AsRef<str>,
@@ -319,7 +328,7 @@ impl DzahuiWindow {
 
     /// # General Information
     /// 
-    /// Run window with a mesh and an event loop. Consumes every object since they're not to be used afters.
+    /// Run window with a mesh and an event loop. Consumes every object since they're not to be used afterwards.
     /// 
     /// # Parameters
     /// 
@@ -439,6 +448,7 @@ impl DzahuiWindow {
             }
             // Render
             unsafe {
+                self.geometry_shader.use_shader();
                 // Update to some color
                 gl::ClearColor(0.33, 0.33, 0.33, 0.8);
                 // Clear Screem
@@ -448,11 +458,7 @@ impl DzahuiWindow {
                 // set camera
                 self.camera.position_camera(&self);
                 // Draw triangles via ebo (indices)
-                // DEBUG
-                // DEBUG
                 self.mesh.draw(&self);
-                // DEBUG
-                // DEBUG
             }
             // Need to change old and new buffer to redraw
             self.context.swap_buffers().unwrap();
