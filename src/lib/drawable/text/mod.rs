@@ -1,4 +1,4 @@
-use std::{fs::File,collections::HashMap,io::{BufReader, BufRead}, ptr};
+use std::{fs::File,collections::HashMap,io::{BufReader, BufRead}};
 use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
 use std::{ptr,mem,os::raw::c_void};
 use image;
@@ -112,7 +112,7 @@ impl CharacterSet {
         let height = img.height();
         let width = img.width();
         let img_vec: Vec<u8> = img.into_bytes();
-        
+
         // texture binding and configuration
         let mut texture: u32 = 0;
         unsafe {
@@ -227,14 +227,14 @@ impl CharacterSet {
          }
     }
 
-    fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> (Vec<f32>,Vec<u32>) {
+    fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> (Vec<[f32;20]>,Vec<[u32;6]>) {
 
         // Split text into chars. Should be feasible given the fact that we only operate with the alphabet, numbers and some special symbols such as '?','!'
         // Range of utf-8 values: 0,2^21 (given that there are at most 11 bits of metadata in a 4 byte sequence)
         let text_vec: Vec<char> = text.as_ref().chars().collect();
         // Initialize vertices and indices vectors
-        let mut vertices: Vec<f32> = Vec::with_capacity(text_vec.len()* 4);
-        let mut indices: Vec<u32> = Vec::with_capacity(text_vec.len() * 4);
+        let mut vertices: Vec<[f32;20]> = Vec::new();
+        let mut indices: Vec<[u32;6]> = Vec::new();
         
         // Obtain subset of characters from CharacterSet HashMap
         text_vec.iter().fold((0.0_f32, 0_u32),|(width,last_index), character_string| {
@@ -256,7 +256,7 @@ impl CharacterSet {
                     //   |         ˇ
                     //    <--------
 
-                    let mut new_vertices: Vec<f32> = vec![
+                    let mut new_vertices: [f32; 20] = [
                         // First point
                         // Coordinate
                         width - character.size.0,
@@ -290,17 +290,17 @@ impl CharacterSet {
                         (character.origin.0)/(self.texture_size.0 as f32),
                         1.0 - (character.origin.1 + character.size.1)/(self.texture_size.1 as f32),
                     ];
-                    let mut new_indices: Vec<u32> = vec![
+                    let mut new_indices: [u32; 6] = [
                         // First index is the one passed from last iteration.
                         // There are six indices total
                         // First triangle
-                        last_index, last_index + 1, last_index + 2,
+                        0, 1, 2,
                         // Second triangle
-                        last_index + 2, last_index + 3, last_index
+                        2, 3, 0
                     ];
 
-                    vertices.append(&mut new_vertices);
-                    indices.append(&mut new_indices);
+                    vertices.push(new_vertices);
+                    indices.push(new_indices);
                     
                     (width,last_index + 4)
                 },
@@ -311,25 +311,30 @@ impl CharacterSet {
     }
 
     pub fn draw_text<A: AsRef<str>>(&self, text: A, text_sahder: &Shader) {
+
+        text_sahder.use_shader(); // use text shader and not geometry shader
         // use function inside event loop in dzahui window, not anywhere else.
         // obtain vertices and indices to draw
-        let (vertices, triangles) = self.get_vertices_from_text(text);
-        unsafe {
-            text_sahder.use_shader(); // use text shader and not geometry shader
-            gl::BindVertexArray(self.binder.vao); // use this binder
+        let (vertices, indices) = self.get_vertices_from_text(text);
 
-            gl::BindBuffer(gl::ARRAY_BUFFER,self.binder.vbo); // binding buffer to specific type ARRAY_BUFFER
-            gl::BufferData(gl::ARRAY_BUFFER,
-                (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
-                &vertices[0] as *const f32 as *const c_void,
-                gl::STATIC_DRAW); // double casting to raw pointer of c_void
+        vertices.iter().zip(indices).for_each(|(vertices_subset, indices_subset)| {
+            unsafe {
+                gl::BindVertexArray(self.binder.vao); // use this binder
+                gl::BindTexture(gl::TEXTURE_2D,self.binder.texture); // use this texture
+    
+                gl::BindBuffer(gl::ARRAY_BUFFER,self.binder.vbo); // binding buffer to specific type ARRAY_BUFFER
+                gl::BufferSubData(gl::ARRAY_BUFFER, 0,
+                    (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                    &vertices_subset[0] as *const f32 as *const c_void); // double casting to raw pointer of c_void
+    
+                gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.binder.ebo);
+                gl::BufferSubData(gl::ELEMENT_ARRAY_BUFFER, 0, (indices_subset.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
+                    &indices_subset[0] as *const u32 as *const c_void);
+                    
+                gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+            }
+        });
 
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.binder.ebo);
-            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, (indices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
-                &indices[0] as *const u32 as *const c_void, 
-                gl::DYNAMIC_DRAW);
-
-        }
     }
 
 }

@@ -459,6 +459,8 @@ impl DzahuiWindow {
                 self.camera.position_camera(&self);
                 // Draw triangles via ebo (indices)
                 self.mesh.draw(&self);
+                // Draw some dumb text
+                self.character_set.draw_text("UN ELEFANTE SE COLUMPIABA", &self.text_shader);
             }
             // Need to change old and new buffer to redraw
             self.context.swap_buffers().unwrap();
