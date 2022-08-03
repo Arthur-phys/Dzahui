@@ -29,8 +29,13 @@ pub trait Drawable {
 
     /// # General Information
     /// 
-    /// Once an object with Drawable trait has been created, it is supossed to have been connected via Binder to GPU.
-    /// If that's the case, then this function will send vertex and indices information to GPU to be drawn on screen.
+    /// Once an object with Drawable trait has been created it can be sent to gpu.
+    /// This function will send vertex and indices information to GPU to be drawn on screen.
+    /// There's a couple of steps that should never be skipped:
+    /// 
+    /// - Object's binder has to have been initialized prior to this function call.
+    /// - Always bind object's binder's vao and/or texture.
+    /// - There's no need to bind ebo or vbo once vao is bound.
     /// 
     /// # Parameters
     /// 
@@ -38,22 +43,24 @@ pub trait Drawable {
     /// 
     fn send_to_gpu(&self) {
 
+        // MOST IMPORTANT CALL IN FUNCTION
+        self.get_binder().bind_vao();
+        self.get_binder().bind_ebo();
+        self.get_binder().bind_vbo();
+        // MOST IMPORTANT CALL IN FUNCTION
+
         let vertices = self.get_vertices();
         let triangles = self.get_triangles();
 
         unsafe {
-            // Always bind to object being drawn
-            gl::BindVertexArray(self.get_binder().vao);
+
             // Point to data, specify data length and how it should be drawn (static draw serves to only draw once).
-            gl::BindBuffer(gl::ARRAY_BUFFER,self.get_binder().vbo);
             gl::BufferData(gl::ARRAY_BUFFER,
                 (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                 &vertices[0] as *const f32 as *const c_void,
                 // Double casting to raw pointer. Equivalent to C's void type when used as pointer.
                 gl::STATIC_DRAW);
                 
-            // Bind EBO
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER,self.get_binder().ebo);
             // Point to data, specify data length and how it should be drawn
             gl::BufferData(gl::ELEMENT_ARRAY_BUFFER,
                 (triangles.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
@@ -80,6 +87,10 @@ pub trait Drawable {
 
     fn draw(&self, window: &DzahuiWindow) {
 
+        // MOST IMPORTANT CALL
+        self.get_binder().bind_vao();
+        // MOST IMPORTANT CALL
+
         let indices_len: i32 = self.get_triangles().len() as i32;
         // use mesh model matrix
         window.geometry_shader.set_mat4("model", &Matrix4::identity());
@@ -87,9 +98,6 @@ pub trait Drawable {
         // Draw only when window is created and inside loop
         // Drawn as triangles
         unsafe {
-            // Bind mesh array
-            gl::BindVertexArray(self.get_binder().vao);
-
             // Draw
             gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
         }

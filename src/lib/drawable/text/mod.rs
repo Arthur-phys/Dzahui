@@ -3,7 +3,7 @@ use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
 use std::{ptr,mem,os::raw::c_void};
 use image;
 
-use crate::{camera::Camera, shader::Shader};
+use crate::shader::Shader;
 
 use super::binder::Binder;
 
@@ -32,7 +32,6 @@ pub(crate) struct CharacterSet {
     texture_size: (u32,u32), // Pixels
     binder: Binder,
     image_as_vec: Vec<u8>, // image vector
-    texture: u32, // texture id
 }
 
 impl Character {
@@ -63,6 +62,13 @@ impl Eq for Character {}
 impl CharacterSet {
     
     pub fn new(character_file: &str) -> Self {
+
+        // SETUP IS THE MOST IMPORTANT PART
+        let mut binder = Binder::new();
+        binder.setup();
+        binder.setup_texture();
+        // SETUP IS THE MOST IMPORTANT PART
+
         
         let file = File::open(character_file).expect("Unable to open file. Does the file exists and is readable?");
         let mut reader = BufReader::new(file).lines();
@@ -102,28 +108,13 @@ impl CharacterSet {
             (key_value[0].to_string(),key_value[1].to_string())
         }).collect();
 
-        // creation and setup of binder
-        // This means character creation proceeds window
-        let mut binder = Binder::new();
-        binder.setup();
-
         // After third line, image can be loaded.
         let img = image::open(format!("./assets/{}", property_map_three.get("file").expect("Font file not found.").replace("\"",""))).unwrap();
         let height = img.height();
         let width = img.width();
         let img_vec: Vec<u8> = img.into_bytes();
 
-        // texture binding and configuration
-        let mut texture: u32 = 0;
         unsafe {
-            gl::GenTextures(1,&mut texture);
-            gl::BindTexture(gl::TEXTURE_2D,texture); // binding to texture 2d
-            // texture wrapping parameters
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); //how to wrap in s coordinate
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32); // how to wrap in t coordinate
-            // texture filtering
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32); // when texture is small, scall using linear
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32); // when texture is big, scall using linear
 
             gl::TexImage2D(gl::TEXTURE_2D, // Texture target is 2D since we created a texture for that
                 0, // Mipmap level 0 which is default. Otherwise wue could specify levels and change it
@@ -131,7 +122,7 @@ impl CharacterSet {
                 width as i32,
                 height as i32,
                 0, // Legacy sutff not explained
-                gl::RGB, // Format of the image (this is the actual format)
+                gl::RGBA, // Format of the image (this is the actual format)
                 gl::UNSIGNED_BYTE, // RGB values are given as chars
                 &img_vec[0] as *const u8 as *const c_void); // Pointer to first element of vector
 
@@ -142,7 +133,7 @@ impl CharacterSet {
             gl::VertexAttribPointer(0,3,gl::FLOAT,gl::FALSE,5*mem::size_of::<GLfloat>() as GLsizei, ptr::null());
             gl::EnableVertexAttribArray(0); // Enabling vertex atributes giving vertex location (setup in vertex shader).
             // texture coordinates
-            gl::VertexAttribPointer(1,2,gl::FLOAT,gl::FALSE,5*mem::size_of::<GLfloat>() as GLsizei, (6 * mem::size_of::<GLfloat>()) as *const c_void);
+            gl::VertexAttribPointer(1,2,gl::FLOAT,gl::FALSE,5*mem::size_of::<GLfloat>() as GLsizei, (3 * mem::size_of::<GLfloat>()) as *const c_void);
             gl::EnableVertexAttribArray(1); // Enabling vertex atributes giving vertex location (setup in vertex shader).
 
             // now allocate quad (two triangles) information to be sent
@@ -151,7 +142,6 @@ impl CharacterSet {
                 ptr::null() as *const f32 as *const c_void,
                 gl::DYNAMIC_DRAW); // dynamic draw since content will be altered constantly
     
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, binder.ebo);
             gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, (6 * mem::size_of::<GLfloat>()) as GLsizeiptr,
                 ptr::null() as *const u32 as *const c_void, 
                 gl::DYNAMIC_DRAW);
@@ -211,7 +201,6 @@ impl CharacterSet {
             font_type,
             characters,
             binder,
-            texture,
             image_as_vec: img_vec,
             font_size: property_map_one.remove("size").expect("Size parameter not found").parse().unwrap(),
             is_bold: property_map_one.get("bold").expect("Bold parameter not found") == "1",
@@ -256,7 +245,7 @@ impl CharacterSet {
                     //   |         ˇ
                     //    <--------
 
-                    let mut new_vertices: [f32; 20] = [
+                    let new_vertices: [f32; 20] = [
                         // First point
                         // Coordinate
                         width - character.size.0,
@@ -264,7 +253,7 @@ impl CharacterSet {
                         0.0,
                         // Texture
                         (character.origin.0)/(self.texture_size.0 as f32),
-                        1.0 - (character.origin.1)/(self.texture_size.1 as f32),
+                        (character.origin.1)/(self.texture_size.1 as f32),
                         // Second point
                         // Coordinate
                         width,
@@ -272,7 +261,7 @@ impl CharacterSet {
                         0.0,
                         // Texture
                         (character.origin.0 + character.size.0)/(self.texture_size.0 as f32),
-                        1.0 - (character.origin.1)/(self.texture_size.1 as f32),
+                        (character.origin.1)/(self.texture_size.1 as f32),
                         // Third point
                         // Coordinate
                         width,
@@ -280,7 +269,7 @@ impl CharacterSet {
                         0.0,
                         // Texture
                         (character.origin.0 + character.size.0)/(self.texture_size.0 as f32),
-                        1.0 - (character.origin.1 + character.size.1)/(self.texture_size.1 as f32),
+                        (character.origin.1 + character.size.1)/(self.texture_size.1 as f32),
                         // Fourth point
                         // Coordinate
                         width - character.size.0,
@@ -288,9 +277,9 @@ impl CharacterSet {
                         0.0, // z will always be 0.0 initially
                         // Texture
                         (character.origin.0)/(self.texture_size.0 as f32),
-                        1.0 - (character.origin.1 + character.size.1)/(self.texture_size.1 as f32),
+                        (character.origin.1 + character.size.1)/(self.texture_size.1 as f32),
                     ];
-                    let mut new_indices: [u32; 6] = [
+                    let new_indices: [u32; 6] = [
                         // First index is the one passed from last iteration.
                         // There are six indices total
                         // First triangle
@@ -312,6 +301,11 @@ impl CharacterSet {
 
     pub fn draw_text<A: AsRef<str>>(&self, text: A, text_sahder: &Shader) {
 
+        self.binder.bind_vao();
+        self.binder.bind_ebo();
+        self.binder.bind_vbo();
+        self.binder.bind_texture();
+
         text_sahder.use_shader(); // use text shader and not geometry shader
         // use function inside event loop in dzahui window, not anywhere else.
         // obtain vertices and indices to draw
@@ -319,21 +313,19 @@ impl CharacterSet {
 
         vertices.iter().zip(indices).for_each(|(vertices_subset, indices_subset)| {
             unsafe {
-                gl::BindVertexArray(self.binder.vao); // use this binder
-                gl::BindTexture(gl::TEXTURE_2D,self.binder.texture); // use this texture
-    
-                gl::BindBuffer(gl::ARRAY_BUFFER,self.binder.vbo); // binding buffer to specific type ARRAY_BUFFER
+
                 gl::BufferSubData(gl::ARRAY_BUFFER, 0,
                     (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                     &vertices_subset[0] as *const f32 as *const c_void); // double casting to raw pointer of c_void
     
-                gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.binder.ebo);
                 gl::BufferSubData(gl::ELEMENT_ARRAY_BUFFER, 0, (indices_subset.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
                     &indices_subset[0] as *const u32 as *const c_void);
                     
                 gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
             }
         });
+
+        self.binder.unbind_texture();
 
     }
 

@@ -46,7 +46,7 @@ pub struct DzahuiWindow {
 /// * `width` - Width of window. Defaults to 800 px.
 /// 
 #[derive(Debug)]
-pub struct DzahuiWindowBuilder<A, B, C, D, E,F>
+pub struct DzahuiWindowBuilder<A, B, C, D, E, F>
     where A: AsRef<str>,
           B: AsRef<str>,
           C: AsRef<str>,
@@ -340,9 +340,8 @@ impl DzahuiWindow {
         // Obtaining Event Loop is necessary since `event_loop.run()` consumes it alongside window if let inside struct instance.
         let event_loop = Option::take(&mut self.event_loop).unwrap();
 
-        self.mesh.send_to_gpu();
-
         // Send ui vertices
+        self.mesh.send_to_gpu();
         self.mesh.selectable_vertices.send_to_gpu();
 
         // COPYING LITERALLY EVERYTHING FROM MAIN. REFACTOR LATER

@@ -98,6 +98,7 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
         VertexList::new(centers, size, file)
     }
 
+    #[allow(dead_code)]
     fn create_hv_without_setup(vertices: &Vec<f32>, size: f32, file: &str) -> VertexList {
         let centers: Vec<Vector3<f32>> = (0..vertices.len()).step_by(3).map(|i| {
             Vector3::new(vertices[i] as f32,vertices[i+1] as f32,vertices[i+2] as f32)
@@ -115,6 +116,14 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
     /// ddd
     /// 
     pub fn build(self) -> Mesh {
+
+        // Binder
+        // MOST IMPORTANT CALL
+        let mut binder = Binder::new();
+        // connect binder with gpu
+        binder.setup();
+        // MOST IMPORTANT CALL
+
 
         let vertex_body_file = if let Some(vertex_body_file) = self.vertex_body { vertex_body_file.as_ref().to_string() } else 
         { "./assets/sphere.obj".to_string() };
@@ -141,11 +150,6 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
             closest_point[1] as f32,
             0.0
         ));
-
-        // Binder
-        let mut binder = Binder::new();
-        // connect binder with gpu
-        binder.setup();
 
         // Selectable vertices
         let size = if let Some(size) = self.size { size } else { max_length/(vertices.len() as f32) };

@@ -26,7 +26,7 @@ impl Binder {
 
     /// # General Information
     /// 
-    /// Sets up binder with GPU. Should always be used after instance of window has set up OpenGL context.
+    /// sets up binder's variables with GPU. Should always be used after instance of window has set up OpenGL context. Never binds texture.
     /// 
     /// # Parameters
     /// 
@@ -48,6 +48,84 @@ impl Binder {
             gl::GenBuffers(1, &mut self.ebo);
             // Bind VBO
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
+            // BInd VAO
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo);
+        }
+    }
+
+    /// # General Information
+    /// 
+    /// Binds binder's vao to use.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&self` - Instance does not need to be mutable since it's already setup.
+    /// 
+    pub(crate) fn bind_vao(&self) {
+        unsafe {
+            gl::BindVertexArray(self.vao);
+        }
+    }
+    pub(crate) fn bind_vbo(&self) {
+        unsafe {
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.vbo);
+        }
+    }
+    pub(crate) fn bind_ebo(&self) {
+        unsafe {
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ebo);
+        }
+    }
+
+    /// # General Information
+    /// 
+    /// Binds a 2D texture providing a standar way to scale up and down (mipmap), and enabling blending so that alpha channel is respected.
+    /// When enabling blending, it's necessary to change how it occurs: If alpha channel is to be respected, the incoming pixels have to be alpha transparent,
+    /// while the pixes already present have to be (1-alpha) transparent.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&mut self` - OpenGL changes values of instance field texture effectively linking current texture to use.
+    /// 
+    pub(crate) fn setup_texture(&mut self) {
+        unsafe {
+            gl::Enable(gl::BLEND);
+            gl::BlendFunc(gl::SRC_ALPHA,gl::ONE_MINUS_SRC_ALPHA);
+
+            // generate and bind texture
+            gl::GenTextures(1,&mut self.texture);
+            gl::BindTexture(gl::TEXTURE_2D, self.texture);
+            
+            // texture wrapping parameters
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); //how to wrap in s coordinate
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32); // how to wrap in t coordinate
+            // texture filtering
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32); // when texture is small, scall using linear
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32); // when texture is big, scall using linear
+        }
+    }
+
+    /// # General Information
+    /// 
+    /// Binds binder's texture to use.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&self` - Instance does not need to be mutable since it's already setup.
+    /// 
+    pub(crate) fn bind_texture(&self) {
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_2D,self.texture);
+        }
+    }
+
+    /// # General information
+    /// 
+    /// Unbind texture when needed. Since not all objects posess a texture, this has to be done sometimes.
+    /// 
+    pub(crate) fn unbind_texture(&self) {
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_2D,0);
         }
     }
 }

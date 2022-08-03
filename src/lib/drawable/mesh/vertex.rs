@@ -78,12 +78,13 @@ impl Drawable for VertexList {
     }
 
     fn draw(&self, window: &DzahuiWindow) {
+
+        self.get_binder().bind_vao();
+
         let indices_len: i32 = self.get_triangles().len() as i32;
         // Draw only when window is created and inside loop
         // Drawn as triangles
-        unsafe {
-            gl::BindVertexArray(self.get_binder().vao);
-            
+        unsafe {            
             for vertex in &self.list_of_vertices {
                 // Obtaining final model matrix: translate + scale
                 let model_mat = self.get_translation_matrix_from_id(vertex.id) * self.scale_matrix;
@@ -101,7 +102,12 @@ impl FromObj for VertexList {}
 impl VertexList {
     
     pub fn new(centers: Vec<Vector3<f32>>, size: f32, file: &str) -> Self {
-
+        
+        // MOST IMPORTANT CALL
+        let mut binder = Binder::new();
+        binder.setup();
+        // MOST IMPORTANT CALL
+        
         let list_of_vertices: Vec<Vertex> = centers.into_iter().enumerate().map(|(id,center)| {
             Vertex::new(center,id)
         }).collect();
@@ -110,8 +116,6 @@ impl VertexList {
         None);
         let scale_matrix = Matrix4::from_scale(size);
 
-        let mut binder = Binder::new();
-        binder.setup();
 
         VertexList {
             list_of_vertices,
@@ -123,6 +127,7 @@ impl VertexList {
         }
     }
 
+    #[allow(dead_code)]
     pub fn new_without_setup(centers: Vec<Vector3<f32>>, size: f32, file: &str) -> Self {
         let list_of_vertices: Vec<Vertex> = centers.into_iter().enumerate().map(|(id,center)| {
             Vertex::new(center,id)
