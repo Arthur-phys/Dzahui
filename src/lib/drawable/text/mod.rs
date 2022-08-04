@@ -3,8 +3,6 @@ use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
 use std::{ptr,mem,os::raw::c_void};
 use image;
 
-use crate::shader::Shader;
-
 use super::binder::Binder;
 
 #[derive(Debug)]
@@ -115,10 +113,19 @@ impl CharacterSet {
         let img_vec: Vec<u8> = img.into_bytes();
 
         unsafe {
+            gl::Enable(gl::BLEND);
+            gl::BlendFunc(gl::SRC_ALPHA,gl::ONE_MINUS_SRC_ALPHA);
+
+            // texture wrapping parameters
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); //how to wrap in s coordinate
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32); // how to wrap in t coordinate
+            // texture filtering
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32); // when texture is small, scall using linear
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32); // when texture is big, scall using linear
 
             gl::TexImage2D(gl::TEXTURE_2D, // Texture target is 2D since we created a texture for that
                 0, // Mipmap level 0 which is default. Otherwise wue could specify levels and change it
-                gl::RGB as i32, // Image is given as values of RGB
+                gl::RGBA as i32, // Image is given as values of RGB
                 width as i32,
                 height as i32,
                 0, // Legacy sutff not explained
@@ -299,29 +306,31 @@ impl CharacterSet {
         (vertices,indices)
     }
 
-    pub fn draw_text<A: AsRef<str>>(&self, text: A, text_sahder: &Shader) {
+    pub fn draw_text<A: AsRef<str>>(&self, text: A) {
 
         self.binder.bind_vao();
         self.binder.bind_ebo();
         self.binder.bind_vbo();
         self.binder.bind_texture();
 
-        text_sahder.use_shader(); // use text shader and not geometry shader
         // use function inside event loop in dzahui window, not anywhere else.
         // obtain vertices and indices to draw
         let (vertices, indices) = self.get_vertices_from_text(text);
 
         vertices.iter().zip(indices).for_each(|(vertices_subset, indices_subset)| {
             unsafe {
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
 
                 gl::BufferSubData(gl::ARRAY_BUFFER, 0,
-                    (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                    (vertices_subset.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                     &vertices_subset[0] as *const f32 as *const c_void); // double casting to raw pointer of c_void
     
                 gl::BufferSubData(gl::ELEMENT_ARRAY_BUFFER, 0, (indices_subset.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
                     &indices_subset[0] as *const u32 as *const c_void);
                     
                 gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
+                
+                gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
             }
         });
 

@@ -210,6 +210,7 @@ impl Camera {
     
     pub fn position_camera(&self, window: &DzahuiWindow) {
         window.geometry_shader.set_mat4("view", &self.view_matrix);
+        window.text_shader.set_mat4("view", &self.view_matrix);
     }
 
     pub fn modfy_projection_matrix(&self) -> Matrix4<f32> {

@@ -1,6 +1,6 @@
 use glutin::{event_loop::{EventLoop,ControlFlow},window::{WindowBuilder,Window},dpi::PhysicalSize,ContextBuilder,GlRequest,Api,GlProfile,ContextWrapper,PossiblyCurrent,event::{Event, WindowEvent, DeviceEvent, ElementState}};
 use crate::{shader::Shader,camera::{Camera, CameraBuilder, ray_casting::Cone},drawable::Drawable, drawable::{mesh::{Mesh,MeshBuilder}, text::CharacterSet}};
-use cgmath::{Point3,Vector3,Point2};
+use cgmath::{Point3,Vector3,Point2, Matrix4};
 use std::time::Instant;
 use gl;
 
@@ -238,10 +238,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             gl::Viewport(0,0,self.width.unwrap() as i32,self.height.unwrap() as i32);
         }
         
-        // Default character set. Not modifiable for now
-        let character_set_file = if let Some(set_file) = self.character_set { set_file } else { "assets/dzahui-font_3.fnt".to_string() };
-        let character_set = CharacterSet::new(&character_set_file);
-
+        
         // Use text_shaders chosen
         let vertex_shader: String = if let Some(vertex_shader) = self.text_vertex_shader {
             vertex_shader.as_ref().to_string()
@@ -257,18 +254,22 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         let vertex_shader: String = if let Some(vertex_shader) = self.geometry_vertex_shader {
             vertex_shader.as_ref().to_string()
             } else {"./assets/geometry_vertex_shader.vs".to_string()};
-
-        let fragment_shader: String = if let Some(fragment_shader) = self.geometry_fragment_shader {
+            
+            let fragment_shader: String = if let Some(fragment_shader) = self.geometry_fragment_shader {
             fragment_shader.as_ref().to_string()
-            } else {"./assets/geometry_fragment_shader.fs".to_string()};
+        } else {"./assets/geometry_fragment_shader.fs".to_string()};
         
         let geometry_shader = Shader::new(vertex_shader,fragment_shader);
-
+        
         // Creating mesh placed in box to accept both Mesh2D and Mesh3D
         let mesh = self.mesh.build();
         
         let camera = self.camera.build(&mesh, self.height.unwrap(), self.width.unwrap());
         
+        // Default character set. Not modifiable for now
+        let character_set_file = if let Some(set_file) = self.character_set { set_file } else { "assets/dzahui-font_3.fnt".to_string() };
+        let character_set = CharacterSet::new(&character_set_file);
+
         // Start clock for delta time
         let timer = Instant::now();
 
@@ -349,14 +350,20 @@ impl DzahuiWindow {
         self.geometry_shader.use_shader();
         // translation for mesh to always be near (0,0)
         self.geometry_shader.set_mat4("model", self.mesh.get_model_matrix());
+        self.geometry_shader.set_mat4("view", &self.camera.view_matrix);
+        self.geometry_shader.set_mat4("projection", &self.camera.projection_matrix);
 
         // ray casting cone
         let mut cone_sphere_selector = Cone::new(Point3::new(0.0,0.0,0.0),Vector3::new(0.0,0.0,1.0),0.1);
         let mut x: f64 = 0.0;
         let mut y: f64 = 0.0;
 
-        self.geometry_shader.set_mat4("view", &self.camera.view_matrix);
-        self.geometry_shader.set_mat4("projection", &self.camera.projection_matrix);
+
+        self.text_shader.use_shader();
+        
+        self.text_shader.set_mat4("model", &Matrix4::from_scale(0.005));
+        self.text_shader.set_mat4("view", &self.camera.view_matrix);
+        self.text_shader.set_mat4("projection", &self.camera.projection_matrix);
 
         event_loop.run(move |event, _, control_flow| {
 
@@ -459,7 +466,8 @@ impl DzahuiWindow {
                 // Draw triangles via ebo (indices)
                 self.mesh.draw(&self);
                 // Draw some dumb text
-                self.character_set.draw_text("UN ELEFANTE SE COLUMPIABA", &self.text_shader);
+                self.text_shader.use_shader();
+                self.character_set.draw_text("PAN DE MUERTO");
             }
             // Need to change old and new buffer to redraw
             self.context.swap_buffers().unwrap();

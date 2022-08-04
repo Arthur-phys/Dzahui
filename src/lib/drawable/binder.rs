@@ -89,19 +89,9 @@ impl Binder {
     /// 
     pub(crate) fn setup_texture(&mut self) {
         unsafe {
-            gl::Enable(gl::BLEND);
-            gl::BlendFunc(gl::SRC_ALPHA,gl::ONE_MINUS_SRC_ALPHA);
-
             // generate and bind texture
             gl::GenTextures(1,&mut self.texture);
             gl::BindTexture(gl::TEXTURE_2D, self.texture);
-            
-            // texture wrapping parameters
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); //how to wrap in s coordinate
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32); // how to wrap in t coordinate
-            // texture filtering
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32); // when texture is small, scall using linear
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32); // when texture is big, scall using linear
         }
     }
 
