@@ -1,5 +1,5 @@
 use cgmath::{Vector3, Vector4, Point3, Point2, Transform, Matrix4, InnerSpace};
-use crate::{camera::Camera, DzahuiWindow, drawable::mesh::vertex::Vertex};
+use crate::{camera::Camera, drawable::mesh::vertex::Vertex};
 
 #[derive(Debug)]
 pub struct Cone {
@@ -9,27 +9,29 @@ pub struct Cone {
 }
 
 impl Cone {
+
     pub fn new(anchorage_point: Point3<f32>, direction: Vector3<f32>, angle: f32) -> Cone {
+
         let direction = direction.normalize();
         Cone { anchorage_point, direction, angle }
     }
 
-    pub fn from_mouse_position(angle: f32, mouse_coordinates: Point2<f64>, camera: &Camera, window: &DzahuiWindow) -> Cone {
+    pub(crate) fn change_from_mouse_position(&mut self, mouse_coordinates: &Point2<f32>, camera: &Camera, window_width: u32, window_height: u32) {
         // Create cone from position of mouse
         let near_ndc_coordinates = Vector4::new(
-            (mouse_coordinates.x - (window.width as f64)/2.0)/((window.width as f64)/2.0), // map between -1 and 1
-            -(mouse_coordinates.y - (window.height as f64)/2.0)/((window.height as f64)/2.0),
+            (mouse_coordinates.x - (window_width as f32)/2.0)/((window_width as f32)/2.0), // map between -1 and 1
+            -(mouse_coordinates.y - (window_height as f32)/2.0)/((window_height as f32)/2.0),
             -1.0, // near plane
             1.0
         );
         let far_ndc_coordinates = Vector4::new(
-            (mouse_coordinates.x - (window.width as f64)/2.0)/((window.width as f64)/2.0), // map between -1 and 1
-            -(mouse_coordinates.y - (window.height as f64)/2.0)/((window.height as f64)/2.0),
+            (mouse_coordinates.x - (window_width as f32)/2.0)/((window_width as f32)/2.0), // map between -1 and 1
+            -(mouse_coordinates.y - (window_height as f32)/2.0)/((window_height as f32)/2.0),
             1.0, // far plane
             1.0
         );
 
-        let inverse_projection_matrix: Matrix4<f64> = camera.projection_matrix.inverse_transform().expect("No inverse transform exists for this matrix").cast().unwrap();
+        let inverse_projection_matrix: Matrix4<f32> = camera.projection_matrix.inverse_transform().expect("No inverse transform exists for this matrix").cast().unwrap();
         let near_view_coordinates = inverse_projection_matrix * near_ndc_coordinates;
         let far_view_coordinates = inverse_projection_matrix * far_ndc_coordinates;
         
@@ -37,16 +39,18 @@ impl Cone {
         let near_view_coordinates = Vector3::new(near_view_coordinates.x,near_view_coordinates.y,near_view_coordinates.z) / near_view_coordinates.w;
         let far_view_coordinates = Vector3::new(far_view_coordinates.x,far_view_coordinates.y,far_view_coordinates.z) / far_view_coordinates.w;
         
-        // cast becomes unnecesary if all values are f64, but camera is not working with f64 and opengl
+        // cast becomes unnecesary if all values are f32, but camera is not working with f32 and opengl
         let anchorage_point: Point3<f32> = Point3::new(near_view_coordinates.x,near_view_coordinates.y, near_view_coordinates.z).cast().unwrap();
         let direction: Vector3<f32> = (far_view_coordinates - near_view_coordinates).cast().unwrap().normalize();
 
-        Cone {anchorage_point, direction, angle}
+        self.anchorage_point = anchorage_point;
+        self.direction = direction;
     }
 
-    pub fn obtain_nearest_intersection(&self, spheres: &Vec<Vertex>, camera: &Camera) -> Option<(f32,usize)> {
+
+    pub(crate) fn obtain_nearest_intersection(&self, vertices: &Vec<Vertex>, camera: &Camera) -> Option<(f32,usize)> {
         // Filter objects to only those that are partially or completelly inside cone
-        let filtered_objects: Vec<&Vertex> = spheres.iter().filter(|sphere| {
+        let filtered_objects: Vec<&Vertex> = vertices.iter().filter(|sphere| {
             let view_center = sphere.get_view_center(&camera);
             let x = view_center.x;
             let y = view_center.y;

@@ -1,7 +1,8 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3};
+use glutin::event::ElementState;
 use crate::{DzahuiWindow, drawable::mesh::Mesh, drawable::Drawable};
 
-pub mod ray_casting;
+pub mod cone;
 
 /// # General Information
 /// 
@@ -137,6 +138,7 @@ impl CameraBuilder {
     /// * `self` -> All camera parameters are within self. Every parameter appearing in Camera struct but not here is derived from the ones that do appear.
     /// 
     pub fn build(self, mesh: &Mesh, height: u32, width: u32) -> Camera {
+
         let fov = if let Some(fov) = self.fov { fov } else { 45.0 };
         // Obtain radius or get predetermined one (use the predetermined one is recommended)
         let radius = if let Some(radius) = self.radius {
@@ -173,7 +175,7 @@ impl CameraBuilder {
             theta.to_radians().cos(),theta.to_radians().sin()*phi.to_radians().cos()) * radius + Vector3::new(
             camera_target.x,camera_target.y,camera_target.z);
         // View and projection matrix
-        // They are closely correlated, that's why they're both in the same structure.
+        // They are closely related, that's why they're both in the same structure.
         let view_matrix = Matrix4::look_at_rh(camera_position, camera_target, up_vector);
         let projection_matrix = cgmath::perspective(Deg(fov), aspect_ratio, near, far);
         // change view matrix defaults to false
@@ -199,22 +201,19 @@ impl CameraBuilder {
 }
 
 impl Camera {
-    /// Create a camera builder
+    /// Create a camera builder.
     pub fn builder() -> CameraBuilder {
         CameraBuilder::new()
     }
-    ///
-    pub fn modify_view_matrix(&mut self) {
+
+    /// Change view matrix associated to camera.
+    pub(crate) fn modify_view_matrix(&mut self) {
         self.view_matrix = Matrix4::look_at_rh(self.camera_position, self.camera_target, self.up_vector);
     }
     
-    pub fn position_camera(&self, window: &DzahuiWindow) {
+    pub(crate) fn position_camera(&self, window: &DzahuiWindow) {
         window.geometry_shader.set_mat4("view", &self.view_matrix);
         window.text_shader.set_mat4("view", &self.view_matrix);
-    }
-
-    pub fn modfy_projection_matrix(&self) -> Matrix4<f32> {
-        Matrix4::from_translation(Vector3::new(0.0,0.0,0.0))
     }
 
 

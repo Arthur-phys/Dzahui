@@ -1,6 +1,6 @@
 use glutin::{event_loop::{EventLoop,ControlFlow},window::{WindowBuilder,Window},dpi::PhysicalSize,ContextBuilder,GlRequest,Api,GlProfile,ContextWrapper,PossiblyCurrent,event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use crate::{shader::Shader,camera::{Camera, CameraBuilder, ray_casting::Cone},drawable::Drawable, drawable::{mesh::{Mesh,MeshBuilder}, text::CharacterSet}};
-use cgmath::{Point3,Vector3,Point2, Matrix4};
+use crate::{shader::Shader,camera::{Camera, CameraBuilder, cone::Cone},drawable::Drawable, drawable::{mesh::{Mesh,MeshBuilder}, text::CharacterSet}};
+use cgmath::{Point3,Vector3,Point2,Matrix4};
 use std::time::Instant;
 use gl;
 
@@ -26,12 +26,14 @@ pub struct DzahuiWindow {
     pub(crate) geometry_shader: Shader,
     event_loop: Option<EventLoop<()>>,
     pub(crate) text_shader: Shader,
+    mouse_coordinates: Point2<f32>,
     character_set: CharacterSet,
     pub(crate) height: u32,
     pub(crate) width: u32,
+    vertex_selector: Cone,
     pub timer: Instant,
     camera: Camera,
-    mesh: Mesh
+    mesh: Mesh,
 }
 
 /// # General Information
@@ -60,6 +62,7 @@ pub struct DzahuiWindowBuilder<A, B, C, D, E, F>
     opengl_version: Option<(u8,u8)>,
     character_set: Option<String>,
     text_vertex_shader: Option<C>,
+    vertex_selector: Option<f32>,
     mesh: MeshBuilder<E,F>,
     camera: CameraBuilder,
     height: Option<u32>,
@@ -83,6 +86,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             text_vertex_shader: None,
             text_fragment_shader: None,
             opengl_version: Some((3,3)),
+            vertex_selector: None,
             camera: Camera::builder(),
             mesh: Mesh::builder(location),
             height: Some(600),
@@ -114,9 +118,16 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         }
     }
     /// Changes opengl version.
-    pub fn with_opengl_version(self,opengl_version: (u8,u8)) -> Self {
+    pub fn with_opengl_version(self, opengl_version: (u8,u8)) -> Self {
         Self {
             opengl_version: Some(opengl_version),
+            ..self
+        }
+    }
+    /// Changes angle to determine selected vertex.
+    pub fn with_vertex_angle(self, angle: f32) -> Self {
+        Self {
+            vertex_selector: Some(angle),
             ..self
         }
     }
@@ -184,6 +195,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             ..self
         }
     }
+
     /// # General Information
     /// 
     /// Builds DzahuiWindow from parameters given or sensible defaults.
@@ -261,10 +273,15 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         
         let geometry_shader = Shader::new(vertex_shader,fragment_shader);
         
-        // Creating mesh placed in box to accept both Mesh2D and Mesh3D
+        // Creating mesh based on initial provided file.
         let mesh = self.mesh.build();
         
+        // Camera created with selected configuration via shortcut functions.
         let camera = self.camera.build(&mesh, self.height.unwrap(), self.width.unwrap());
+
+        // Vertex selector (cone)
+        let angle = if let Some(angle) = self.vertex_selector { angle } else { 3.0 };
+        let vertex_selector = Cone::new(Point3::new(0.0,0.0,0.0),Vector3::new(0.0,0.0,1.0), angle);
         
         // Default character set. Not modifiable for now
         let character_set_file = if let Some(set_file) = self.character_set { set_file } else { "assets/dzahui-font_3.fnt".to_string() };
@@ -278,12 +295,14 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             timer,
             geometry_shader,
             text_shader,
+            vertex_selector,
             character_set,
             mesh,
             camera,
-            event_loop: Some(event_loop),
+            width: self.width.unwrap(),
             height: self.height.unwrap(),
-            width: self.width.unwrap()
+            event_loop: Some(event_loop),
+            mouse_coordinates: Point2::new(0.0,0.0)
         }
     }
 }
@@ -302,19 +321,6 @@ impl DzahuiWindow {
         DzahuiWindowBuilder::new(location)
     }
 
-    /// # General Information
-    /// 
-    /// Grab cursor if needed to stop it from going outside the window.
-    ///
-    /// # Parameters
-    /// 
-    /// * `&self` - To use current context and grab cursor
-    /// * `grab` - A boolean value to change the state of the grab variable inside context.
-    /// 
-    pub fn grab_cursor(&self, grab: bool) {
-        self.context.window().set_cursor_grab(grab).unwrap();
-    }
-
     /// # General information
     /// 
     /// To restart timer of window in case is needed.
@@ -325,6 +331,49 @@ impl DzahuiWindow {
     /// 
     pub fn restart_timer(&mut self) {
         self.timer = Instant::now();
+    }
+
+    /// Callback to change mouse coordinates.
+     pub fn update_mouse_coordinates(&mut self, x: f32, y: f32) {
+        self.mouse_coordinates.x = x;
+        self.mouse_coordinates.y = y;
+     }
+
+    /// Callback that changes wether camera can be edited by user input or not.
+    fn activate_view_change(&mut self, state: ElementState) {
+        match state {
+            ElementState::Pressed => self.camera.active_view_change = true,
+            ElementState::Released => self.camera.active_view_change = false
+        }
+    }
+
+    /// Callback to obtain vertex intersection with click produced cone.
+    fn get_selected_vertex(&mut self) {
+        self.vertex_selector.change_from_mouse_position(&self.mouse_coordinates, &self.camera, self.width, self.height);
+        self.vertex_selector.obtain_nearest_intersection(&self.mesh.selectable_vertices.list_of_vertices, &self.camera);
+    }
+
+    /// Callback to change camera view matrix based on user motion.
+    fn change_camera_view(&mut self, x: f32, y: f32) {
+
+        let x_offset = x  * self.camera.camera_sensitivity;
+        let y_offset = y * self.camera.camera_sensitivity;
+        self.camera.theta -= y_offset;
+        self.camera.phi -= x_offset;
+        
+        // Do not allow 0 (or 180) degree angle (coincides with y-axis)
+        if self.camera.theta < 1.0 {
+            self.camera.theta = 1.0;
+        } else if self.camera.theta > 179.0 {
+            self.camera.theta = 179.0;
+        }
+
+        // update position
+        self.camera.camera_position = Point3::new(self.camera.theta.to_radians().sin()*self.camera.phi.to_radians().sin(),
+        self.camera.theta.to_radians().cos(),self.camera.theta.to_radians().sin()*self.camera.phi.to_radians().cos()) * self.camera.radius;
+        
+        // generate new matrix
+        self.camera.modify_view_matrix();
     }
 
     /// # General Information
@@ -345,20 +394,14 @@ impl DzahuiWindow {
         self.mesh.send_to_gpu();
         self.mesh.selectable_vertices.send_to_gpu();
 
-        // COPYING LITERALLY EVERYTHING FROM MAIN. REFACTOR LATER
-        // Use geometry shader
+        // Use geometry shader.
         self.geometry_shader.use_shader();
-        // translation for mesh to always be near (0,0)
+        // translation for mesh to always be near (0,0).
         self.geometry_shader.set_mat4("model", self.mesh.get_model_matrix());
         self.geometry_shader.set_mat4("view", &self.camera.view_matrix);
         self.geometry_shader.set_mat4("projection", &self.camera.projection_matrix);
 
-        // ray casting cone
-        let mut cone_sphere_selector = Cone::new(Point3::new(0.0,0.0,0.0),Vector3::new(0.0,0.0,1.0),0.1);
-        let mut x: f64 = 0.0;
-        let mut y: f64 = 0.0;
-
-
+        // Use text shader to assign matrices.
         self.text_shader.use_shader();
         
         self.text_shader.set_mat4("model", &Matrix4::from_scale(0.005));
@@ -370,88 +413,61 @@ impl DzahuiWindow {
             match event {
                 
                 Event::LoopDestroyed => (), // subscribing to events occurs here
+
                 Event::WindowEvent {event, ..} => match event {
                     
                     WindowEvent::Resized(physical_size) => self.context.resize(physical_size),
                     
                     WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-    
-                    // When cursor is moved, create new cone to select objects
-                    WindowEvent::CursorMoved { device_id, position, .. } => {
-                        x = position.x;
-                        y = position.y;
-                    },
                     
-                    // Close on esc
-                    WindowEvent::KeyboardInput {input, is_synthetic, ..} => {
-                        if !is_synthetic && input.scancode == 1 {
-                            *control_flow = ControlFlow::Exit;
+                    WindowEvent::CursorMoved { device_id: _, position, .. } => self.update_mouse_coordinates(position.x as f32, position.y as f32),
+                    
+                    WindowEvent::KeyboardInput {input, ..} => {
+                        
+                        match input.scancode {
+                        
+                            1 => *control_flow = ControlFlow::Exit,
+                            _ => ()
+                        
                         }
                     },
     
                     _ => ()
+                
                 },
                 
-                Event::DeviceEvent { device_id, event } => {
-                    match event {
-                        // to activate moving camera
-                        DeviceEvent::Button { button, state } => {
-                            match button {
-                                2 => {
-                                    match state {
-                                        ElementState::Pressed => {
-                                            self.camera.active_view_change = true;
-                                        },
-                                        ElementState::Released => {
-                                            self.camera.active_view_change = false;
-                                        }
-                                    }
-                                },
-                                1 => {
-                                    if let ElementState::Pressed = state {
-                                        cone_sphere_selector = Cone::from_mouse_position(1.0, Point2::new(x,y), &self.camera, &self);
-                                        let selected_sphere = cone_sphere_selector.obtain_nearest_intersection(&self.mesh.selectable_vertices.list_of_vertices, &self.camera);
-                                        println!("{:?}",selected_sphere);
-                                    }
-                                }
-                                _ => {}
-                            }
-                        },
-    
-                        // to move camera
-                        DeviceEvent::MouseMotion { delta: (x, y) } => {
-                            if self.camera.active_view_change {
-                                let x_offset = (x as f32) * self.camera.camera_sensitivity;
-                                let y_offset = (y as f32) * self.camera.camera_sensitivity;
-                                self.camera.theta -= y_offset;
-                                self.camera.phi -= x_offset;
-                                
-                                // Do not allow 0 (or 180) degree angle (coincides with y-axis)
-                                if self.camera.theta < 1.0 {
-                                    self.camera.theta = 1.0;
-                                } else if self.camera.theta > 179.0 {
-                                    self.camera.theta = 179.0;
-                                }
-        
-                                // update position
-                                self.camera.camera_position = Point3::new(self.camera.theta.to_radians().sin()*self.camera.phi.to_radians().sin(),
-                                self.camera.theta.to_radians().cos(),self.camera.theta.to_radians().sin()*self.camera.phi.to_radians().cos()) * self.camera.radius;
-                                
-                                // generate new matrix
-                                self.camera.modify_view_matrix();
-                            }
-    
-    
+                Event::DeviceEvent { device_id: _, event } => match event {
+                        
+                    DeviceEvent::Button { button, state } => {
+
+                        match button {
+
+                            2 => self.activate_view_change(state),
+                            1 =>  if let ElementState::Pressed = state { self.get_selected_vertex(); }
+                            _ => {}
+
                         }
+                    },
     
-                        _ => {}
+                    DeviceEvent::MouseMotion { delta: (x, y) } => {
+
+                        match self.camera.active_view_change {
+
+                            true => self.change_camera_view(x as f32, y as f32),
+                            false => ()
+
+                        }
                     }
+    
+                    _ => {}
+
                 },
     
                 Event::RedrawRequested(_) => (),
     
                 _ => (),
             }
+
             // Render
             unsafe {
                 self.geometry_shader.use_shader();
@@ -467,7 +483,7 @@ impl DzahuiWindow {
                 self.mesh.draw(&self);
                 // Draw some dumb text
                 self.text_shader.use_shader();
-                self.character_set.draw_text("PAN DE MUERTO");
+                self.character_set.draw_text("Niji");
             }
             // Need to change old and new buffer to redraw
             self.context.swap_buffers().unwrap();
