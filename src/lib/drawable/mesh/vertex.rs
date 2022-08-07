@@ -1,4 +1,4 @@
-use crate::{drawable::Drawable, drawable::from_obj::FromObj, DzahuiWindow, drawable::binder::Binder, camera::Camera};
+use crate::{drawable::{Drawable, Bindable}, drawable::from_obj::FromObj, DzahuiWindow, drawable::binder::Binder, camera::Camera};
 use cgmath::{Vector3, Matrix4, Vector4};
 use std::ptr;
 
@@ -59,6 +59,17 @@ pub struct VertexList {
     pub(crate) scale_matrix: Matrix4<f32>,
 }
 
+impl Bindable for VertexList {
+
+    fn get_binder(&self) -> &Binder {
+        &self.binder
+    }
+
+    fn get_mut_binder(&mut self) -> &mut Binder {
+        &mut self.binder
+    }
+}
+
 impl Drawable for VertexList {
     
     fn get_triangles(&self) -> &Vec<u32> {
@@ -71,10 +82,6 @@ impl Drawable for VertexList {
 
     fn get_max_length(&self) -> f32 {
         self.size * 2.0
-    }
-
-    fn get_binder(&self) -> &Binder {
-        &self.binder
     }
 
     fn draw(&self, window: &DzahuiWindow) {
@@ -103,10 +110,7 @@ impl VertexList {
     
     pub fn new(centers: Vec<Vector3<f32>>, size: f32, file: &str) -> Self {
         
-        // MOST IMPORTANT CALL
-        let mut binder = Binder::new();
-        binder.setup();
-        // MOST IMPORTANT CALL
+        let binder = Binder::new();
         
         let list_of_vertices: Vec<Vertex> = centers.into_iter().enumerate().map(|(id,center)| {
             Vertex::new(center,id)
@@ -116,28 +120,6 @@ impl VertexList {
         None);
         let scale_matrix = Matrix4::from_scale(size);
 
-
-        VertexList {
-            list_of_vertices,
-            binder,
-            size,
-            vertices,
-            triangles,
-            scale_matrix
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn new_without_setup(centers: Vec<Vector3<f32>>, size: f32, file: &str) -> Self {
-        let list_of_vertices: Vec<Vertex> = centers.into_iter().enumerate().map(|(id,center)| {
-            Vertex::new(center,id)
-        }).collect();
-
-        let (vertices, triangles, ..) = VertexList::generate_fields(file,
-        None);
-        let scale_matrix = Matrix4::from_scale(size);
-
-        let binder = Binder::new();
 
         VertexList {
             list_of_vertices,

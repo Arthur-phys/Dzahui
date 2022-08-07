@@ -6,9 +6,57 @@ pub mod from_obj;
 
 use std::{ptr,mem,os::raw::c_void};
 use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
-use cgmath::{Matrix4,SquareMatrix};
 use crate::DzahuiWindow;
 use binder::Binder;
+
+/// General Inforamation
+/// 
+/// An object that can be represented in CPU via a, ebo, vbo, vao and texture (the latter is not necessary).
+/// 
+pub trait Bindable {
+
+        /// Obtains binder associated to object. Getter.
+        fn get_binder(&self) -> &Binder;
+        
+        /// Obtain binder mutable reference.
+        fn get_mut_binder(&mut self) -> &mut Binder;
+        
+        /// Shortcut to binder setup function.
+        fn setup(&mut self) {
+            self.get_mut_binder().setup()
+        }
+
+        /// Shortcut to setup texture function.
+        fn setup_texture(&mut self) {
+            self.get_mut_binder().setup_texture()
+        }
+
+        /// Shortcut to bind all without texture function.
+        fn bind_all_no_texture(&self) {
+            self.get_binder().bind_all_no_texture()
+        }
+
+        /// Shortcut to bind all function.
+        fn bind_all(&self) {
+            self.get_binder().bind_all()
+        }
+
+        /// Shortcut to bind vao function
+        fn bind_vao(&self) {
+            self.get_binder().bind_vao()
+        }
+
+        /// Shortcut to bind texture
+        fn bind_texture(&self) {
+            self.get_binder().bind_texture()
+        }
+
+        /// Shortcut to unbind texture
+        fn unbind_texture(&self) {
+            self.get_binder().unbind_texture()
+        }
+
+}
 
 
 /// # General Information
@@ -16,7 +64,7 @@ use binder::Binder;
 /// All objects that can be drawn by OpenGL should implement a drawable trait. The main functions are
 /// setup and draw. Both which contain general implementations to setup drawable object in GPU and draw it respectively.
 ///
-pub trait Drawable {
+pub trait Drawable: Bindable {
      
     /// Creates a way to obtain vertices from drawable object. Getter.
     fn get_vertices(&self) -> &Vec<f32>;
@@ -24,8 +72,6 @@ pub trait Drawable {
     fn get_triangles(&self) -> &Vec<u32>;
     /// Creates a way to obtain order of object's dimensions. Getter.
     fn get_max_length(&self) -> f32;
-    /// Obtains binder associated to mesh. Getter.
-    fn get_binder(&self) -> &Binder;
 
     /// # General Information
     /// 
@@ -42,12 +88,6 @@ pub trait Drawable {
     /// * `&self` - All information is stored inside the object an accesed through the getter methods above.
     /// 
     fn send_to_gpu(&self) {
-
-        // MOST IMPORTANT CALL IN FUNCTION
-        self.get_binder().bind_vao();
-        self.get_binder().bind_ebo();
-        self.get_binder().bind_vbo();
-        // MOST IMPORTANT CALL IN FUNCTION
 
         let vertices = self.get_vertices();
         let triangles = self.get_triangles();
@@ -85,15 +125,20 @@ pub trait Drawable {
         }
     }
 
+    /// # General Information
+    /// 
+    /// A simple call to glDrawElements in triangles mode. It assumes all information to be drawn has been sent and is stored in a single vbo, veo pair.
+    /// This means this functions sometimes will be overriden by classes' behavior or even not implemented when objects need a more versatile version of the
+    /// function (Making multiple calls to draw is, in general, not a good idea, since it can really slow down a program reducing the FPS. When drawing
+    /// multiple objects, it'ss better to use the so called 'batch rendering').
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&self` - A reference to the object which is attached to a binder and knows how to get the indices and indices length.
+    /// 
     fn draw(&self, window: &DzahuiWindow) {
 
-        // MOST IMPORTANT CALL
-        self.get_binder().bind_vao();
-        // MOST IMPORTANT CALL
-
         let indices_len: i32 = self.get_triangles().len() as i32;
-        // use mesh model matrix
-        window.geometry_shader.set_mat4("model", &Matrix4::identity());
         
         // Draw only when window is created and inside loop
         // Drawn as triangles
@@ -102,4 +147,8 @@ pub trait Drawable {
             gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
         }
     }
+}
+
+pub trait TextureDrawable: Bindable {
+
 }

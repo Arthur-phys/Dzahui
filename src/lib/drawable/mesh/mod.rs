@@ -1,6 +1,6 @@
 pub mod vertex;
 
-use super::{Drawable, Binder, from_obj::FromObj};
+use super::{Drawable, Binder, from_obj::FromObj, Bindable};
 use std::{fs::File,io::{BufReader, BufRead}};
 use cgmath::{Vector3, Matrix4};
 use std::collections::HashMap;
@@ -23,7 +23,6 @@ use vertex::VertexList;
 pub struct Mesh {
     binder: Binder,
     pub selectable_vertices: VertexList,
-    dimension: MeshDimension,
     pub vertices: Vec<f32>,
     pub triangles: Vec<u32>, 
     pub ignored_coordinate: Option<usize>,
@@ -40,6 +39,7 @@ pub struct Mesh {
 /// * `location` - Path to mesh's `.obj`.
 /// * `dimension` - Enum with mesh's dimension. Needs to be set to enable/disable checkoing for repeated coordinate in `.obj` if it's 2D.
 /// * `vertex_body` - Allows vertex personalization if set.
+/// * `size` - Allows to set vertex_body size.
 ///
 #[derive(Debug)]
 pub struct MeshBuilder<A: AsRef<str>, B: AsRef<str>> {
@@ -81,6 +81,7 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
             ..self
         }
     }
+
     /// # General Information
     /// 
     /// ddd
@@ -98,15 +99,6 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
         VertexList::new(centers, size, file)
     }
 
-    #[allow(dead_code)]
-    fn create_hv_without_setup(vertices: &Vec<f32>, size: f32, file: &str) -> VertexList {
-        let centers: Vec<Vector3<f32>> = (0..vertices.len()).step_by(3).map(|i| {
-            Vector3::new(vertices[i] as f32,vertices[i+1] as f32,vertices[i+2] as f32)
-        }).collect();
-
-        VertexList::new_without_setup(centers, size, file)
-    }
-
     /// # General Information
     /// 
     /// ddd
@@ -117,19 +109,13 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
     /// 
     pub fn build(self) -> Mesh {
 
-        // Binder
-        // MOST IMPORTANT CALL
-        let mut binder = Binder::new();
-        // connect binder with gpu
-        binder.setup();
-        // MOST IMPORTANT CALL
-
+        let binder = Binder::new();
 
         let vertex_body_file = if let Some(vertex_body_file) = self.vertex_body { vertex_body_file.as_ref().to_string() } else 
         { "./assets/sphere.obj".to_string() };
-        let mut ignored_coordinate = None;
 
-        let (vertices, triangles, max_length, closest_point) = match self.dimension {
+        let mut ignored_coordinate = None;
+        let (vertices, triangles, max_length, mid_point) = match self.dimension {
 
             MeshDimension::Two => {
                 ignored_coordinate = Mesh::get_ignored_coordinate(self.location.as_ref().to_string());
@@ -144,14 +130,14 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
         };
 
         // Translate matrix to given point
-        // NOT OK. model_matrix changes for 3d
         let model_matrix = Matrix4::from_translation(Vector3::new(
-            closest_point[0] as f32,
-            closest_point[1] as f32,
-            0.0
+            mid_point[0] as f32,
+            mid_point[1] as f32,
+            mid_point[2] as f32
         ));
 
         // Selectable vertices
+        // improve size
         let size = if let Some(size) = self.size { size } else { max_length/(vertices.len() as f32) };
 
         let selectable_vertices = Self::create_highlightable_vertices(&vertices, size,
@@ -165,65 +151,18 @@ impl<A: AsRef<str>, B: AsRef<str>> MeshBuilder<A,B> {
             triangles,
             max_length,
             model_matrix,
-            binder,
-            dimension: self.dimension,
+            binder
         }
     }
+}
 
-    /// To use for testing purposes
-    pub fn build_without_setup(self) -> Mesh {
+impl Bindable for Mesh {
+    fn get_binder(&self) -> &Binder {
+        &self.binder
+    }
 
-        let vertex_body_file = if let Some(vertex_body_file) = self.vertex_body { vertex_body_file.as_ref().to_string() } else 
-        { "./assets/sphere.obj".to_string() };
-        println!("Todo ok");
-        
-        let mut ignored_coordinate = None;
-        
-        let (vertices, triangles, max_length, closest_point) = match self.dimension {
-            
-            MeshDimension::Two => {
-                ignored_coordinate = Mesh::get_ignored_coordinate(self.location.as_ref().to_string());
-                
-                Mesh::generate_fields(self.location, ignored_coordinate)
-                
-            },
-            
-            MeshDimension::Three => {
-                Mesh::generate_fields(self.location, None)
-            }
-        };
-        println!("Todo ok");
-        
-        // Translate matrix to given point
-        // NOT OK. model_matrix changes for 3d
-        let model_matrix = Matrix4::from_translation(Vector3::new(
-            closest_point[0] as f32,
-            closest_point[1] as f32,
-            0.0
-        ));
-        println!("Todo ok");
-        
-        // Binder
-        let binder = Binder::new();
-        
-        // Selectable vertices
-        let size = if let Some(size) = self.size { size } else { max_length/(vertices.len() as f32) };
-        
-        let selectable_vertices = Self::create_hv_without_setup(&vertices, size,
-            vertex_body_file.as_str());
-            
-        println!("Todo ok");
-
-        Mesh {
-            ignored_coordinate,
-            selectable_vertices,
-            vertices,
-            triangles,
-            max_length,
-            model_matrix,
-            binder,
-            dimension: self.dimension,
-        }
+    fn get_mut_binder(&mut self) -> &mut Binder {
+        &mut self.binder
     }
 }
 
@@ -239,10 +178,6 @@ impl Drawable for Mesh {
 
     fn get_max_length(&self) -> f32 {
         self.max_length
-    }
-    
-    fn get_binder(&self) -> &Binder {
-        &self.binder
     }
 }
 
@@ -350,7 +285,7 @@ mod test {
     fn parse_coordinates() {
     
         let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").with_vertex_body("./assets/sphere.obj");
-        let new_mesh = new_mesh.build_without_setup();
+        let new_mesh = new_mesh.build();
         assert!(new_mesh.vertices == vec![-1.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0]);
         assert!(new_mesh.triangles == vec![0,1,2]);
     }
@@ -358,7 +293,7 @@ mod test {
     #[test]
     fn is_max_distance() {
     
-        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").with_vertex_body("./assets/sphere.obj").build_without_setup();
+        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").with_vertex_body("./assets/sphere.obj").build();
         println!("{}",new_mesh.max_length);
         assert!(new_mesh.max_length >= 1.90);
         assert!(new_mesh.max_length <= 2.10);

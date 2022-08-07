@@ -1,9 +1,8 @@
 use std::{fs::File,collections::HashMap,io::{BufReader, BufRead}};
 use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
 use std::{ptr,mem,os::raw::c_void};
+use super::{binder::Binder, Bindable};
 use image;
-
-use super::binder::Binder;
 
 #[derive(Debug)]
 struct Character {
@@ -16,6 +15,7 @@ struct Character {
     // Offset from top left corner
     pub(crate) character_start: (f32,f32),
 }
+
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct CharacterSet {
     characters: HashMap<char, Character>,
@@ -28,7 +28,7 @@ pub(crate) struct CharacterSet {
     character_number: usize,
     texture_file: String,
     texture_size: (u32,u32), // Pixels
-    binder: Binder,
+    pub(crate) binder: Binder,
     image_as_vec: Vec<u8>, // image vector
 }
 
@@ -56,17 +56,22 @@ impl PartialEq for Character {
 
 impl Eq for Character {}
 
+impl Bindable for CharacterSet {
+    
+    fn get_binder(&self) -> &Binder {
+        &self.binder
+    }
+
+    fn get_mut_binder(&mut self) -> &mut Binder {
+        &mut self.binder
+    }
+}
 
 impl CharacterSet {
     
     pub fn new(character_file: &str) -> Self {
 
-        // SETUP IS THE MOST IMPORTANT PART
-        let mut binder = Binder::new();
-        binder.setup();
-        binder.setup_texture();
-        // SETUP IS THE MOST IMPORTANT PART
-
+        let binder = Binder::new();
         
         let file = File::open(character_file).expect("Unable to open file. Does the file exists and is readable?");
         let mut reader = BufReader::new(file).lines();
@@ -108,52 +113,7 @@ impl CharacterSet {
 
         // After third line, image can be loaded.
         let img = image::open(format!("./assets/{}", property_map_three.get("file").expect("Font file not found.").replace("\"",""))).unwrap();
-        let height = img.height();
-        let width = img.width();
         let img_vec: Vec<u8> = img.into_bytes();
-
-        unsafe {
-            gl::Enable(gl::BLEND);
-            gl::BlendFunc(gl::SRC_ALPHA,gl::ONE_MINUS_SRC_ALPHA);
-
-            // texture wrapping parameters
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); //how to wrap in s coordinate
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32); // how to wrap in t coordinate
-            // texture filtering
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32); // when texture is small, scall using linear
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32); // when texture is big, scall using linear
-
-            gl::TexImage2D(gl::TEXTURE_2D, // Texture target is 2D since we created a texture for that
-                0, // Mipmap level 0 which is default. Otherwise wue could specify levels and change it
-                gl::RGBA as i32, // Image is given as values of RGB
-                width as i32,
-                height as i32,
-                0, // Legacy sutff not explained
-                gl::RGBA, // Format of the image (this is the actual format)
-                gl::UNSIGNED_BYTE, // RGB values are given as chars
-                &img_vec[0] as *const u8 as *const c_void); // Pointer to first element of vector
-
-            gl::GenerateMipmap(gl::TEXTURE_2D); // generate mipmap for texture 2d (when object is far or close)
-
-            // set up way information will be sent
-            // vertex coordinates
-            gl::VertexAttribPointer(0,3,gl::FLOAT,gl::FALSE,5*mem::size_of::<GLfloat>() as GLsizei, ptr::null());
-            gl::EnableVertexAttribArray(0); // Enabling vertex atributes giving vertex location (setup in vertex shader).
-            // texture coordinates
-            gl::VertexAttribPointer(1,2,gl::FLOAT,gl::FALSE,5*mem::size_of::<GLfloat>() as GLsizei, (3 * mem::size_of::<GLfloat>()) as *const c_void);
-            gl::EnableVertexAttribArray(1); // Enabling vertex atributes giving vertex location (setup in vertex shader).
-
-            // now allocate quad (two triangles) information to be sent
-            gl::BufferData(gl::ARRAY_BUFFER,
-                (5 * 4 * mem::size_of::<GLfloat>()) as GLsizeiptr, // number of vertices * number of values in each * size of float 32 bits
-                ptr::null() as *const f32 as *const c_void,
-                gl::DYNAMIC_DRAW); // dynamic draw since content will be altered constantly
-    
-            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, (6 * mem::size_of::<GLfloat>()) as GLsizeiptr,
-                ptr::null() as *const u32 as *const c_void, 
-                gl::DYNAMIC_DRAW);
-            
-            }
 
         // Fourth line contains number of characters
         let fourth_info_line = reader.next().unwrap().expect("Unable to read fourth line of file propperly.");
@@ -221,6 +181,52 @@ impl CharacterSet {
             texture_file: property_map_three.remove("file").expect("Font file not found.").replace("\"",""),
             character_number: property_map_four.remove("count").expect("Character count not found")
          }
+    }
+
+    pub(crate) fn send_to_gpu(&self) {
+
+        unsafe {
+            gl::Enable(gl::BLEND);
+            gl::BlendFunc(gl::SRC_ALPHA,gl::ONE_MINUS_SRC_ALPHA);
+
+            // texture wrapping parameters
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32); //how to wrap in s coordinate
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32); // how to wrap in t coordinate
+            // texture filtering
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as i32); // when texture is small, scall using linear
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as i32); // when texture is big, scall using linear
+
+            gl::TexImage2D(gl::TEXTURE_2D, // Texture target is 2D since we created a texture for that
+                0, // Mipmap level 0 which is default. Otherwise wue could specify levels and change it
+                gl::RGBA as i32, // Image is given as values of RGB
+                self.texture_size.0 as i32,
+                self.texture_size.1 as i32,
+                0, // Legacy sutff not explained
+                gl::RGBA, // Format of the image (this is the actual format)
+                gl::UNSIGNED_BYTE, // RGB values are given as chars
+                &self.image_as_vec[0] as *const u8 as *const c_void); // Pointer to first element of vector
+
+            gl::GenerateMipmap(gl::TEXTURE_2D); // generate mipmap for texture 2d (when object is far or close)
+
+            // set up way information will be sent
+            // vertex coordinates
+            gl::VertexAttribPointer(0,3,gl::FLOAT,gl::FALSE,5*mem::size_of::<GLfloat>() as GLsizei, ptr::null());
+            gl::EnableVertexAttribArray(0); // Enabling vertex atributes giving vertex location (setup in vertex shader).
+            // texture coordinates
+            gl::VertexAttribPointer(1,2,gl::FLOAT,gl::FALSE,5*mem::size_of::<GLfloat>() as GLsizei, (3 * mem::size_of::<GLfloat>()) as *const c_void);
+            gl::EnableVertexAttribArray(1); // Enabling vertex atributes giving vertex location (setup in vertex shader).
+
+            // now allocate quad (two triangles) information to be sent
+            gl::BufferData(gl::ARRAY_BUFFER,
+                (5 * 4 * mem::size_of::<GLfloat>()) as GLsizeiptr, // number of vertices * number of values in each * size of float 32 bits
+                ptr::null() as *const f32 as *const c_void,
+                gl::DYNAMIC_DRAW); // dynamic draw since content will be altered constantly
+    
+            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, (6 * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                ptr::null() as *const u32 as *const c_void, 
+                gl::DYNAMIC_DRAW);
+            
+            }
     }
 
     fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> (Vec<[f32;20]>,Vec<[u32;6]>) {
@@ -308,17 +314,13 @@ impl CharacterSet {
 
     pub fn draw_text<A: AsRef<str>>(&self, text: A) {
 
-        self.binder.bind_vao();
-        self.binder.bind_ebo();
-        self.binder.bind_vbo();
-        self.binder.bind_texture();
-
         // use function inside event loop in dzahui window, not anywhere else.
         // obtain vertices and indices to draw
         let (vertices, indices) = self.get_vertices_from_text(text);
 
         vertices.iter().zip(indices).for_each(|(vertices_subset, indices_subset)| {
             unsafe {
+
                 gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
 
                 gl::BufferSubData(gl::ARRAY_BUFFER, 0,
@@ -331,11 +333,9 @@ impl CharacterSet {
                 gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
                 
                 gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+
             }
         });
-
-        self.binder.unbind_texture();
-
     }
 
 }

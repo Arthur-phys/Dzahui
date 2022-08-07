@@ -1,6 +1,5 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3};
-use glutin::event::ElementState;
-use crate::{DzahuiWindow, drawable::mesh::Mesh, drawable::Drawable};
+use crate::{drawable::mesh::Mesh, drawable::Drawable};
 
 pub mod cone;
 
@@ -25,13 +24,14 @@ pub mod cone;
 /// * `fov` - Field of view of camera
 /// 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct Camera {
     pub(crate) camera_position: Point3<f32>,
     pub(crate) camera_target:  Point3<f32>,
     pub(crate) view_matrix: Matrix4<f32>,
     pub(crate) active_view_change: bool,
     pub(crate) projection_matrix: Matrix4<f32>,
-    pub(crate) up_vector: Vector3<f32>,
+    up_vector: Vector3<f32>,
     pub(crate) camera_sensitivity: f32,
     pub(crate) theta: f32,
     pub(crate) phi: f32,
@@ -210,11 +210,5 @@ impl Camera {
     pub(crate) fn modify_view_matrix(&mut self) {
         self.view_matrix = Matrix4::look_at_rh(self.camera_position, self.camera_target, self.up_vector);
     }
-    
-    pub(crate) fn position_camera(&self, window: &DzahuiWindow) {
-        window.geometry_shader.set_mat4("view", &self.view_matrix);
-        window.text_shader.set_mat4("view", &self.view_matrix);
-    }
-
 
 }

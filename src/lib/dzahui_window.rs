@@ -1,6 +1,6 @@
 use glutin::{event_loop::{EventLoop,ControlFlow},window::{WindowBuilder,Window},dpi::PhysicalSize,ContextBuilder,GlRequest,Api,GlProfile,ContextWrapper,PossiblyCurrent,event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use crate::{shader::Shader,camera::{Camera, CameraBuilder, cone::Cone},drawable::Drawable, drawable::{mesh::{Mesh,MeshBuilder}, text::CharacterSet}};
-use cgmath::{Point3,Vector3,Point2,Matrix4};
+use crate::{shader::Shader,camera::{Camera, CameraBuilder, cone::Cone},drawable::Drawable, drawable::{mesh::{Mesh,MeshBuilder}, text::CharacterSet, Bindable}};
+use cgmath::{Point3,Vector3,Point2,Matrix4, SquareMatrix};
 use std::time::Instant;
 use gl;
 
@@ -25,7 +25,7 @@ pub struct DzahuiWindow {
     context: ContextWrapper<PossiblyCurrent,Window>,
     pub(crate) geometry_shader: Shader,
     event_loop: Option<EventLoop<()>>,
-    pub(crate) text_shader: Shader,
+    text_shader: Shader,
     mouse_coordinates: Point2<f32>,
     character_set: CharacterSet,
     pub(crate) height: u32,
@@ -283,7 +283,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         let angle = if let Some(angle) = self.vertex_selector { angle } else { 3.0 };
         let vertex_selector = Cone::new(Point3::new(0.0,0.0,0.0),Vector3::new(0.0,0.0,1.0), angle);
         
-        // Default character set. Not modifiable for now
+        // Default character set
         let character_set_file = if let Some(set_file) = self.character_set { set_file } else { "assets/dzahui-font_3.fnt".to_string() };
         let character_set = CharacterSet::new(&character_set_file);
 
@@ -350,7 +350,8 @@ impl DzahuiWindow {
     /// Callback to obtain vertex intersection with click produced cone.
     fn get_selected_vertex(&mut self) {
         self.vertex_selector.change_from_mouse_position(&self.mouse_coordinates, &self.camera, self.width, self.height);
-        self.vertex_selector.obtain_nearest_intersection(&self.mesh.selectable_vertices.list_of_vertices, &self.camera);
+        let sel_vec = self.vertex_selector.obtain_nearest_intersection(&self.mesh.selectable_vertices.list_of_vertices, &self.camera);
+        println!("{:?}",sel_vec);
     }
 
     /// Callback to change camera view matrix based on user motion.
@@ -390,9 +391,19 @@ impl DzahuiWindow {
         // Obtaining Event Loop is necessary since `event_loop.run()` consumes it alongside window if let inside struct instance.
         let event_loop = Option::take(&mut self.event_loop).unwrap();
 
-        // Send ui vertices
+        // Send mesh info: mesh structure and vertices to create body on each one.
+        self.mesh.setup();
         self.mesh.send_to_gpu();
+
+        self.mesh.selectable_vertices.setup();
         self.mesh.selectable_vertices.send_to_gpu();
+
+        // Setup character set info.
+        // Maybe need to change shader (but I think shaders and binders are independent, so leave it like this for now).
+        self.character_set.setup();
+        self.character_set.setup_texture();
+        self.character_set.send_to_gpu();
+
 
         // Use geometry shader.
         self.geometry_shader.use_shader();
@@ -401,6 +412,7 @@ impl DzahuiWindow {
         self.geometry_shader.set_mat4("view", &self.camera.view_matrix);
         self.geometry_shader.set_mat4("projection", &self.camera.projection_matrix);
 
+        
         // Use text shader to assign matrices.
         self.text_shader.use_shader();
         
@@ -453,7 +465,9 @@ impl DzahuiWindow {
 
                         match self.camera.active_view_change {
 
-                            true => self.change_camera_view(x as f32, y as f32),
+                            true => {
+                                self.change_camera_view(x as f32, y as f32);
+                            },
                             false => ()
 
                         }
@@ -470,20 +484,30 @@ impl DzahuiWindow {
 
             // Render
             unsafe {
-                self.geometry_shader.use_shader();
+                
                 // Update to some color
+                // Clear Screen    
                 gl::ClearColor(0.33, 0.33, 0.33, 0.8);
-                // Clear Screem
                 gl::Clear(gl::COLOR_BUFFER_BIT);
-                // Draw vertices
-                self.mesh.selectable_vertices.draw(&self);
-                // set camera
-                self.camera.position_camera(&self);
-                // Draw triangles via ebo (indices)
-                self.mesh.draw(&self);
-                // Draw some dumb text
+
+                // Text shader to draw text
                 self.text_shader.use_shader();
-                self.character_set.draw_text("Niji");
+                self.text_shader.set_mat4("view", &self.camera.view_matrix);
+
+                self.character_set.bind_all();
+                self.character_set.draw_text("CASA");
+                self.character_set.unbind_texture();
+
+                // Geometry shader to draw mesh                
+                self.geometry_shader.use_shader();
+                self.geometry_shader.set_mat4("view", &self.camera.view_matrix);
+                self.geometry_shader.set_mat4("model", &Matrix4::identity());
+                
+                self.mesh.bind_vao();
+                self.mesh.draw(&self);
+                
+                // self.mesh.selectable_vertices.draw(&self);
+                
             }
             // Need to change old and new buffer to redraw
             self.context.swap_buffers().unwrap();

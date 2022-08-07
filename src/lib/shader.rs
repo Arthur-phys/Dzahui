@@ -16,7 +16,7 @@ use gl;
 /// 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Shader {
-    pub id: u32,
+    pub(crate) id: u32,
 }
 
 // Added because not all functions to send variables to vertex shader are used but still want to provide functionality to do it.
