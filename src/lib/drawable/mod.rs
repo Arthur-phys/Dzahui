@@ -9,7 +9,7 @@ use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
 use crate::DzahuiWindow;
 use binder::Binder;
 
-/// General Inforamation
+/// General Information
 /// 
 /// An object that can be represented in CPU via a, ebo, vbo, vao and texture (the latter is not necessary).
 /// 

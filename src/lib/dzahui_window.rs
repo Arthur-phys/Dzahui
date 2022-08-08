@@ -77,6 +77,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
           E: AsRef<str>,
           F: AsRef<str>,
     {
+
     /// Creates default instance.
     fn new(location: F) -> Self {
         Self {
@@ -248,6 +249,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         // GL Viewport
         unsafe { 
             gl::Viewport(0,0,self.width.unwrap() as i32,self.height.unwrap() as i32);
+            gl::Enable(gl::DEPTH_TEST);
         }
         
         
@@ -284,7 +286,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         let vertex_selector = Cone::new(Point3::new(0.0,0.0,0.0),Vector3::new(0.0,0.0,1.0), angle);
         
         // Default character set
-        let character_set_file = if let Some(set_file) = self.character_set { set_file } else { "assets/dzahui-font_3.fnt".to_string() };
+        let character_set_file = if let Some(set_file) = self.character_set { set_file } else { "assets/dzahui-font_2.fnt".to_string() };
         let character_set = CharacterSet::new(&character_set_file);
 
         // Start clock for delta time
@@ -330,28 +332,36 @@ impl DzahuiWindow {
     /// `&mut self` - To change status of field `timer`.
     /// 
     pub fn restart_timer(&mut self) {
+
         self.timer = Instant::now();
+
     }
 
     /// Callback to change mouse coordinates.
-     pub fn update_mouse_coordinates(&mut self, x: f32, y: f32) {
+    pub fn update_mouse_coordinates(&mut self, x: f32, y: f32) {
+
         self.mouse_coordinates.x = x;
         self.mouse_coordinates.y = y;
-     }
+     
+    }
 
     /// Callback that changes wether camera can be edited by user input or not.
     fn activate_view_change(&mut self, state: ElementState) {
+
         match state {
             ElementState::Pressed => self.camera.active_view_change = true,
             ElementState::Released => self.camera.active_view_change = false
         }
+
     }
 
     /// Callback to obtain vertex intersection with click produced cone.
     fn get_selected_vertex(&mut self) {
+
         self.vertex_selector.change_from_mouse_position(&self.mouse_coordinates, &self.camera, self.width, self.height);
         let sel_vec = self.vertex_selector.obtain_nearest_intersection(&self.mesh.selectable_vertices.list_of_vertices, &self.camera);
         println!("{:?}",sel_vec);
+
     }
 
     /// Callback to change camera view matrix based on user motion.
@@ -362,7 +372,7 @@ impl DzahuiWindow {
         self.camera.theta -= y_offset;
         self.camera.phi -= x_offset;
         
-        // Do not allow 0 (or 180) degree angle (coincides with y-axis)
+        // Do not allow 0 (or 180) degree angle (coincides with y-axis).
         if self.camera.theta < 1.0 {
             self.camera.theta = 1.0;
         } else if self.camera.theta > 179.0 {
@@ -375,6 +385,16 @@ impl DzahuiWindow {
         
         // generate new matrix
         self.camera.modify_view_matrix();
+
+    }
+
+    /// Callback to resize window and change dimensions.
+    fn resize_window(&mut self, new_size: PhysicalSize<u32>) {
+
+        self.context.resize(new_size);
+        self.height = new_size.height;
+        self.width = new_size.width;
+
     }
 
     /// # General Information
@@ -387,6 +407,12 @@ impl DzahuiWindow {
     /// * `mesh` - A file to draw a mesh from.
     /// 
     pub fn run(mut self) {
+
+        self.restart_timer();
+        let mut counter = 0;
+        let mut fps = 0;
+        let mut prev_time = 0;
+        let mut current_time = 0;
 
         // Obtaining Event Loop is necessary since `event_loop.run()` consumes it alongside window if let inside struct instance.
         let event_loop = Option::take(&mut self.event_loop).unwrap();
@@ -416,11 +442,21 @@ impl DzahuiWindow {
         // Use text shader to assign matrices.
         self.text_shader.use_shader();
         
-        self.text_shader.set_mat4("model", &Matrix4::from_scale(0.005));
-        self.text_shader.set_mat4("view", &self.camera.view_matrix);
+        let model_mat = CharacterSet::matrix_for_screen(0.0, 0.0, &self.camera, self.height, self.width);
+
+        self.text_shader.set_mat4("model", &model_mat);
         self.text_shader.set_mat4("projection", &self.camera.projection_matrix);
+        self.text_shader.set_mat4("view", &Matrix4::identity());
 
         event_loop.run(move |event, _, control_flow| {
+
+            // Temporal FPS counter
+            current_time = self.timer.elapsed().as_millis();
+            if current_time - prev_time >= 1000 {
+                prev_time = current_time;
+                fps = counter;
+                counter = 0;
+            }
 
             match event {
                 
@@ -428,7 +464,7 @@ impl DzahuiWindow {
 
                 Event::WindowEvent {event, ..} => match event {
                     
-                    WindowEvent::Resized(physical_size) => self.context.resize(physical_size),
+                    WindowEvent::Resized(physical_size) => self.resize_window(physical_size),
                     
                     WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
                     
@@ -489,13 +525,13 @@ impl DzahuiWindow {
                 // Clear Screen    
                 gl::ClearColor(0.33, 0.33, 0.33, 0.8);
                 gl::Clear(gl::COLOR_BUFFER_BIT);
+                gl::Clear(gl::DEPTH_BUFFER_BIT);
 
                 // Text shader to draw text
                 self.text_shader.use_shader();
-                self.text_shader.set_mat4("view", &self.camera.view_matrix);
 
                 self.character_set.bind_all();
-                self.character_set.draw_text("CASA");
+                self.character_set.draw_text(format!("x: {}, y: {}, FPS: {}", self.mouse_coordinates.x, self.mouse_coordinates.y, fps));
                 self.character_set.unbind_texture();
 
                 // Geometry shader to draw mesh                
@@ -511,6 +547,7 @@ impl DzahuiWindow {
             }
             // Need to change old and new buffer to redraw
             self.context.swap_buffers().unwrap();
+            counter+=1;
         })
         
     }

@@ -1,9 +1,19 @@
 use std::{fs::File,collections::HashMap,io::{BufReader, BufRead}};
 use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
-use std::{ptr,mem,os::raw::c_void};
+use cgmath::{Vector4,Matrix4,Transform,Vector3};
 use super::{binder::Binder, Bindable};
+use std::{ptr,mem,os::raw::c_void};
+use crate::camera::Camera;
 use image;
 
+/// # General Information
+/// 
+/// 
+/// 
+/// # Fields
+/// 
+/// 
+/// 
 #[derive(Debug)]
 struct Character {
     // Character id
@@ -16,6 +26,14 @@ struct Character {
     pub(crate) character_start: (f32,f32),
 }
 
+/// # General Information
+/// 
+/// 
+/// 
+/// # Fields
+/// 
+/// 
+/// 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct CharacterSet {
     characters: HashMap<char, Character>,
@@ -33,7 +51,15 @@ pub(crate) struct CharacterSet {
 }
 
 impl Character {
-    /// New instance of character
+
+    /// # General Information
+    /// 
+    /// 
+    /// 
+    /// # Parameters
+    /// 
+    /// 
+    /// 
     pub fn new(id: u32, origin: (f32,f32), size: (f32,f32), character_start: (f32,f32)) -> Self {
         Self { 
             id,
@@ -42,9 +68,11 @@ impl Character {
             character_start,
         }
     }
+
 }
 
 impl PartialEq for Character {
+    
     fn eq(&self, other: &Self) -> bool {
         if self.id == other.id {
             true
@@ -52,6 +80,7 @@ impl PartialEq for Character {
             false
         }
     }
+
 }
 
 impl Eq for Character {}
@@ -68,7 +97,15 @@ impl Bindable for CharacterSet {
 }
 
 impl CharacterSet {
-    
+
+    /// # General Information
+    /// 
+    /// 
+    /// 
+    /// # Parameters
+    /// 
+    /// 
+    /// 
     pub fn new(character_file: &str) -> Self {
 
         let binder = Binder::new();
@@ -183,6 +220,14 @@ impl CharacterSet {
          }
     }
 
+    /// # General Information
+    /// 
+    /// 
+    /// 
+    /// # Parameters
+    /// 
+    /// 
+    /// 
     pub(crate) fn send_to_gpu(&self) {
 
         unsafe {
@@ -229,6 +274,14 @@ impl CharacterSet {
             }
     }
 
+    /// # General Information
+    /// 
+    /// 
+    /// 
+    /// # Parameters
+    /// 
+    /// 
+    /// 
     fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> (Vec<[f32;20]>,Vec<[u32;6]>) {
 
         // Split text into chars. Should be feasible given the fact that we only operate with the alphabet, numbers and some special symbols such as '?','!'
@@ -312,7 +365,15 @@ impl CharacterSet {
         (vertices,indices)
     }
 
-    pub fn draw_text<A: AsRef<str>>(&self, text: A) {
+    /// # General Information
+    /// 
+    /// 
+    /// 
+    /// # Parameters
+    /// 
+    /// 
+    /// 
+    pub(crate) fn draw_text<A: AsRef<str>>(&self, text: A) {
 
         // use function inside event loop in dzahui window, not anywhere else.
         // obtain vertices and indices to draw
@@ -336,6 +397,34 @@ impl CharacterSet {
 
             }
         });
+    }
+
+    /// # General Information
+    /// 
+    /// 
+    /// 
+    /// # Parameters
+    /// 
+    /// 
+    ///
+    pub(crate) fn matrix_for_screen(viewport_x: f32, viewport_y: f32, camera: &Camera, window_height: u32, window_width: u32) -> Matrix4<f32> {
+        
+        // Create cone from position of mouse
+        let ndc_coordinates = Vector4::new(
+            (viewport_x - (window_width as f32)/2.0)/((window_width as f32)/2.0), // map between -1 and 1
+            (viewport_y - (window_height as f32)/2.0)/((window_height as f32)/2.0),
+            -0.5, // between near and mesh (-1.0,0.0)
+            1.0
+        );
+        
+        let inverse_projection_matrix: Matrix4<f32> = camera.projection_matrix.inverse_transform().expect("No inverse transform exists for this matrix");
+        let view_coordinates = inverse_projection_matrix * ndc_coordinates;
+        
+        // need to divide by w (god knows why)
+        let view_coordinates = Vector3::new(view_coordinates.x,view_coordinates.y,view_coordinates.z) / view_coordinates.w;
+
+        Matrix4::from_translation(view_coordinates) * Matrix4::from_scale(0.00009)
+
     }
 
 }

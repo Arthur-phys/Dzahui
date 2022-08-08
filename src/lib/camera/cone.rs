@@ -14,9 +14,11 @@ impl Cone {
 
         let direction = direction.normalize();
         Cone { anchorage_point, direction, angle }
+
     }
 
     pub(crate) fn change_from_mouse_position(&mut self, mouse_coordinates: &Point2<f32>, camera: &Camera, window_width: u32, window_height: u32) {
+
         // Create cone from position of mouse
         let near_ndc_coordinates = Vector4::new(
             (mouse_coordinates.x - (window_width as f32)/2.0)/((window_width as f32)/2.0), // map between -1 and 1
@@ -31,7 +33,7 @@ impl Cone {
             1.0
         );
 
-        let inverse_projection_matrix: Matrix4<f32> = camera.projection_matrix.inverse_transform().expect("No inverse transform exists for this matrix").cast().unwrap();
+        let inverse_projection_matrix: Matrix4<f32> = camera.projection_matrix.inverse_transform().expect("No inverse transform exists for this matrix");
         let near_view_coordinates = inverse_projection_matrix * near_ndc_coordinates;
         let far_view_coordinates = inverse_projection_matrix * far_ndc_coordinates;
         
@@ -40,15 +42,17 @@ impl Cone {
         let far_view_coordinates = Vector3::new(far_view_coordinates.x,far_view_coordinates.y,far_view_coordinates.z) / far_view_coordinates.w;
         
         // cast becomes unnecesary if all values are f32, but camera is not working with f32 and opengl
-        let anchorage_point: Point3<f32> = Point3::new(near_view_coordinates.x,near_view_coordinates.y, near_view_coordinates.z).cast().unwrap();
-        let direction: Vector3<f32> = (far_view_coordinates - near_view_coordinates).cast().unwrap().normalize();
+        let anchorage_point: Point3<f32> = Point3::new(near_view_coordinates.x,near_view_coordinates.y, near_view_coordinates.z);
+        let direction: Vector3<f32> = (far_view_coordinates - near_view_coordinates).normalize();
 
         self.anchorage_point = anchorage_point;
         self.direction = direction;
+
     }
 
 
     pub(crate) fn obtain_nearest_intersection(&self, vertices: &Vec<Vertex>, camera: &Camera) -> Option<(f32,usize)> {
+
         // Filter objects to only those that are partially or completelly inside cone
         let filtered_objects: Vec<&Vertex> = vertices.iter().filter(|sphere| {
             let view_center = sphere.get_view_center(&camera);

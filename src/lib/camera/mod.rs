@@ -57,7 +57,7 @@ pub struct Camera {
 /// 
 #[derive(Default,Debug)]
 pub struct CameraBuilder {
-    radius: Option<f32>,
+    pub(crate) radius: Option<f32>,
     theta: Option<f32>,
     phi: Option<f32>,
     fov: Option<f32>,
@@ -178,7 +178,7 @@ impl CameraBuilder {
         // They are closely related, that's why they're both in the same structure.
         let view_matrix = Matrix4::look_at_rh(camera_position, camera_target, up_vector);
         let projection_matrix = cgmath::perspective(Deg(fov), aspect_ratio, near, far);
-        // change view matrix defaults to false
+        // Change view matrix defaults to false.
         let active_view_change = false;
 
         Camera {
@@ -201,6 +201,7 @@ impl CameraBuilder {
 }
 
 impl Camera {
+
     /// Create a camera builder.
     pub fn builder() -> CameraBuilder {
         CameraBuilder::new()
