@@ -409,7 +409,6 @@ impl CharacterSet {
     ///
     pub(crate) fn matrix_for_screen(viewport_x: f32, viewport_y: f32, camera: &Camera, window_height: u32, window_width: u32) -> Matrix4<f32> {
         
-        // Create cone from position of mouse
         let ndc_coordinates = Vector4::new(
             (viewport_x - (window_width as f32)/2.0)/((window_width as f32)/2.0), // map between -1 and 1
             (viewport_y - (window_height as f32)/2.0)/((window_height as f32)/2.0),
@@ -423,7 +422,7 @@ impl CharacterSet {
         // need to divide by w (god knows why)
         let view_coordinates = Vector3::new(view_coordinates.x,view_coordinates.y,view_coordinates.z) / view_coordinates.w;
 
-        Matrix4::from_translation(view_coordinates) * Matrix4::from_scale(0.00009)
+        Matrix4::from_translation(view_coordinates) * Matrix4::from_scale(0.09)
 
     }
 

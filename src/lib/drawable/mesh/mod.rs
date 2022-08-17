@@ -199,7 +199,7 @@ impl Mesh {
     pub fn get_ignored_coordinate<A: AsRef<str>>(file: A) -> Option<usize> {
         // Obtain unused coordinate index from .obj file.
         
-        let file = File::open(file.as_ref()).expect("Error while opening the file. Does the file exists and is readdable?");
+        let file = File::open(file.as_ref()).expect("Error while opening the file. Does the file exists and is readable?");
         // Sets to check which one has only one element (i.e. which one should be ignored)
         // To implement set from list, use HashMap for better performance.
         let mut x: HashMap<String,f32> = HashMap::new();
