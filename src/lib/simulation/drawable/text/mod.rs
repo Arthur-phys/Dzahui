@@ -1,10 +1,10 @@
-use std::{fs::File,collections::HashMap,io::{BufReader, BufRead}};
+use std::{fs::File,collections::HashMap,io::{BufReader, BufRead},ptr,mem,os::raw::c_void};
 use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
 use cgmath::{Vector4,Matrix4,Transform,Vector3};
-use super::{binder::Binder, Bindable};
-use std::{ptr,mem,os::raw::c_void};
-use crate::camera::Camera;
 use image;
+
+use super::{binder::Binder, Bindable};
+use super::super::camera::Camera;
 
 /// # General Information
 /// 

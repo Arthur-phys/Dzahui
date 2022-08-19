@@ -1,5 +1,7 @@
 use cgmath::{Vector3, Vector4, Point3, Point2, Transform, Matrix4, InnerSpace};
-use crate::{camera::Camera, drawable::mesh::vertex::Vertex};
+
+use super::{Camera};
+use super::super::drawable::mesh::vertex::Vertex;
 
 #[derive(Debug)]
 pub struct Cone {

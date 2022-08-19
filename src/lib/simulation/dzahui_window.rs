@@ -1,8 +1,11 @@
 use glutin::{event_loop::{EventLoop,ControlFlow},window::{WindowBuilder,Window},dpi::PhysicalSize,ContextBuilder,GlRequest,Api,GlProfile,ContextWrapper,PossiblyCurrent,event::{Event, WindowEvent, DeviceEvent, ElementState}};
-use crate::{shader::Shader,camera::{Camera, CameraBuilder, cone::Cone},drawable::Drawable, drawable::{mesh::{Mesh,MeshBuilder}, text::CharacterSet, Bindable}};
 use cgmath::{Point3,Vector3,Point2,Matrix4, SquareMatrix};
 use std::time::Instant;
 use gl;
+
+use super::shader::Shader;
+use super::camera::{Camera, CameraBuilder, cone::Cone};
+use super::drawable::{Drawable, mesh::{Mesh, MeshBuilder}, text::CharacterSet, Bindable};
 
 
 /// # General Information

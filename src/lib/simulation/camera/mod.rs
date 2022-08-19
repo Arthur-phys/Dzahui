@@ -1,5 +1,6 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3};
-use crate::{drawable::mesh::Mesh, drawable::Drawable};
+
+use super::drawable::{mesh::Mesh,Drawable};
 
 pub mod cone;
 

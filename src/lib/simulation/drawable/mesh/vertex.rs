@@ -1,6 +1,9 @@
-use crate::{drawable::{Drawable, Bindable}, drawable::from_obj::FromObj, DzahuiWindow, drawable::binder::Binder, camera::Camera};
 use cgmath::{Vector3, Matrix4, Vector4};
 use std::ptr;
+
+use crate::DzahuiWindow;
+use super::{Drawable, Bindable, FromObj, Binder};
+use super::super::super::camera::Camera;
 
 /// # General Information
 /// 
