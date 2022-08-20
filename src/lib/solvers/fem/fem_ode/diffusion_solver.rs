@@ -199,15 +199,31 @@ impl LinearBasis {
         let zero = FirstDegreePolynomial::zero();
 
         let transformation = self.transformation.build(mesh[0],mesh[1]);
-        let mut basis_transform = phi_1.compose(transformation);
+        let initial_transform_function = phi_2.compose(transformation);
 
-        let basis_vec = vec![
-            PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&zero,&basis_transform,&zero], [mesh[0]-1_f32,mesh[0],mesh[1]])
+        let mut basis_vec = vec![
+            PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&zero,&initial_transform_function,&zero], [mesh[0]-1_f32,mesh[0],mesh[1]])
         ];
 
         mesh.iter().zip(mesh.iter().skip(1)).zip(mesh.iter().skip(2)).for_each(|((prev, cur), next)| {
-
+            
+            let transformation = self.transformation.build(*prev,*cur);
+            let basis_left = phi_1.compose(transformation);
+            let transformation = self.transformation.build(*cur, *next);
+            let basis_right = phi_2.compose(transformation);
+            
+            basis_vec.push(
+                PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&basis_left,&basis_right,&zero], [*prev,*cur,*next])
+            )
         });
+        
+        let transformation = self.transformation.build(mesh[mesh.len()-2],mesh[mesh.len()-1]);
+        let final_transform_function = phi_1.compose(transformation);
+
+        basis_vec.push(
+            PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&final_transform_function,&zero,&zero],
+                 [mesh[mesh.len()-2],mesh[mesh.len()-1],mesh[mesh.len()-1] + 1_f32])
+        );
 
         PiecewiseLinearBasis::new(basis_vec,mesh)
     }
