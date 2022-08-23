@@ -1,3 +1,4 @@
+mod gauss_legendre;
 
 /// # General Information
 /// 
@@ -19,19 +20,8 @@ trait Quadrature1D {
     fn integrate(function: Box<dyn Fn(f32) -> f32>) -> f32;
 }
 trait NewtonCotes: Quadrature1D {}
-
-struct GaussLegendreQuadatrure {}
 struct SimpsonQuadrature {}
 struct TrapezoidQuadrature {}
-
-impl GaussLegendreQuadatrure {}
-
-impl Quadrature1D for GaussLegendreQuadatrure {
-
-    fn integrate(function: Box<dyn Fn(f32) -> f32>) -> f32 {
-        todo!()
-    }
-}
 
 impl Quadrature1D for SimpsonQuadrature {
 

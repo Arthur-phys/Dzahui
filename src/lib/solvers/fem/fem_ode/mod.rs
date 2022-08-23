@@ -1,5 +1,5 @@
 pub mod diffusion_solver;
-mod quadrature;
+mod quadrature1d;
 mod linear_solver;
 
 use super::Vertex;
