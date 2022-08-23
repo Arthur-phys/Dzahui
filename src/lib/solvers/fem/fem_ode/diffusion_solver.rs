@@ -25,8 +25,8 @@ trait Differentiable: Function {
 }
 
 struct FirstDegreePolynomial {
-    coefficient: f32,
-    independent_term: f32,
+    pub(crate) coefficient: f32,
+    pub(crate) independent_term: f32,
 }
 
 impl FirstDegreePolynomial {
@@ -53,7 +53,6 @@ impl FirstDegreePolynomial {
     }
 }
 
-
 impl Function for FirstDegreePolynomial {
     
     fn evaluate(&self, x: f32) -> f32 {
@@ -72,6 +71,14 @@ impl Differentiable for FirstDegreePolynomial {
 
 }
 
+impl PartialEq for FirstDegreePolynomial {
+    fn eq(&self, other: &Self) -> bool {
+        self.coefficient == other.coefficient && self.independent_term == other.independent_term
+    }
+}
+
+impl Eq for FirstDegreePolynomial {}
+
 impl Affine for FirstDegreePolynomial {
     fn compose(&self, other: Self) -> Self {
         Self {
@@ -87,6 +94,7 @@ trait NumberOfArguments {}
 impl IntervalStep for [f32;3] {}
 impl NumberOfArguments for [f32;4] {}
 
+#[derive(Debug)]
 struct PiecewiseFirstDegreePolynomial<A: IntervalStep, B: NumberOfArguments> {
     coefficients: B,
     independent_terms: B,
@@ -139,11 +147,19 @@ impl Function for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
 
 }
 
+impl PartialEq for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
+    fn eq(&self, other: &Self) -> bool {
+        self.coefficients == other.coefficients && self.independent_terms == other.independent_terms && self.interval == other.interval
+    }
+}
+
+impl Eq for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {}
+
 impl Differentiable for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
     
     fn differentiate(&self) -> Box<dyn Function> {
         Box::new(
-            PiecewiseFirstDegreePolynomial::constants(self.independent_terms, self.interval)
+            PiecewiseFirstDegreePolynomial::constants(self.coefficients, self.interval)
         )
     }
 
@@ -155,7 +171,7 @@ impl TransformationFactory {
 
     fn build(&self, beg: f32, end: f32) -> FirstDegreePolynomial {
         let coefficient = 1_f32 / (end - beg);
-        let independent_term = -1_f32 / (end - beg); 
+        let independent_term = - beg / (end - beg); 
         FirstDegreePolynomial { coefficient, independent_term }
     }
 
@@ -182,7 +198,7 @@ impl<A: IntervalStep, B: NumberOfArguments> PiecewiseLinearBasis<A, B> {
 
 impl LinearBasis {
 
-    fn new() -> Self {
+    fn new_unit() -> Self {
         let phi_1 = FirstDegreePolynomial::new(1_f32,0_f32);
         let phi_2 = FirstDegreePolynomial::new(-1_f32,1_f32);
         Self {
@@ -227,7 +243,7 @@ impl LinearBasis {
 
         PiecewiseLinearBasis::new(basis_vec,mesh)
     }
-} 
+}
 
 struct DiffussionSolver {
     boundary_conditions: [f32; 2],
@@ -244,3 +260,38 @@ impl DiffussionSolver {
     }
 }
 
+#[cfg(test)]
+mod test {
+
+    use super::{LinearBasis, FirstDegreePolynomial, PiecewiseFirstDegreePolynomial};
+        
+    #[test]
+    fn create_unit_basis() {
+        let unit_base = LinearBasis::new_unit();
+        let basis = unit_base.basis;
+        assert!(basis[0] == FirstDegreePolynomial::new(1_f32,0_f32));
+        assert!(basis[1] == FirstDegreePolynomial::new(-1_f32,1_f32));
+    }
+
+    #[test]
+    fn transform_basis_three_nodes() {
+        let unit_base = LinearBasis::new_unit();
+        let mesh =vec![0_f32,1_f32,2_f32];
+        let transformed = unit_base.transform_basis(mesh);
+
+        assert!(transformed.basis.len() == 3);
+        assert!(transformed.interval == vec![0_f32,1_f32,2_f32]);
+
+        let first_pol = PiecewiseFirstDegreePolynomial::new([0_f32,0_f32,-1_f32,0_f32], 
+            [0_f32,0_f32,1_f32,0_f32], [-1_f32,0_f32,1_f32]);
+        let second_pol = PiecewiseFirstDegreePolynomial::new([0_f32,1_f32,-1_f32,0_f32], 
+            [0_f32,0_f32,2_f32,0_f32], [0_f32,1_f32,2_f32]);
+        let third_pol = PiecewiseFirstDegreePolynomial::new([0_f32,1_f32,0_f32,0_f32], 
+            [0_f32,-1_f32,0_f32,0_f32], [1_f32,2_f32,3_f32]);
+
+        assert!(transformed.basis[0] == first_pol);
+        assert!(transformed.basis[1] == second_pol);
+        assert!(transformed.basis[2] == third_pol);
+    }
+
+}
