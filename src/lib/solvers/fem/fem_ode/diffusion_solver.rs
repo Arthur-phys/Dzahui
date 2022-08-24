@@ -12,26 +12,26 @@
 //     }
 // }
 
-trait Function {
-    fn evaluate(&self, x: f32) -> f32;
+pub trait Function {
+    fn evaluate(&self, x: f64) -> f64;
 }
 
-trait Affine: Function {
+pub trait Affine: Function {
     fn compose(&self, other: Self) -> Self;
 }
 
-trait Differentiable: Function {
+pub trait Differentiable: Function {
     fn differentiate(&self) -> Box<dyn Function>;
 }
 
-struct FirstDegreePolynomial {
-    pub(crate) coefficient: f32,
-    pub(crate) independent_term: f32,
+pub(crate) struct FirstDegreePolynomial {
+    pub(crate) coefficient: f64,
+    pub(crate) independent_term: f64,
 }
 
 impl FirstDegreePolynomial {
     
-    fn new(coefficient: f32, independent_term: f32) -> Self {
+    fn new(coefficient: f64, independent_term: f64) -> Self {
         Self {
             coefficient,
             independent_term
@@ -40,14 +40,14 @@ impl FirstDegreePolynomial {
 
     fn zero() -> Self {
         Self {
-            coefficient: 0_f32,
-            independent_term: 0_f32
+            coefficient: 0_f64,
+            independent_term: 0_f64
         }
     }
 
-    fn constant(independent_term: f32) -> Self {
+    fn constant(independent_term: f64) -> Self {
         Self {
-            coefficient: 0_f32,
+            coefficient: 0_f64,
             independent_term
         }
     }
@@ -55,7 +55,7 @@ impl FirstDegreePolynomial {
 
 impl Function for FirstDegreePolynomial {
     
-    fn evaluate(&self, x: f32) -> f32 {
+    fn evaluate(&self, x: f64) -> f64 {
         self.coefficient * x + self.independent_term
     }
 
@@ -88,22 +88,22 @@ impl Affine for FirstDegreePolynomial {
     }
 }
 
-trait IntervalStep {}
-trait NumberOfArguments {}
+pub(crate) trait IntervalStep {}
+pub(crate) trait NumberOfArguments {}
 
-impl IntervalStep for [f32;3] {}
-impl NumberOfArguments for [f32;4] {}
+impl IntervalStep for [f64;3] {}
+impl NumberOfArguments for [f64;4] {}
 
 #[derive(Debug)]
-struct PiecewiseFirstDegreePolynomial<A: IntervalStep, B: NumberOfArguments> {
+pub(crate) struct PiecewiseFirstDegreePolynomial<A: IntervalStep, B: NumberOfArguments> {
     coefficients: B,
     independent_terms: B,
     interval: A
 }
 
-impl PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
+impl PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]> {
     
-    fn new(coefficients: [f32;4], independent_terms: [f32;4], interval: [f32;3]) -> Self {
+    fn new(coefficients: [f64;4], independent_terms: [f64;4], interval: [f64;3]) -> Self {
         Self {
             coefficients,
             independent_terms,
@@ -111,15 +111,15 @@ impl PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
         }
     }
 
-    fn constants(independent_terms: [f32;4], interval: [f32;3]) -> Self {
+    fn constants(independent_terms: [f64;4], interval: [f64;3]) -> Self {
         Self {
-            coefficients: [0_f32;4],
+            coefficients: [0_f64;4],
             independent_terms,
             interval  
         }
     }
 
-    fn from_polynomials(functions: [&FirstDegreePolynomial;4],interval: [f32;3]) -> Self {
+    fn from_polynomials(functions: [&FirstDegreePolynomial;4],interval: [f64;3]) -> Self {
         Self {
             coefficients: [functions[0].coefficient,functions[1].coefficient,
             functions[2].coefficient,functions[3].coefficient],
@@ -131,9 +131,9 @@ impl PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
 
 }
 
-impl Function for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
+impl Function for PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]> {
     
-    fn evaluate(&self, x: f32) -> f32 {
+    fn evaluate(&self, x: f64) -> f64 {
         if x < self.interval[0] {
             self.coefficients[0] * x + self.independent_terms[0]
         } else if x >= self.interval[0] && x < self.interval[1] {
@@ -147,15 +147,15 @@ impl Function for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
 
 }
 
-impl PartialEq for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
+impl PartialEq for PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]> {
     fn eq(&self, other: &Self) -> bool {
         self.coefficients == other.coefficients && self.independent_terms == other.independent_terms && self.interval == other.interval
     }
 }
 
-impl Eq for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {}
+impl Eq for PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]> {}
 
-impl Differentiable for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
+impl Differentiable for PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]> {
     
     fn differentiate(&self) -> Box<dyn Function> {
         Box::new(
@@ -165,13 +165,19 @@ impl Differentiable for PiecewiseFirstDegreePolynomial<[f32;3],[f32;4]> {
 
 }
 
-struct TransformationFactory();
+pub(crate) struct TransformationFactory();
 
 impl TransformationFactory {
 
-    fn build(&self, beg: f32, end: f32) -> FirstDegreePolynomial {
-        let coefficient = 1_f32 / (end - beg);
+    pub fn build(&self, beg: f64, end: f64) -> FirstDegreePolynomial {
+        let coefficient = 1_f64 / (end - beg);
         let independent_term = - beg / (end - beg); 
+        FirstDegreePolynomial { coefficient, independent_term }
+    }
+
+    pub fn build_to_m1_p1(&self, beg: f64, end: f64) -> FirstDegreePolynomial {
+        let coefficient = (end - beg) / 2_f64;
+        let independent_term = (end + beg) / 2_f64;
         FirstDegreePolynomial { coefficient, independent_term }
     }
 
@@ -184,11 +190,11 @@ struct LinearBasis {
 
 struct PiecewiseLinearBasis<A: IntervalStep, B: NumberOfArguments> {
     basis: Vec<PiecewiseFirstDegreePolynomial<A,B>>,
-    interval: Vec<f32>,
+    interval: Vec<f64>,
 }
 
 impl<A: IntervalStep, B: NumberOfArguments> PiecewiseLinearBasis<A, B> { 
-    fn new(basis: Vec<PiecewiseFirstDegreePolynomial<A,B>>, interval: Vec<f32>) -> Self {
+    fn new(basis: Vec<PiecewiseFirstDegreePolynomial<A,B>>, interval: Vec<f64>) -> Self {
         Self {
             basis,
             interval
@@ -199,15 +205,15 @@ impl<A: IntervalStep, B: NumberOfArguments> PiecewiseLinearBasis<A, B> {
 impl LinearBasis {
 
     fn new_unit() -> Self {
-        let phi_1 = FirstDegreePolynomial::new(1_f32,0_f32);
-        let phi_2 = FirstDegreePolynomial::new(-1_f32,1_f32);
+        let phi_1 = FirstDegreePolynomial::new(1_f64,0_f64);
+        let phi_2 = FirstDegreePolynomial::new(-1_f64,1_f64);
         Self {
             basis: vec![phi_1,phi_2],
             transformation: TransformationFactory()
         }
     }
 
-    fn transform_basis(self, mesh: Vec<f32>) -> PiecewiseLinearBasis<[f32;3],[f32;4]> {
+    fn transform_basis(self, mesh: Vec<f64>) -> PiecewiseLinearBasis<[f64;3],[f64;4]> {
 
         let phi_1 = &self.basis[0];
         let phi_2= &self.basis[1];
@@ -218,7 +224,7 @@ impl LinearBasis {
         let initial_transform_function = phi_2.compose(transformation);
 
         let mut basis_vec = vec![
-            PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&zero,&initial_transform_function,&zero], [mesh[0]-1_f32,mesh[0],mesh[1]])
+            PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&zero,&initial_transform_function,&zero], [mesh[0]-1_f64,mesh[0],mesh[1]])
         ];
 
         mesh.iter().zip(mesh.iter().skip(1)).zip(mesh.iter().skip(2)).for_each(|((prev, cur), next)| {
@@ -238,7 +244,7 @@ impl LinearBasis {
 
         basis_vec.push(
             PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&final_transform_function,&zero,&zero],
-                 [mesh[mesh.len()-2],mesh[mesh.len()-1],mesh[mesh.len()-1] + 1_f32])
+                 [mesh[mesh.len()-2],mesh[mesh.len()-1],mesh[mesh.len()-1] + 1_f64])
         );
 
         PiecewiseLinearBasis::new(basis_vec,mesh)
@@ -246,17 +252,21 @@ impl LinearBasis {
 }
 
 struct DiffussionSolver {
-    boundary_conditions: [f32; 2],
-    vertices: Vec<f32>,
+    boundary_conditions: [f64; 2],
+    vertices: Vec<f64>,
 }
 
 impl DiffussionSolver {
 
-    fn new(boundary_conditions: [f32; 2], vertices: Vec<f32>) -> Self {
+    fn new(boundary_conditions: [f64; 2], vertices: Vec<f64>) -> Self {
         Self {
             boundary_conditions,
             vertices
         }
+    }
+
+    fn solve() {
+        todo!()
     }
 }
 
@@ -269,25 +279,25 @@ mod test {
     fn create_unit_basis() {
         let unit_base = LinearBasis::new_unit();
         let basis = unit_base.basis;
-        assert!(basis[0] == FirstDegreePolynomial::new(1_f32,0_f32));
-        assert!(basis[1] == FirstDegreePolynomial::new(-1_f32,1_f32));
+        assert!(basis[0] == FirstDegreePolynomial::new(1_f64,0_f64));
+        assert!(basis[1] == FirstDegreePolynomial::new(-1_f64,1_f64));
     }
 
     #[test]
     fn transform_basis_three_nodes() {
         let unit_base = LinearBasis::new_unit();
-        let mesh =vec![0_f32,1_f32,2_f32];
+        let mesh =vec![0_f64,1_f64,2_f64];
         let transformed = unit_base.transform_basis(mesh);
 
         assert!(transformed.basis.len() == 3);
-        assert!(transformed.interval == vec![0_f32,1_f32,2_f32]);
+        assert!(transformed.interval == vec![0_f64,1_f64,2_f64]);
 
-        let first_pol = PiecewiseFirstDegreePolynomial::new([0_f32,0_f32,-1_f32,0_f32], 
-            [0_f32,0_f32,1_f32,0_f32], [-1_f32,0_f32,1_f32]);
-        let second_pol = PiecewiseFirstDegreePolynomial::new([0_f32,1_f32,-1_f32,0_f32], 
-            [0_f32,0_f32,2_f32,0_f32], [0_f32,1_f32,2_f32]);
-        let third_pol = PiecewiseFirstDegreePolynomial::new([0_f32,1_f32,0_f32,0_f32], 
-            [0_f32,-1_f32,0_f32,0_f32], [1_f32,2_f32,3_f32]);
+        let first_pol = PiecewiseFirstDegreePolynomial::new([0_f64,0_f64,-1_f64,0_f64], 
+            [0_f64,0_f64,1_f64,0_f64], [-1_f64,0_f64,1_f64]);
+        let second_pol = PiecewiseFirstDegreePolynomial::new([0_f64,1_f64,-1_f64,0_f64], 
+            [0_f64,0_f64,2_f64,0_f64], [0_f64,1_f64,2_f64]);
+        let third_pol = PiecewiseFirstDegreePolynomial::new([0_f64,1_f64,0_f64,0_f64], 
+            [0_f64,-1_f64,0_f64,0_f64], [1_f64,2_f64,3_f64]);
 
         assert!(transformed.basis[0] == first_pol);
         assert!(transformed.basis[1] == second_pol);

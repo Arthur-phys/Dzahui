@@ -1,11 +1,20 @@
 use std::f64::consts::PI;
 
-use super::Quadrature1D;
+use crate::solvers::fem::fem_ode::diffusion_solver::{TransformationFactory, PiecewiseFirstDegreePolynomial, Differentiable, Function};
 
-struct GaussLegendreQuadatrure {}
+struct GaussLegendreQuadrature {
+	transformation: TransformationFactory
+}
 
 #[allow(dead_code)]
-impl GaussLegendreQuadatrure {
+impl GaussLegendreQuadrature {
+
+	fn new() -> Self {
+		let transformation = TransformationFactory ();
+		Self {
+			transformation
+		}
+	}
 
     const JZ: [f64; 20] = [2.40482555769577276862163187933,  5.52007811028631064959660411281,  8.65372791291101221695419871266,  11.7915344390142816137430449119,
     14.9309177084877859477625939974, 18.0710639679109225431478829756, 21.2116366298792589590783933505, 24.3524715307493027370579447632,
@@ -223,12 +232,13 @@ impl GaussLegendreQuadatrure {
 	const ODDW47: [f64;47] = [0.3287800959763194823557646e-1,0.3282463569369918669308888e-1,0.3273574336068393226919658e-1,0.3261142878598215425670652e-1,0.3245182648620325926685946e-1,0.3225710916161441434734840e-1,0.3202748750926769529295728e-1,0.3176320999501228029097900e-1,0.3146456258463840201321734e-1,0.3113186843444399825682258e-1,0.3076548754155891475295788e-1,0.3036581635440506677724356e-1,0.2993328734371411225240016e-1,0.2946836853456688237515152e-1,0.2897156299996101153484194e-1,0.2844340831645486261311894e-1,0.2788447598247691424309350e-1,0.2729537079993022266578380e-1,0.2667673021976135431896846e-1,0.2602922365220227153290076e-1,0.2535355174243201293660006e-1,0.2465044561244261997612948e-1,0.2392066606993061007707546e-1,0.2316500278507139174920030e-1,0.2238427343606939184041926e-1,0.2157932282441140120676856e-1,0.2075102196078490181790884e-1,0.1990026712265721124487174e-1,0.1902797888454570639306994e-1,0.1813510112204514410759734e-1,0.1722259999071698441334003e-1,0.1629146288099104326591566e-1,0.1534269735028835663459242e-1,0.1437733003365908208357459e-1,0.1339640553436828544136536e-1,0.1240098529611606104018197e-1,0.1139214645908584403924275e-1,0.1037098070311609684083942e-1,0.9338593083876397086740596e-2,0.8296100874530990238145090e-2,0.7244632443933199672626606e-2,0.6185326261033323769312750e-2,0.5119330329927718280032034e-2,0.4047803316371759906879922e-2,0.2971924240818190718436604e-2,0.1892968377922935762776147e-2,0.8135642494541165010544716e-3];
 	const ODDW48: [f64;48] = [0.3220431459661350533475748e-1,0.3215415737958550153577998e-1,0.3207061987527279934927952e-1,0.3195378880670864194528382e-1,0.3180378546007149044495368e-1,0.3162076555877401604294910e-1,0.3140491910180172362457798e-1,0.3115647016646904145775102e-1,0.3087567667579765382432642e-1,0.3056283013075858386135104e-1,0.3021825530765601453452082e-1,0.2984230992096702903457814e-1,0.2943538425198732086424294e-1,0.2899790074366843187205222e-1,0.2853031356206718751823808e-1,0.2803310812486267752680532e-1,0.2750680059743034256009616e-1,0.2695193735699644067363378e-1,0.2636909442542934975707846e-1,0.2575887687125678489535242e-1,0.2512191818153004673565192e-1,0.2445887960418784729059960e-1,0.2377044946160306882104198e-1,0.2305734243602599579639616e-1,0.2232029882766713237862322e-1,0.2156008378619171827843500e-1,0.2077748651642656849799008e-1,0.1997331945910804688818908e-1,0.1914841744752812933525703e-1,0.1830363684096414082229124e-1,0.1743985463580780463940516e-1,0.1655796755534245662902801e-1,0.1565889111915692052020687e-1,0.1474355869323695017635984e-1,0.1381292052185304327114855e-1,0.1286794274249338667571135e-1,0.1190960638533075683273654e-1,0.1093890635919594895396767e-1,0.9956850427084044948237490e-2,0.8964458176697999432566250e-2,0.7962759997865495595598110e-2,0.6952796096469405526464256e-2,0.5935615630788222954183688e-2,0.4912276262166028130833504e-2,0.3883845329489294421733034e-2,0.2851409243213055771419126e-2,0.1816146398210039609502983e-2,0.7805332219425612457264822e-3];
 	const ODDW49: [f64;49] = [0.3155766036791122885809208e-1,0.3151046648162834771323796e-1,0.3143186227722154616152128e-1,0.3132192610907518012817474e-1,0.3118076756395815837033438e-1,0.3100852735178559535833486e-1,0.3080537716535627949917920e-1,0.3057151950920577999218210e-1,0.3030718749774580397961262e-1,0.3001264462289103447190280e-1,0.2968818449140509844801766e-1,0.2933413053222750347643324e-1,0.2895083567407331040373860e-1,0.2853868199362694972663692e-1,0.2809808033468091126593440e-1,0.2762946989859901232207604e-1,0.2713331780651255092639320e-1,0.2661011863368585130179228e-1,0.2606039391651548254092866e-1,0.2548469163265475465058230e-1,0.2488358565478194644598738e-1,0.2425767517855707823164026e-1,0.2360758412533789404661778e-1,0.2293396052025105528408320e-1,0.2223747584623937158435550e-1,0.2151882437473022381824646e-1,0.2077872247359421120742490e-1,0.2001790789308656620794778e-1,0.1923713903048718479867380e-1,0.1843719417417849927098560e-1,0.1761887072792438050675710e-1,0.1678298441613870708950299e-1,0.1593036847096084971103802e-1,0.1506187280199023331295260e-1,0.1417836314957944606614279e-1,0.1328072022265728347995425e-1,0.1236983882217516210343368e-1,0.1144662695149825376113323e-1,0.1051200491552474540574917e-1,0.9566904411326136356898158e-2,0.8612267615478888991732218e-2,0.7649046279335257935390770e-2,0.6678200860575098165183170e-2,0.5700699773395926875152328e-2,0.4717519037520830079689318e-2,0.3729643487243034749198276e-2,0.2738075873626878091327392e-2,0.1743906958219244938639563e-2,0.7494736467374053633626714e-3];	
+
 	// The factor in front of the direct product representation
     const CL: [f64;101] = [1.0,1.0,-0.5000000000000000000000000e0,-0.1500000000000000000000000e1,0.3750000000000000000000000e0,0.1875000000000000000000000e1,-0.3125000000000000000000000e0,-0.2187500000000000000000000e1,0.2734375000000000000000000e0,0.2460937500000000000000000e1,-0.2460937500000000000000000e0,-0.2707031250000000000000000e1,0.2255859375000000000000000e0,0.2932617187500000000000000e1,-0.2094726562500000000000000e0,-0.3142089843750000000000000e1,0.1963806152343750000000000e0,0.3338470458984375000000000e1,-0.1854705810546875000000000e0,-0.3523941040039062500000000e1,0.1761970520019531250000000e0,0.3700138092041015625000000e1,-0.1681880950927734375000000e0,-0.3868326187133789062500000e1,0.1611802577972412109375000e0,0.4029506444931030273437500e1,-0.1549810171127319335937500e0,-0.4184487462043762207031250e1,0.1494459807872772216796875e0,0.4333933442831039428710938e1,-0.1444644480943679809570312e0,-0.4478397890925407409667969e1,0.1399499340914189815521240e0,0.4618347825016826391220093e1,-0.1358337595593184232711792e0,-0.4754181584576144814491272e1,0.1320605995715595781803131e0,0.4886242184147704392671585e1,-0.1285853206354659050703049e0,-0.5014827504783170297741890e1,0.1253706876195792574435472e0,0.5140198192402749555185437e1,-0.1223856712476845132187009e0,-0.5262583863650434068404138e1,0.1196041787193280470091850e0,0.5382188042369762115413323e1,-0.1170040878776035242481157e0,-0.5499192130247365639661439e1,0.1145665027134867841596133e0,0.5613758632960852423821052e1,-0.1122751726592170484764210e0,-0.5726033805620069472297473e1,0.1101160347234628744672591e0,0.5836149840343532346764732e1,-0.1080768488952505990141617e0,-0.5944226689238782945778894e1,0.1061469051649782668889088e0,0.6050373594403761212667803e1,-0.1043167861104096760804794e0,-0.6154690380514170888748282e1,0.1025781730085695148124714e0,0.6257268553522740403560753e1,-0.1009236863471409742509799e0,-0.6358192239869881377811733e1,0.9934675374796689652830833e-1,0.6457538993617848274340042e1,-0.9784149990330073142939457e-1,-0.6555380493521149005769436e1,0.9640265431648748537896230e-1,0.6651783147837636491148399e1,-0.9502547354053766415926284e-1,-0.6746808621378174155307661e1,0.9370567529691908549038419e-1,0.6840514296675093240798046e1,-0.9243938238750126001078440e-1,-0.6932953679062594500808830e1,0.9122307472450782237906355e-1,0.7024176753787102323187894e1,-0.9005354812547567081010120e-1,-0.7114230301912577993997995e1,0.8892787877390722492497493e-1,0.7203158180686485218922970e1,-0.8784339244739616120637768e-1,-0.7291001573133881380129347e1,0.8679763777540334976344461e-1,0.7377799210909284729892792e1,-0.8578836291754982244061386e-1,-0.7463587573826834552333406e1,0.8481349515712311991287961e-1,0.7548401068983957672246285e1,-0.8387112298871064080273650e-1,-0.7632272191972668313049022e1,0.8295948034752900340270676e-1,0.7715231672320197316451729e1,-0.8207693268425741826012477e-1,-0.7797308605004454734711853e1,0.8122196463546307015324847e-1,0.7878530569639917804865102e1,-0.8039316907795834494760308e-1,-0.7958923738717876149812705e1,0.7958923738717876149812705e-1];
 
     fn bessel_j_zero(k: usize) -> f64 {
         if k < 20 {
-            GaussLegendreQuadatrure::JZ[k-1]
+            GaussLegendreQuadrature::JZ[k-1]
         } else {
             let ak = PI * ( k as f64 - 0.25 );
             let r = 1_f64 / ak;
@@ -239,17 +249,241 @@ impl GaussLegendreQuadatrure {
 
     fn bessel_j1_squared(k: usize) -> f64 {
         if k < 21 {
-            GaussLegendreQuadatrure::J1[k-1]
+            GaussLegendreQuadrature::J1[k-1]
         } else {
             let x = 1.0/(k as f64 - 0.25);
 			let x2 = x*x;
 			x * (0.202642367284675542887758926420 + x2*x2*(-0.303380429711290253026202643516e-3 + x2*(0.198924364245969295201137972743e-3 + x2*(-0.228969902772111653038747229723e-3+x2*(0.433710719130746277915572905025e-3+x2*(-0.123632349727175414724737657367e-2+x2*(0.496101423268883102872271417616e-2+x2*(-0.266837393702323757700998557826e-1+0.185395398206345628711318848386*x2))))))))
         }
     }
+
+	fn gauss_legendre_quad_pair_calculated(n: usize, k: usize) -> (f64,f64) {
+		// First get the Bessel zero
+		let w = 1.0/(n as f64 + 0.5);
+		let nu = GaussLegendreQuadrature::bessel_j_zero(k);
+		let mut theta = w*nu;
+		let x = theta*theta;
+		
+		// Get the asymptotic BesselJ(1,nu) squared
+		let b = GaussLegendreQuadrature::bessel_j1_squared(k);
+		
+		// Get the Chebyshev interpolants for the nodes...
+		let sf1t = (((((-1.29052996274280508473467968379e-12*x +2.40724685864330121825976175184e-10)*x -3.13148654635992041468855740012e-8)*x +0.275573168962061235623801563453e-5)*x -0.148809523713909147898955880165e-3)*x +0.416666666665193394525296923981e-2)*x -0.416666666666662959639712457549e-1;
+		let sf2t = (((((2.20639421781871003734786884322e-9*x  -7.53036771373769326811030753538e-8)*x  +0.161969259453836261731700382098e-5)*x -0.253300326008232025914059965302e-4)*x +0.282116886057560434805998583817e-3)*x -0.209022248387852902722635654229e-2)*x +0.815972221772932265640401128517e-2;
+		let sf3t = (((((-2.97058225375526229899781956673e-8*x  +5.55845330223796209655886325712e-7)*x  -0.567797841356833081642185432056e-5)*x +0.418498100329504574443885193835e-4)*x -0.251395293283965914823026348764e-3)*x +0.128654198542845137196151147483e-2)*x -0.416012165620204364833694266818e-2;
+		
+		// ...and for the weights
+		let wsf1t = ((((((((-2.20902861044616638398573427475e-14*x+2.30365726860377376873232578871e-12)*x-1.75257700735423807659851042318e-10)*x+1.03756066927916795821098009353e-8)*x-4.63968647553221331251529631098e-7)*x+0.149644593625028648361395938176e-4)*x-0.326278659594412170300449074873e-3)*x+0.436507936507598105249726413120e-2)*x-0.305555555555553028279487898503e-1)*x+0.833333333333333302184063103900e-1;
+		let wsf2t = (((((((3.63117412152654783455929483029e-12*x+7.67643545069893130779501844323e-11)*x-7.12912857233642220650643150625e-9)*x+2.11483880685947151466370130277e-7)*x-0.381817918680045468483009307090e-5)*x+0.465969530694968391417927388162e-4)*x-0.407297185611335764191683161117e-3)*x+0.268959435694729660779984493795e-2)*x-0.111111111111214923138249347172e-1;
+		let wsf3t = (((((((2.01826791256703301806643264922e-9*x-4.38647122520206649251063212545e-8)*x+5.08898347288671653137451093208e-7)*x-0.397933316519135275712977531366e-5)*x+0.200559326396458326778521795392e-4)*x-0.422888059282921161626339411388e-4)*x-0.105646050254076140548678457002e-3)*x-0.947969308958577323145923317955e-4)*x+0.656966489926484797412985260842e-2;
+		
+		// Then refine with the paper expansions
+		let nuosin = nu/theta.sin();
+		let bnuosin = b*nuosin;
+		let winvsinc = w*w*nuosin;
+		let wis2 = winvsinc*winvsinc;
+		
+		// Finally compute the node and the weight
+		theta = w*(nu + theta * winvsinc * (sf1t + wis2*(sf2t + wis2*sf3t)));
+		let deno = bnuosin + bnuosin * wis2*(wsf1t + wis2*(wsf2t + wis2*wsf3t));
+		let weight = (2.0*w)/deno;
+
+		(theta,weight)
+	}
+
+	fn load_tabulated_values() -> ([Box<[f64]>;49],[Box<[f64]>;50],[Box<[f64]>;49],[Box<[f64]>;50]) {
+
+		let odd_theta_zeros: [Box<[f64]>;49] = [Box::new(GaussLegendreQuadrature::ODDTHETAZERO1),Box::new(GaussLegendreQuadrature::ODDTHETAZERO2),Box::new(GaussLegendreQuadrature::ODDTHETAZERO3),Box::new(GaussLegendreQuadrature::ODDTHETAZERO4),Box::new(GaussLegendreQuadrature::ODDTHETAZERO5),Box::new(GaussLegendreQuadrature::ODDTHETAZERO6),Box::new(GaussLegendreQuadrature::ODDTHETAZERO7),Box::new(GaussLegendreQuadrature::ODDTHETAZERO8),Box::new(GaussLegendreQuadrature::ODDTHETAZERO9),Box::new(GaussLegendreQuadrature::ODDTHETAZERO10),Box::new(GaussLegendreQuadrature::ODDTHETAZERO11),Box::new(GaussLegendreQuadrature::ODDTHETAZERO12),Box::new(GaussLegendreQuadrature::ODDTHETAZERO13),Box::new(GaussLegendreQuadrature::ODDTHETAZERO14),Box::new(GaussLegendreQuadrature::ODDTHETAZERO15),Box::new(GaussLegendreQuadrature::ODDTHETAZERO16),Box::new(GaussLegendreQuadrature::ODDTHETAZERO17),Box::new(GaussLegendreQuadrature::ODDTHETAZERO18),Box::new(GaussLegendreQuadrature::ODDTHETAZERO19),Box::new(GaussLegendreQuadrature::ODDTHETAZERO20),Box::new(GaussLegendreQuadrature::ODDTHETAZERO21),Box::new(GaussLegendreQuadrature::ODDTHETAZERO22),Box::new(GaussLegendreQuadrature::ODDTHETAZERO23),Box::new(GaussLegendreQuadrature::ODDTHETAZERO24),Box::new(GaussLegendreQuadrature::ODDTHETAZERO25),Box::new(GaussLegendreQuadrature::ODDTHETAZERO26),Box::new(GaussLegendreQuadrature::ODDTHETAZERO27),Box::new(GaussLegendreQuadrature::ODDTHETAZERO28),Box::new(GaussLegendreQuadrature::ODDTHETAZERO29),Box::new(GaussLegendreQuadrature::ODDTHETAZERO30),Box::new(GaussLegendreQuadrature::ODDTHETAZERO31),Box::new(GaussLegendreQuadrature::ODDTHETAZERO32),Box::new(GaussLegendreQuadrature::ODDTHETAZERO33),Box::new(GaussLegendreQuadrature::ODDTHETAZERO34),Box::new(GaussLegendreQuadrature::ODDTHETAZERO35),Box::new(GaussLegendreQuadrature::ODDTHETAZERO36),Box::new(GaussLegendreQuadrature::ODDTHETAZERO37),Box::new(GaussLegendreQuadrature::ODDTHETAZERO38),Box::new(GaussLegendreQuadrature::ODDTHETAZERO39),Box::new(GaussLegendreQuadrature::ODDTHETAZERO40),Box::new(GaussLegendreQuadrature::ODDTHETAZERO41),Box::new(GaussLegendreQuadrature::ODDTHETAZERO42),Box::new(GaussLegendreQuadrature::ODDTHETAZERO43),Box::new(GaussLegendreQuadrature::ODDTHETAZERO44),Box::new(GaussLegendreQuadrature::ODDTHETAZERO45),Box::new(GaussLegendreQuadrature::ODDTHETAZERO46),Box::new(GaussLegendreQuadrature::ODDTHETAZERO47),Box::new(GaussLegendreQuadrature::ODDTHETAZERO48),Box::new(GaussLegendreQuadrature::ODDTHETAZERO49)];
+		let even_theta_zeros: [Box<[f64]>;50] = [Box::new(GaussLegendreQuadrature::EVENTHETAZERO1),Box::new(GaussLegendreQuadrature::EVENTHETAZERO2),Box::new(GaussLegendreQuadrature::EVENTHETAZERO3),Box::new(GaussLegendreQuadrature::EVENTHETAZERO4),Box::new(GaussLegendreQuadrature::EVENTHETAZERO5),Box::new(GaussLegendreQuadrature::EVENTHETAZERO6),Box::new(GaussLegendreQuadrature::EVENTHETAZERO7),Box::new(GaussLegendreQuadrature::EVENTHETAZERO8),Box::new(GaussLegendreQuadrature::EVENTHETAZERO9),Box::new(GaussLegendreQuadrature::EVENTHETAZERO10),Box::new(GaussLegendreQuadrature::EVENTHETAZERO11),Box::new(GaussLegendreQuadrature::EVENTHETAZERO12),Box::new(GaussLegendreQuadrature::EVENTHETAZERO13),Box::new(GaussLegendreQuadrature::EVENTHETAZERO14),Box::new(GaussLegendreQuadrature::EVENTHETAZERO15),Box::new(GaussLegendreQuadrature::EVENTHETAZERO16),Box::new(GaussLegendreQuadrature::EVENTHETAZERO17),Box::new(GaussLegendreQuadrature::EVENTHETAZERO18),Box::new(GaussLegendreQuadrature::EVENTHETAZERO19),Box::new(GaussLegendreQuadrature::EVENTHETAZERO20),Box::new(GaussLegendreQuadrature::EVENTHETAZERO21),Box::new(GaussLegendreQuadrature::EVENTHETAZERO22),Box::new(GaussLegendreQuadrature::EVENTHETAZERO23),Box::new(GaussLegendreQuadrature::EVENTHETAZERO24),Box::new(GaussLegendreQuadrature::EVENTHETAZERO25),Box::new(GaussLegendreQuadrature::EVENTHETAZERO26),Box::new(GaussLegendreQuadrature::EVENTHETAZERO27),Box::new(GaussLegendreQuadrature::EVENTHETAZERO28),Box::new(GaussLegendreQuadrature::EVENTHETAZERO29),Box::new(GaussLegendreQuadrature::EVENTHETAZERO30),Box::new(GaussLegendreQuadrature::EVENTHETAZERO31),Box::new(GaussLegendreQuadrature::EVENTHETAZERO32),Box::new(GaussLegendreQuadrature::EVENTHETAZERO33),Box::new(GaussLegendreQuadrature::EVENTHETAZERO34),Box::new(GaussLegendreQuadrature::EVENTHETAZERO35),Box::new(GaussLegendreQuadrature::EVENTHETAZERO36),Box::new(GaussLegendreQuadrature::EVENTHETAZERO37),Box::new(GaussLegendreQuadrature::EVENTHETAZERO38),Box::new(GaussLegendreQuadrature::EVENTHETAZERO39),Box::new(GaussLegendreQuadrature::EVENTHETAZERO40),Box::new(GaussLegendreQuadrature::EVENTHETAZERO41),Box::new(GaussLegendreQuadrature::EVENTHETAZERO42),Box::new(GaussLegendreQuadrature::EVENTHETAZERO43),Box::new(GaussLegendreQuadrature::EVENTHETAZERO44),Box::new(GaussLegendreQuadrature::EVENTHETAZERO45),Box::new(GaussLegendreQuadrature::EVENTHETAZERO46),Box::new(GaussLegendreQuadrature::EVENTHETAZERO47),Box::new(GaussLegendreQuadrature::EVENTHETAZERO48),Box::new(GaussLegendreQuadrature::EVENTHETAZERO49),Box::new(GaussLegendreQuadrature::EVENTHETAZERO50)];
+		let odd_weights: [Box<[f64]>; 49] = [Box::new(GaussLegendreQuadrature::ODDW1),Box::new(GaussLegendreQuadrature::ODDW2),Box::new(GaussLegendreQuadrature::ODDW3),Box::new(GaussLegendreQuadrature::ODDW4),Box::new(GaussLegendreQuadrature::ODDW5),Box::new(GaussLegendreQuadrature::ODDW6),Box::new(GaussLegendreQuadrature::ODDW7),Box::new(GaussLegendreQuadrature::ODDW8),Box::new(GaussLegendreQuadrature::ODDW9),Box::new(GaussLegendreQuadrature::ODDW10),Box::new(GaussLegendreQuadrature::ODDW11),Box::new(GaussLegendreQuadrature::ODDW12),Box::new(GaussLegendreQuadrature::ODDW13),Box::new(GaussLegendreQuadrature::ODDW14),Box::new(GaussLegendreQuadrature::ODDW15),Box::new(GaussLegendreQuadrature::ODDW16),Box::new(GaussLegendreQuadrature::ODDW17),Box::new(GaussLegendreQuadrature::ODDW18),Box::new(GaussLegendreQuadrature::ODDW19),Box::new(GaussLegendreQuadrature::ODDW20),Box::new(GaussLegendreQuadrature::ODDW21),Box::new(GaussLegendreQuadrature::ODDW22),Box::new(GaussLegendreQuadrature::ODDW23),Box::new(GaussLegendreQuadrature::ODDW24),Box::new(GaussLegendreQuadrature::ODDW25),Box::new(GaussLegendreQuadrature::ODDW26),Box::new(GaussLegendreQuadrature::ODDW27),Box::new(GaussLegendreQuadrature::ODDW28),Box::new(GaussLegendreQuadrature::ODDW29),Box::new(GaussLegendreQuadrature::ODDW30),Box::new(GaussLegendreQuadrature::ODDW31),Box::new(GaussLegendreQuadrature::ODDW32),Box::new(GaussLegendreQuadrature::ODDW33),Box::new(GaussLegendreQuadrature::ODDW34),Box::new(GaussLegendreQuadrature::ODDW35),Box::new(GaussLegendreQuadrature::ODDW36),Box::new(GaussLegendreQuadrature::ODDW37),Box::new(GaussLegendreQuadrature::ODDW38),Box::new(GaussLegendreQuadrature::ODDW39),Box::new(GaussLegendreQuadrature::ODDW40),Box::new(GaussLegendreQuadrature::ODDW41),Box::new(GaussLegendreQuadrature::ODDW42),Box::new(GaussLegendreQuadrature::ODDW43),Box::new(GaussLegendreQuadrature::ODDW44),Box::new(GaussLegendreQuadrature::ODDW45),Box::new(GaussLegendreQuadrature::ODDW46),Box::new(GaussLegendreQuadrature::ODDW47),Box::new(GaussLegendreQuadrature::ODDW48),Box::new(GaussLegendreQuadrature::ODDW49)];
+		let even_weights: [Box<[f64]>; 50] = [Box::new(GaussLegendreQuadrature::EVENW1), Box::new(GaussLegendreQuadrature::EVENW2), Box::new(GaussLegendreQuadrature::EVENW3), Box::new(GaussLegendreQuadrature::EVENW4), Box::new(GaussLegendreQuadrature::EVENW5), Box::new(GaussLegendreQuadrature::EVENW6), Box::new(GaussLegendreQuadrature::EVENW7), Box::new(GaussLegendreQuadrature::EVENW8), Box::new(GaussLegendreQuadrature::EVENW9), Box::new(GaussLegendreQuadrature::EVENW10), Box::new(GaussLegendreQuadrature::EVENW11), Box::new(GaussLegendreQuadrature::EVENW12), Box::new(GaussLegendreQuadrature::EVENW13), Box::new(GaussLegendreQuadrature::EVENW14), Box::new(GaussLegendreQuadrature::EVENW15), Box::new(GaussLegendreQuadrature::EVENW16), Box::new(GaussLegendreQuadrature::EVENW17), Box::new(GaussLegendreQuadrature::EVENW18), Box::new(GaussLegendreQuadrature::EVENW19), Box::new(GaussLegendreQuadrature::EVENW20), Box::new(GaussLegendreQuadrature::EVENW21), Box::new(GaussLegendreQuadrature::EVENW22), Box::new(GaussLegendreQuadrature::EVENW23), Box::new(GaussLegendreQuadrature::EVENW24), Box::new(GaussLegendreQuadrature::EVENW25), Box::new(GaussLegendreQuadrature::EVENW26), Box::new(GaussLegendreQuadrature::EVENW27), Box::new(GaussLegendreQuadrature::EVENW28), Box::new(GaussLegendreQuadrature::EVENW29), Box::new(GaussLegendreQuadrature::EVENW30), Box::new(GaussLegendreQuadrature::EVENW31), Box::new(GaussLegendreQuadrature::EVENW32), Box::new(GaussLegendreQuadrature::EVENW33), Box::new(GaussLegendreQuadrature::EVENW34), Box::new(GaussLegendreQuadrature::EVENW35), Box::new(GaussLegendreQuadrature::EVENW36), Box::new(GaussLegendreQuadrature::EVENW37), Box::new(GaussLegendreQuadrature::EVENW38), Box::new(GaussLegendreQuadrature::EVENW39), Box::new(GaussLegendreQuadrature::EVENW40), Box::new(GaussLegendreQuadrature::EVENW41), Box::new(GaussLegendreQuadrature::EVENW42), Box::new(GaussLegendreQuadrature::EVENW43), Box::new(GaussLegendreQuadrature::EVENW44), Box::new(GaussLegendreQuadrature::EVENW45), Box::new(GaussLegendreQuadrature::EVENW46), Box::new(GaussLegendreQuadrature::EVENW47), Box::new(GaussLegendreQuadrature::EVENW48), Box::new(GaussLegendreQuadrature::EVENW49), Box::new(GaussLegendreQuadrature::EVENW50)];
+
+		(odd_theta_zeros,even_theta_zeros,odd_weights,even_weights)
+	}
+
+	fn gauss_legendre_quad_pair_tabulated(l: usize, k: usize, odd_theta_zeros: &[Box<[f64]>;49], even_theta_zeros: &[Box<[f64]>;50], odd_weights: &[Box<[f64]>;49], even_weights: &[Box<[f64]>;50]) -> (f64,f64) {
+
+		if l & 1 == 1 {
+			
+			let l2 = (l-1)/2;
+
+			if k == l2 {
+			
+				(PI/2.0, 2.0/(GaussLegendreQuadrature::CL[l]*GaussLegendreQuadrature::CL[l]))
+			
+			} else if k < l2 {
+			
+				(odd_theta_zeros[l2-1][l2-k-1],odd_weights[l2-1][l2-k-1])
+			
+			} else {
+			
+				(PI-odd_theta_zeros[l2-1][k-l2-1],odd_weights[l2-1][k-l2-1])
+			}
+		
+		} else {
+			
+			let l2 = l/2;
+			
+			if k < l2 {
+			
+				(even_theta_zeros[l2-1][l2-k-1],even_weights[l2-1][l2-k-1])
+			}
+			
+			else {
+			
+				(PI-even_theta_zeros[l2-1][k-l2],even_weights[l2-1][k-l2])
+			}
+		}
+	}
+
+	fn quad_pair(n: usize, k: usize, odd_theta_zeros: &[Box<[f64]>;49], even_theta_zeros: &[Box<[f64]>;50], odd_weights: &[Box<[f64]>;49], even_weights: &[Box<[f64]>;50]) -> (f64,f64) {
+		match k < n {
+			true => {
+				if n < 101 {
+				
+					GaussLegendreQuadrature::gauss_legendre_quad_pair_tabulated(n, k-1, odd_theta_zeros, even_theta_zeros, odd_weights, even_weights)
+				
+				} else {
+				
+					if 2*k-1 > n {
+				
+						let mut pair = GaussLegendreQuadrature::gauss_legendre_quad_pair_calculated(n, n-k+1);
+						pair.0 = PI - pair.0;
+						pair
+				
+					} else {
+				
+						GaussLegendreQuadrature::gauss_legendre_quad_pair_calculated(n, k)
+					}
+				}
+			},
+			false => {panic!("k must be smaller than n")}
+		}
+	}
+
+	fn integrate_diffussion(&self, u: PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]>, v: PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]>, beg: f64, end: f64, mu: f64, b: f64) -> f64 {
+
+		let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
+		let transform_function = self.transformation.build_to_m1_p1(beg, end);
+		let derivative_t = transform_function.differentiate();
+		let derivative_u = u.differentiate();
+		let derivative_v = v.differentiate();
+
+		let mut integral_approximation = 0_f64;
+		for i in 1..100 {
+			let (theta, w) = GaussLegendreQuadrature::quad_pair(100,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+			let x = theta.cos();
+			let translated_point = transform_function.evaluate(x);
+			integral_approximation +=  (mu * derivative_u.evaluate(translated_point) * derivative_v.evaluate(translated_point) + b * derivative_u.evaluate(translated_point) * v.evaluate(translated_point)) * derivative_t.evaluate(x) * w;
+		}
+
+		integral_approximation
+
+	}
 }
 
-impl Quadrature1D for GaussLegendreQuadatrure {
-    fn integrate(function: Box<dyn Fn(f32) -> f32>) -> f32 {
-        todo!()
-    }
+#[cfg(test)]
+mod test {
+
+	use crate::solvers::fem::fem_ode::diffusion_solver::{Differentiable, Function};
+	use super::GaussLegendreQuadrature;
+	use super::PI;
+
+	#[test]
+	fn integrate_exp_tabulate() {
+
+		let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
+		
+		let mut sum = 0_f64;
+		for i in 1..100 {
+			let (theta, w) = GaussLegendreQuadrature::quad_pair(100,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+			let x = theta.cos();
+			sum += w * x.exp();
+		}
+
+		println!("Approximation is: {}",sum);
+		let error = (sum - (1_f64.exp() - (-1 as f64).exp())).abs();
+		println!("Error is: {}",error);
+		assert!(error <= 0.001);
+	}
+
+	#[test]
+	fn integrate_exp_without_tabulation() {
+
+		let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
+		
+		let mut sum = 0_f64;
+		for i in 1..600 {
+			let (theta, w) = GaussLegendreQuadrature::quad_pair(600,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+			let x = theta.cos();
+			sum += w * x.exp();
+		}
+
+		println!("Approximation is: {}",sum);
+		let error = (sum - (1_f64.exp() - (-1 as f64).exp())).abs();
+		println!("Error is: {}",error);
+		assert!(error <= 0.00001);
+
+	}
+
+	#[test]
+	fn integrate_cosine_tabulate() {
+
+		let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
+
+		let mut sum = 0_f64;
+		for i in 1..50 {
+			let (theta, w) = GaussLegendreQuadrature::quad_pair(50,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+			let x = theta.cos();
+			sum += w * x.cos();
+		}
+
+		println!("Approximation is: {}",sum);
+		let error = (sum - (1_f64.sin() - (-1 as f64).sin())).abs();
+		println!("Error is: {}",error);
+		assert!(error <= 0.01);
+
+	}
+
+	#[test]
+	fn integrate_cosine_without_tabulation() {
+
+		let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
+
+		let mut sum = 0_f64;
+		for i in 1..510 {
+			let (theta, w) = GaussLegendreQuadrature::quad_pair(510,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+			let x = theta.cos();
+			sum += w * x.cos();
+		}
+
+		println!("Approximation is: {}",sum);
+		let error = (sum - (1_f64.sin() - (-1 as f64).sin())).abs();
+		println!("Error is: {}",error);
+		assert!(error <= 0.0001);
+
+	}
+
+	#[test]
+	fn integrate_cosine_0_pi() {
+
+		let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
+
+		let glquad = GaussLegendreQuadrature::new();
+		let transform = glquad.transformation.build_to_m1_p1(0_f64, PI);
+		let deriv_t = transform.differentiate();
+
+		let mut sum = 0_f64;
+		for i in 1..510 {
+			let (theta, w) = GaussLegendreQuadrature::quad_pair(510,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+			let x = transform.evaluate(theta.cos());
+			sum += w * x.cos() * deriv_t.evaluate(0_f64);
+		}
+
+		println!("Approximation is: {}",sum);
+		let error = sum.abs();
+		println!("Error is: {}",error);
+		assert!(error <= 0.0001);
+
+	}
 }
