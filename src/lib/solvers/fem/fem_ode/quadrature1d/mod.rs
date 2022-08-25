@@ -1,4 +1,4 @@
-mod gauss_legendre;
+pub mod gauss_legendre;
 
 /// # General Information
 /// 

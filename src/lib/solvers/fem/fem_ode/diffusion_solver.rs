@@ -12,6 +12,11 @@
 //     }
 // }
 
+use ndarray::{Array, Ix2, Ix1};
+
+use crate::solvers::fem::fem_ode::quadrature1d::gauss_legendre::GaussLegendreQuadrature;
+
+
 pub trait Function {
     fn evaluate(&self, x: f64) -> f64;
 }
@@ -190,14 +195,14 @@ struct LinearBasis {
 
 struct PiecewiseLinearBasis<A: IntervalStep, B: NumberOfArguments> {
     basis: Vec<PiecewiseFirstDegreePolynomial<A,B>>,
-    interval: Vec<f64>,
+    transformation: TransformationFactory
 }
 
 impl<A: IntervalStep, B: NumberOfArguments> PiecewiseLinearBasis<A, B> { 
-    fn new(basis: Vec<PiecewiseFirstDegreePolynomial<A,B>>, interval: Vec<f64>) -> Self {
+    fn new(basis: Vec<PiecewiseFirstDegreePolynomial<A,B>>) -> Self {
         Self {
             basis,
-            interval
+            transformation: TransformationFactory()
         }
     }
 }
@@ -213,7 +218,7 @@ impl LinearBasis {
         }
     }
 
-    fn transform_basis(self, mesh: Vec<f64>) -> PiecewiseLinearBasis<[f64;3],[f64;4]> {
+    fn transform_basis(self, mesh: &Vec<f64>) -> PiecewiseLinearBasis<[f64;3],[f64;4]> {
 
         let phi_1 = &self.basis[0];
         let phi_2= &self.basis[1];
@@ -247,22 +252,119 @@ impl LinearBasis {
                  [mesh[mesh.len()-2],mesh[mesh.len()-1],mesh[mesh.len()-1] + 1_f64])
         );
 
-        PiecewiseLinearBasis::new(basis_vec,mesh)
+        PiecewiseLinearBasis::new(basis_vec)
     }
 }
 
 struct DiffussionSolver {
     boundary_conditions: [f64; 2],
-    vertices: Vec<f64>,
+    mesh: Vec<f64>,
+    mu: f64,
+    b: f64
 }
 
 impl DiffussionSolver {
 
-    fn new(boundary_conditions: [f64; 2], vertices: Vec<f64>) -> Self {
+    fn new(boundary_conditions: [f64; 2], mesh: Vec<f64>, mu: f64, b: f64) -> Self {
         Self {
             boundary_conditions,
-            vertices
+            mesh,
+            mu,
+            b
         }
+    }
+
+    fn obtain_stiffness_matrix(&self, gauss_step_number: usize) -> Array<f64,Ix2> {
+
+        let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
+        let linear_unit = LinearBasis::new_unit();
+        let basis = linear_unit.transform_basis(&self.mesh);
+
+        let mut stiffness_matrix = ndarray::Array::from_elem((basis.basis.len(),basis.basis.len()),0_f64);
+        
+        for i in 1..basis.basis.len()-1 {
+
+            let derivative_phi = basis.basis[i].differentiate();
+
+            let transform_function_prev = basis.transformation.build_to_m1_p1(self.mesh[i-1], self.mesh[i]);
+            let transform_function_next = basis.transformation.build_to_m1_p1(self.mesh[i], self.mesh[i+1]);
+            let transform_function_square = basis.transformation.build_to_m1_p1(self.mesh[i-1], self.mesh[i+1]);
+            let derivative_t_prev = transform_function_prev.differentiate();
+            let derivative_t_next = transform_function_next.differentiate();
+            let derivative_t_square = transform_function_square.differentiate();
+
+            let derivative_prev = basis.basis[i-1].differentiate();
+            let derivative_next = basis.basis[i+1].differentiate();
+
+            let mut integral_prev_approximation = 0_f64;
+            let mut integral_next_approximation = 0_f64;
+            let mut integral_square_approximation = 0_f64;
+
+            for i in 1..gauss_step_number {
+
+                // Obtaining arccos(node) and weight
+                let (theta, w) = GaussLegendreQuadrature::quad_pair(gauss_step_number,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+                let x = theta.cos();
+
+                // translated to -1,1
+                let translated_point_prev = transform_function_prev.evaluate(x);
+                let translated_point_next = transform_function_next.evaluate(x);
+                let translated_point_square = transform_function_square.evaluate(x);
+
+                integral_prev_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_prev) * derivative_prev.evaluate(translated_point_prev) + self.b * derivative_phi.evaluate(translated_point_prev) * basis.basis[i-1].evaluate(translated_point_prev)) * derivative_t_prev.evaluate(x) * w;
+                integral_next_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_next) * derivative_next.evaluate(translated_point_next) + self.b * derivative_phi.evaluate(translated_point_next) * basis.basis[i+1].evaluate(translated_point_next)) * derivative_t_next.evaluate(x) * w;
+                integral_square_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_square) * derivative_phi.evaluate(translated_point_square) + self.b * derivative_phi.evaluate(translated_point_square) * basis.basis[i].evaluate(translated_point_square)) * derivative_t_square.evaluate(x) * w;
+                
+            }
+            stiffness_matrix[[i,i-1]] = integral_next_approximation;
+            stiffness_matrix[[i,i+1]] = integral_prev_approximation;
+            stiffness_matrix[[i,i]] = integral_square_approximation;
+        }
+
+        // inserting last elements for i = 0 and i = len() -1
+        let derivative_phi_zero = basis.basis[0].differentiate();
+        let derivative_phi_last = basis.basis[basis.basis.len()-1].differentiate();
+
+        let transform_function_zero = basis.transformation.build_to_m1_p1(self.mesh[0], self.mesh[1]);
+        let transform_function_last = basis.transformation.build_to_m1_p1(self.mesh[basis.basis.len()-2], self.mesh[basis.basis.len()-1]);
+
+        let derivative_t_zero = transform_function_zero.differentiate();
+        let derivative_t_last = transform_function_last.differentiate();
+
+        let derivative_one = basis.basis[1].differentiate();
+        let derivative_pen = basis.basis[basis.basis.len()-2].differentiate();
+
+        let mut integral_zero_square_approximation = 0_f64;
+        let mut integral_zero_one_approximation = 0_f64;
+        let mut integral_last_square_approximation = 0_f64;
+        let mut integral_last_pen_approximation = 0_f64;
+
+        for i in 1..gauss_step_number {
+
+            // Obtaining arccos(node) and weight
+            let (theta, w) = GaussLegendreQuadrature::quad_pair(gauss_step_number,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+            let x = theta.cos();
+
+            // translated to -1,1
+            let translated_point_zero = transform_function_zero.evaluate(x);
+            let translated_point_last = transform_function_last.evaluate(x);
+
+            integral_zero_square_approximation +=  (self.mu * derivative_phi_zero.evaluate(translated_point_zero) * derivative_phi_zero.evaluate(translated_point_zero) + self.b * derivative_phi_zero.evaluate(translated_point_zero) * basis.basis[0].evaluate(translated_point_zero)) * derivative_t_zero.evaluate(x) * w;
+            integral_zero_one_approximation +=  (self.mu * derivative_phi_zero.evaluate(translated_point_zero) * derivative_one.evaluate(translated_point_zero) + self.b * derivative_phi_zero.evaluate(translated_point_zero) * basis.basis[1].evaluate(translated_point_zero)) * derivative_t_zero.evaluate(x) * w;
+            integral_last_square_approximation +=  (self.mu * derivative_phi_last.evaluate(translated_point_last) * derivative_phi_last.evaluate(translated_point_last) + self.b * derivative_phi_last.evaluate(translated_point_last) * basis.basis[basis.basis.len()-1].evaluate(translated_point_last)) * derivative_t_last.evaluate(x) * w;
+            integral_last_pen_approximation +=  (self.mu * derivative_phi_last.evaluate(translated_point_last) * derivative_pen.evaluate(translated_point_last) + self.b * derivative_phi_last.evaluate(translated_point_last) * basis.basis[basis.basis.len()-2].evaluate(translated_point_last)) * derivative_t_last.evaluate(x) * w;            
+        }
+        
+        stiffness_matrix[[0,0]] = integral_zero_square_approximation;
+        stiffness_matrix[[0,1]] = integral_zero_one_approximation;
+        stiffness_matrix[[basis.basis.len()-1,basis.basis.len()-1]] = integral_last_square_approximation;
+        stiffness_matrix[[basis.basis.len()-1,basis.basis.len()-2]] = integral_last_pen_approximation;
+
+        stiffness_matrix
+    }
+
+    fn solve_linear_system(matrix: Array<f64,Ix2>, b: Array<f64,Ix1>) {
+        todo!()
     }
 
     fn solve() {
@@ -287,10 +389,9 @@ mod test {
     fn transform_basis_three_nodes() {
         let unit_base = LinearBasis::new_unit();
         let mesh =vec![0_f64,1_f64,2_f64];
-        let transformed = unit_base.transform_basis(mesh);
+        let transformed = unit_base.transform_basis(&mesh);
 
         assert!(transformed.basis.len() == 3);
-        assert!(transformed.interval == vec![0_f64,1_f64,2_f64]);
 
         let first_pol = PiecewiseFirstDegreePolynomial::new([0_f64,0_f64,-1_f64,0_f64], 
             [0_f64,0_f64,1_f64,0_f64], [-1_f64,0_f64,1_f64]);

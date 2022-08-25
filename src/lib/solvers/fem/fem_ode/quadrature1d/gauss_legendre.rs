@@ -1,20 +1,9 @@
 use std::f64::consts::PI;
 
-use crate::solvers::fem::fem_ode::diffusion_solver::{TransformationFactory, PiecewiseFirstDegreePolynomial, Differentiable, Function};
-
-struct GaussLegendreQuadrature {
-	transformation: TransformationFactory
-}
+pub struct GaussLegendreQuadrature;
 
 #[allow(dead_code)]
 impl GaussLegendreQuadrature {
-
-	fn new() -> Self {
-		let transformation = TransformationFactory ();
-		Self {
-			transformation
-		}
-	}
 
     const JZ: [f64; 20] = [2.40482555769577276862163187933,  5.52007811028631064959660411281,  8.65372791291101221695419871266,  11.7915344390142816137430449119,
     14.9309177084877859477625939974, 18.0710639679109225431478829756, 21.2116366298792589590783933505, 24.3524715307493027370579447632,
@@ -291,7 +280,7 @@ impl GaussLegendreQuadrature {
 		(theta,weight)
 	}
 
-	fn load_tabulated_values() -> ([Box<[f64]>;49],[Box<[f64]>;50],[Box<[f64]>;49],[Box<[f64]>;50]) {
+	pub fn load_tabulated_values() -> ([Box<[f64]>;49],[Box<[f64]>;50],[Box<[f64]>;49],[Box<[f64]>;50]) {
 
 		let odd_theta_zeros: [Box<[f64]>;49] = [Box::new(GaussLegendreQuadrature::ODDTHETAZERO1),Box::new(GaussLegendreQuadrature::ODDTHETAZERO2),Box::new(GaussLegendreQuadrature::ODDTHETAZERO3),Box::new(GaussLegendreQuadrature::ODDTHETAZERO4),Box::new(GaussLegendreQuadrature::ODDTHETAZERO5),Box::new(GaussLegendreQuadrature::ODDTHETAZERO6),Box::new(GaussLegendreQuadrature::ODDTHETAZERO7),Box::new(GaussLegendreQuadrature::ODDTHETAZERO8),Box::new(GaussLegendreQuadrature::ODDTHETAZERO9),Box::new(GaussLegendreQuadrature::ODDTHETAZERO10),Box::new(GaussLegendreQuadrature::ODDTHETAZERO11),Box::new(GaussLegendreQuadrature::ODDTHETAZERO12),Box::new(GaussLegendreQuadrature::ODDTHETAZERO13),Box::new(GaussLegendreQuadrature::ODDTHETAZERO14),Box::new(GaussLegendreQuadrature::ODDTHETAZERO15),Box::new(GaussLegendreQuadrature::ODDTHETAZERO16),Box::new(GaussLegendreQuadrature::ODDTHETAZERO17),Box::new(GaussLegendreQuadrature::ODDTHETAZERO18),Box::new(GaussLegendreQuadrature::ODDTHETAZERO19),Box::new(GaussLegendreQuadrature::ODDTHETAZERO20),Box::new(GaussLegendreQuadrature::ODDTHETAZERO21),Box::new(GaussLegendreQuadrature::ODDTHETAZERO22),Box::new(GaussLegendreQuadrature::ODDTHETAZERO23),Box::new(GaussLegendreQuadrature::ODDTHETAZERO24),Box::new(GaussLegendreQuadrature::ODDTHETAZERO25),Box::new(GaussLegendreQuadrature::ODDTHETAZERO26),Box::new(GaussLegendreQuadrature::ODDTHETAZERO27),Box::new(GaussLegendreQuadrature::ODDTHETAZERO28),Box::new(GaussLegendreQuadrature::ODDTHETAZERO29),Box::new(GaussLegendreQuadrature::ODDTHETAZERO30),Box::new(GaussLegendreQuadrature::ODDTHETAZERO31),Box::new(GaussLegendreQuadrature::ODDTHETAZERO32),Box::new(GaussLegendreQuadrature::ODDTHETAZERO33),Box::new(GaussLegendreQuadrature::ODDTHETAZERO34),Box::new(GaussLegendreQuadrature::ODDTHETAZERO35),Box::new(GaussLegendreQuadrature::ODDTHETAZERO36),Box::new(GaussLegendreQuadrature::ODDTHETAZERO37),Box::new(GaussLegendreQuadrature::ODDTHETAZERO38),Box::new(GaussLegendreQuadrature::ODDTHETAZERO39),Box::new(GaussLegendreQuadrature::ODDTHETAZERO40),Box::new(GaussLegendreQuadrature::ODDTHETAZERO41),Box::new(GaussLegendreQuadrature::ODDTHETAZERO42),Box::new(GaussLegendreQuadrature::ODDTHETAZERO43),Box::new(GaussLegendreQuadrature::ODDTHETAZERO44),Box::new(GaussLegendreQuadrature::ODDTHETAZERO45),Box::new(GaussLegendreQuadrature::ODDTHETAZERO46),Box::new(GaussLegendreQuadrature::ODDTHETAZERO47),Box::new(GaussLegendreQuadrature::ODDTHETAZERO48),Box::new(GaussLegendreQuadrature::ODDTHETAZERO49)];
 		let even_theta_zeros: [Box<[f64]>;50] = [Box::new(GaussLegendreQuadrature::EVENTHETAZERO1),Box::new(GaussLegendreQuadrature::EVENTHETAZERO2),Box::new(GaussLegendreQuadrature::EVENTHETAZERO3),Box::new(GaussLegendreQuadrature::EVENTHETAZERO4),Box::new(GaussLegendreQuadrature::EVENTHETAZERO5),Box::new(GaussLegendreQuadrature::EVENTHETAZERO6),Box::new(GaussLegendreQuadrature::EVENTHETAZERO7),Box::new(GaussLegendreQuadrature::EVENTHETAZERO8),Box::new(GaussLegendreQuadrature::EVENTHETAZERO9),Box::new(GaussLegendreQuadrature::EVENTHETAZERO10),Box::new(GaussLegendreQuadrature::EVENTHETAZERO11),Box::new(GaussLegendreQuadrature::EVENTHETAZERO12),Box::new(GaussLegendreQuadrature::EVENTHETAZERO13),Box::new(GaussLegendreQuadrature::EVENTHETAZERO14),Box::new(GaussLegendreQuadrature::EVENTHETAZERO15),Box::new(GaussLegendreQuadrature::EVENTHETAZERO16),Box::new(GaussLegendreQuadrature::EVENTHETAZERO17),Box::new(GaussLegendreQuadrature::EVENTHETAZERO18),Box::new(GaussLegendreQuadrature::EVENTHETAZERO19),Box::new(GaussLegendreQuadrature::EVENTHETAZERO20),Box::new(GaussLegendreQuadrature::EVENTHETAZERO21),Box::new(GaussLegendreQuadrature::EVENTHETAZERO22),Box::new(GaussLegendreQuadrature::EVENTHETAZERO23),Box::new(GaussLegendreQuadrature::EVENTHETAZERO24),Box::new(GaussLegendreQuadrature::EVENTHETAZERO25),Box::new(GaussLegendreQuadrature::EVENTHETAZERO26),Box::new(GaussLegendreQuadrature::EVENTHETAZERO27),Box::new(GaussLegendreQuadrature::EVENTHETAZERO28),Box::new(GaussLegendreQuadrature::EVENTHETAZERO29),Box::new(GaussLegendreQuadrature::EVENTHETAZERO30),Box::new(GaussLegendreQuadrature::EVENTHETAZERO31),Box::new(GaussLegendreQuadrature::EVENTHETAZERO32),Box::new(GaussLegendreQuadrature::EVENTHETAZERO33),Box::new(GaussLegendreQuadrature::EVENTHETAZERO34),Box::new(GaussLegendreQuadrature::EVENTHETAZERO35),Box::new(GaussLegendreQuadrature::EVENTHETAZERO36),Box::new(GaussLegendreQuadrature::EVENTHETAZERO37),Box::new(GaussLegendreQuadrature::EVENTHETAZERO38),Box::new(GaussLegendreQuadrature::EVENTHETAZERO39),Box::new(GaussLegendreQuadrature::EVENTHETAZERO40),Box::new(GaussLegendreQuadrature::EVENTHETAZERO41),Box::new(GaussLegendreQuadrature::EVENTHETAZERO42),Box::new(GaussLegendreQuadrature::EVENTHETAZERO43),Box::new(GaussLegendreQuadrature::EVENTHETAZERO44),Box::new(GaussLegendreQuadrature::EVENTHETAZERO45),Box::new(GaussLegendreQuadrature::EVENTHETAZERO46),Box::new(GaussLegendreQuadrature::EVENTHETAZERO47),Box::new(GaussLegendreQuadrature::EVENTHETAZERO48),Box::new(GaussLegendreQuadrature::EVENTHETAZERO49),Box::new(GaussLegendreQuadrature::EVENTHETAZERO50)];
@@ -336,7 +325,7 @@ impl GaussLegendreQuadrature {
 		}
 	}
 
-	fn quad_pair(n: usize, k: usize, odd_theta_zeros: &[Box<[f64]>;49], even_theta_zeros: &[Box<[f64]>;50], odd_weights: &[Box<[f64]>;49], even_weights: &[Box<[f64]>;50]) -> (f64,f64) {
+	pub fn quad_pair(n: usize, k: usize, odd_theta_zeros: &[Box<[f64]>;49], even_theta_zeros: &[Box<[f64]>;50], odd_weights: &[Box<[f64]>;49], even_weights: &[Box<[f64]>;50]) -> (f64,f64) {
 		match k < n {
 			true => {
 				if n < 101 {
@@ -360,31 +349,12 @@ impl GaussLegendreQuadrature {
 			false => {panic!("k must be smaller than n")}
 		}
 	}
-
-	fn integrate_diffussion(&self, u: PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]>, v: PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]>, beg: f64, end: f64, mu: f64, b: f64) -> f64 {
-
-		let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
-		let transform_function = self.transformation.build_to_m1_p1(beg, end);
-		let derivative_t = transform_function.differentiate();
-		let derivative_u = u.differentiate();
-		let derivative_v = v.differentiate();
-
-		let mut integral_approximation = 0_f64;
-		for i in 1..100 {
-			let (theta, w) = GaussLegendreQuadrature::quad_pair(100,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
-			let x = theta.cos();
-			let translated_point = transform_function.evaluate(x);
-			integral_approximation +=  (mu * derivative_u.evaluate(translated_point) * derivative_v.evaluate(translated_point) + b * derivative_u.evaluate(translated_point) * v.evaluate(translated_point)) * derivative_t.evaluate(x) * w;
-		}
-
-		integral_approximation
-
-	}
 }
 
 #[cfg(test)]
 mod test {
 
+	use crate::solvers::fem::fem_ode::diffusion_solver::TransformationFactory;
 	use crate::solvers::fem::fem_ode::diffusion_solver::{Differentiable, Function};
 	use super::GaussLegendreQuadrature;
 	use super::PI;
@@ -469,8 +439,8 @@ mod test {
 
 		let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
 
-		let glquad = GaussLegendreQuadrature::new();
-		let transform = glquad.transformation.build_to_m1_p1(0_f64, PI);
+		let t_factory = TransformationFactory();
+		let transform = t_factory.build_to_m1_p1(0_f64, PI);
 		let deriv_t = transform.differentiate();
 
 		let mut sum = 0_f64;
