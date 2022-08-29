@@ -120,7 +120,7 @@ impl PiecewiseFirstDegreePolynomial<[f64;3],[f64;4]> {
         Self {
             coefficients: [0_f64;4],
             independent_terms,
-            interval  
+            interval
         }
     }
 
@@ -300,10 +300,10 @@ impl DiffussionSolver {
             let mut integral_next_approximation = 0_f64;
             let mut integral_square_approximation = 0_f64;
 
-            for i in 1..gauss_step_number {
+            for j in 1..gauss_step_number {
 
                 // Obtaining arccos(node) and weight
-                let (theta, w) = GaussLegendreQuadrature::quad_pair(gauss_step_number,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+                let (theta, w) = GaussLegendreQuadrature::quad_pair(gauss_step_number,j,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
                 let x = theta.cos();
 
                 // translated to -1,1
@@ -345,14 +345,14 @@ impl DiffussionSolver {
             let (theta, w) = GaussLegendreQuadrature::quad_pair(gauss_step_number,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
             let x = theta.cos();
 
-            // translated to -1,1
+            // translated to original interval
             let translated_point_zero = transform_function_zero.evaluate(x);
             let translated_point_last = transform_function_last.evaluate(x);
 
             integral_zero_square_approximation +=  (self.mu * derivative_phi_zero.evaluate(translated_point_zero) * derivative_phi_zero.evaluate(translated_point_zero) + self.b * derivative_phi_zero.evaluate(translated_point_zero) * basis.basis[0].evaluate(translated_point_zero)) * derivative_t_zero.evaluate(x) * w;
-            integral_zero_one_approximation +=  (self.mu * derivative_phi_zero.evaluate(translated_point_zero) * derivative_one.evaluate(translated_point_zero) + self.b * derivative_phi_zero.evaluate(translated_point_zero) * basis.basis[1].evaluate(translated_point_zero)) * derivative_t_zero.evaluate(x) * w;
+            integral_zero_one_approximation +=  (self.mu * derivative_phi_zero.evaluate(translated_point_zero) * derivative_one.evaluate(translated_point_zero) + self.b * derivative_one.evaluate(translated_point_zero) * basis.basis[0].evaluate(translated_point_zero)) * derivative_t_zero.evaluate(x) * w;
             integral_last_square_approximation +=  (self.mu * derivative_phi_last.evaluate(translated_point_last) * derivative_phi_last.evaluate(translated_point_last) + self.b * derivative_phi_last.evaluate(translated_point_last) * basis.basis[basis.basis.len()-1].evaluate(translated_point_last)) * derivative_t_last.evaluate(x) * w;
-            integral_last_pen_approximation +=  (self.mu * derivative_phi_last.evaluate(translated_point_last) * derivative_pen.evaluate(translated_point_last) + self.b * derivative_phi_last.evaluate(translated_point_last) * basis.basis[basis.basis.len()-2].evaluate(translated_point_last)) * derivative_t_last.evaluate(x) * w;            
+            integral_last_pen_approximation +=  (self.mu * derivative_phi_last.evaluate(translated_point_last) * derivative_pen.evaluate(translated_point_last) + self.b * derivative_pen.evaluate(translated_point_last) * basis.basis[basis.basis.len()-1].evaluate(translated_point_last)) * derivative_t_last.evaluate(x) * w;            
         }
         
         stiffness_matrix[[0,0]] = integral_zero_square_approximation;
@@ -375,10 +375,11 @@ impl DiffussionSolver {
 #[cfg(test)]
 mod test {
 
-    use super::{LinearBasis, FirstDegreePolynomial, PiecewiseFirstDegreePolynomial};
+    use super::{LinearBasis, FirstDegreePolynomial, PiecewiseFirstDegreePolynomial, DiffussionSolver};
         
     #[test]
     fn create_unit_basis() {
+        
         let unit_base = LinearBasis::new_unit();
         let basis = unit_base.basis;
         assert!(basis[0] == FirstDegreePolynomial::new(1_f64,0_f64));
@@ -387,6 +388,7 @@ mod test {
 
     #[test]
     fn transform_basis_three_nodes() {
+
         let unit_base = LinearBasis::new_unit();
         let mesh =vec![0_f64,1_f64,2_f64];
         let transformed = unit_base.transform_basis(&mesh);
@@ -403,6 +405,25 @@ mod test {
         assert!(transformed.basis[0] == first_pol);
         assert!(transformed.basis[1] == second_pol);
         assert!(transformed.basis[2] == third_pol);
+    }
+
+    #[test]
+    fn regular_mesh_matrix() {
+
+        let dif_solver = DiffussionSolver::new([0_f64,1_f64],vec![0_f64,0.5,1_f64],1_f64,1_f64);
+        let a = dif_solver.obtain_stiffness_matrix(150);
+
+        println!("{:?}",a);
+
+        assert!(a[[0,0]] <= 1.6 && a[[0,0]] >= 1.4);
+        assert!(a[[0,1]] <= -1.3 && a[[0,1]] >= -1.6);
+        assert!(a[[0,2]] <= 0.1 && a[[0,2]] >= -0.1);
+        assert!(a[[1,0]] <= -2.4 && a[[2,0]] >= -2.6);
+        assert!(a[[1,1]] <= 4.1 && a[[1,1]] >= 3.9);
+        assert!(a[[1,2]] <= -1.3 && a[[1,2]] >= -1.6);
+        assert!(a[[2,0]] <= 0.1 && a[[2,0]] >= -0.1);
+        assert!(a[[2,1]] <= -2.3 && a[[2,1]] >= -2.6);
+        assert!(a[[2,2]] <= 2.6 && a[[2,2]] >= 2.4);
     }
 
 }
