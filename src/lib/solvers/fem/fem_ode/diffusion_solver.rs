@@ -279,60 +279,123 @@ impl DiffussionSolver {
         let (odd_theta_zeros,even_theta_zeros,odd_weights,even_weights) = GaussLegendreQuadrature::load_tabulated_values();
         let linear_unit = LinearBasis::new_unit();
         let basis = linear_unit.transform_basis(&self.mesh);
+        let long_basis = basis.basis.len();
 
-        let mut stiffness_matrix = ndarray::Array::from_elem((basis.basis.len()-2,basis.basis.len()-2),0_f64);
-        
-        for i in 1..basis.basis.len()-1 {
+        let mut stiffness_matrix = ndarray::Array::from_elem((long_basis-2,long_basis-2),0_f64);
 
-            let derivative_phi = basis.basis[i].differentiate();
-
-            let transform_function_prev = basis.transformation.build_to_m1_p1(self.mesh[i-1], self.mesh[i]);
-            let transform_function_next = basis.transformation.build_to_m1_p1(self.mesh[i], self.mesh[i+1]);
-            let transform_function_square = basis.transformation.build_to_m1_p1(self.mesh[i-1], self.mesh[i+1]);
-            let derivative_t_prev = transform_function_prev.differentiate();
-            let derivative_t_next = transform_function_next.differentiate();
-            let derivative_t_square = transform_function_square.differentiate();
-
-            let derivative_prev = basis.basis[i-1].differentiate();
-            let derivative_next = basis.basis[i+1].differentiate();
-
-            let mut integral_prev_approximation = 0_f64;
-            let mut integral_next_approximation = 0_f64;
+        if long_basis-2 == 1 {
+            let derivative_phi = basis.basis[1].differentiate();
+            let transform_function = basis.transformation.build_to_m1_p1(self.mesh[0], self.mesh[2]);
+            let derivative_t = transform_function.differentiate();
             let mut integral_square_approximation = 0_f64;
 
             for j in 1..gauss_step_number {
-
+    
                 // Obtaining arccos(node) and weight
                 let (theta, w) = GaussLegendreQuadrature::quad_pair(gauss_step_number,j,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
                 let x = theta.cos();
 
                 // translated to -1,1
-                let translated_point_prev = transform_function_prev.evaluate(x);
-                let translated_point_next = transform_function_next.evaluate(x);
-                let translated_point_square = transform_function_square.evaluate(x);
+                let translated_point_square = transform_function.evaluate(x);
 
-                integral_prev_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_prev) * derivative_prev.evaluate(translated_point_prev) + self.b * derivative_phi.evaluate(translated_point_prev) * basis.basis[i-1].evaluate(translated_point_prev)) * derivative_t_prev.evaluate(x) * w;
-                integral_next_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_next) * derivative_next.evaluate(translated_point_next) + self.b * derivative_phi.evaluate(translated_point_next) * basis.basis[i+1].evaluate(translated_point_next)) * derivative_t_next.evaluate(x) * w;
-                integral_square_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_square) * derivative_phi.evaluate(translated_point_square) + self.b * derivative_phi.evaluate(translated_point_square) * basis.basis[i].evaluate(translated_point_square)) * derivative_t_square.evaluate(x) * w;
-                
+                integral_square_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_square) * derivative_phi.evaluate(translated_point_square) + self.b * derivative_phi.evaluate(translated_point_square) * basis.basis[1].evaluate(translated_point_square)) * derivative_t.evaluate(x) * w;   
             }
-            stiffness_matrix[[i,i-1]] = integral_next_approximation;
-            stiffness_matrix[[i,i+1]] = integral_prev_approximation;
-            stiffness_matrix[[i,i]] = integral_square_approximation;
+
+            stiffness_matrix[[0,0]] = integral_square_approximation;
+            
+        } else {
+            for i in 2..long_basis-1 {
+    
+                let derivative_phi = basis.basis[i].differentiate();
+    
+                let transform_function_prev = basis.transformation.build_to_m1_p1(self.mesh[i-1], self.mesh[i]);
+                let transform_function_next = basis.transformation.build_to_m1_p1(self.mesh[i], self.mesh[i+1]);
+                let transform_function_square = basis.transformation.build_to_m1_p1(self.mesh[i-1], self.mesh[i+1]);
+                let derivative_t_prev = transform_function_prev.differentiate();
+                let derivative_t_next = transform_function_next.differentiate();
+                let derivative_t_square = transform_function_square.differentiate();
+    
+                let derivative_prev = basis.basis[i-1].differentiate();
+                let derivative_next = basis.basis[i+1].differentiate();
+    
+                let mut integral_prev_approximation = 0_f64;
+                let mut integral_next_approximation = 0_f64;
+                let mut integral_square_approximation = 0_f64;
+    
+                for j in 1..gauss_step_number {
+    
+                    // Obtaining arccos(node) and weight
+                    let (theta, w) = GaussLegendreQuadrature::quad_pair(gauss_step_number,j,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+                    let x = theta.cos();
+    
+                    // translated to -1,1
+                    let translated_point_prev = transform_function_prev.evaluate(x);
+                    let translated_point_next = transform_function_next.evaluate(x);
+                    let translated_point_square = transform_function_square.evaluate(x);
+    
+                    integral_prev_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_prev) * derivative_prev.evaluate(translated_point_prev) + self.b * derivative_phi.evaluate(translated_point_prev) * basis.basis[i-1].evaluate(translated_point_prev)) * derivative_t_prev.evaluate(x) * w;
+                    integral_next_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_next) * derivative_next.evaluate(translated_point_next) + self.b * derivative_phi.evaluate(translated_point_next) * basis.basis[i+1].evaluate(translated_point_next)) * derivative_t_next.evaluate(x) * w;
+                    integral_square_approximation +=  (self.mu * derivative_phi.evaluate(translated_point_square) * derivative_phi.evaluate(translated_point_square) + self.b * derivative_phi.evaluate(translated_point_square) * basis.basis[i].evaluate(translated_point_square)) * derivative_t_square.evaluate(x) * w;
+                    
+                }
+                stiffness_matrix[[i,i-1]] = integral_next_approximation;
+                stiffness_matrix[[i,i+1]] = integral_prev_approximation;
+                stiffness_matrix[[i,i]] = integral_square_approximation;
+            }
+
+            // elements here are special cases which only present a single bilinear evaluation either on the right or on the left
+            let derivative_phi_zero_internal = basis.basis[1].differentiate();
+            let derivative_phi_last_internal = basis.basis[long_basis-1].differentiate();
+
+            let transform_function_zero_internal = basis.transformation.build_to_m1_p1(self.mesh[1], self.mesh[2]);
+            let transform_function_last_internal = basis.transformation.build_to_m1_p1(self.mesh[long_basis-3], self.mesh[long_basis-2]);
+
+            let derivative_t_zero = transform_function_zero_internal.differentiate();
+            let derivative_t_last = transform_function_last_internal.differentiate();
+
+            let derivative_one_internal = basis.basis[2].differentiate();
+            let derivative_pen_internal = basis.basis[long_basis-2].differentiate();
+
+            let mut integral_zero_internal_square_approximation = 0_f64;
+            let mut integral_zero_internal_one_approximation = 0_f64;
+            let mut integral_last_internal_square_approximation = 0_f64;
+            let mut integral_last_internal_pen_approximation = 0_f64;
+
+            for i in 1..gauss_step_number {
+
+                // Obtaining arccos(node) and weight
+                let (theta, w) = GaussLegendreQuadrature::quad_pair(gauss_step_number,i,&odd_theta_zeros,&even_theta_zeros,&odd_weights,&even_weights);
+                let x = theta.cos();
+
+                // translated to original interval
+                let translated_point_zero = transform_function_zero_internal.evaluate(x);
+                let translated_point_last = transform_function_last_internal.evaluate(x);
+
+                integral_zero_internal_square_approximation +=  (self.mu * derivative_phi_zero_internal.evaluate(translated_point_zero) * derivative_phi_zero_internal.evaluate(translated_point_zero) + self.b * derivative_phi_zero_internal.evaluate(translated_point_zero) * basis.basis[0].evaluate(translated_point_zero)) * derivative_t_zero.evaluate(x) * w;
+                integral_zero_internal_one_approximation +=  (self.mu * derivative_phi_zero_internal.evaluate(translated_point_zero) * derivative_one_internal.evaluate(translated_point_zero) + self.b * derivative_one_internal.evaluate(translated_point_zero) * basis.basis[0].evaluate(translated_point_zero)) * derivative_t_zero.evaluate(x) * w;
+                integral_last_internal_square_approximation +=  (self.mu * derivative_phi_last_internal.evaluate(translated_point_last) * derivative_phi_last_internal.evaluate(translated_point_last) + self.b * derivative_phi_last_internal.evaluate(translated_point_last) * basis.basis[basis.basis.len()-1].evaluate(translated_point_last)) * derivative_t_last.evaluate(x) * w;
+                integral_last_internal_pen_approximation +=  (self.mu * derivative_phi_last_internal.evaluate(translated_point_last) * derivative_pen_internal.evaluate(translated_point_last) + self.b * derivative_pen_internal.evaluate(translated_point_last) * basis.basis[basis.basis.len()-1].evaluate(translated_point_last)) * derivative_t_last.evaluate(x) * w;            
+            }
+            
+            stiffness_matrix[[0,0]] = integral_zero_internal_square_approximation;
+            stiffness_matrix[[0,1]] = integral_zero_internal_one_approximation;
+            stiffness_matrix[[long_basis-3,long_basis-3]] = integral_last_internal_square_approximation;
+            stiffness_matrix[[long_basis-3,long_basis-4]] = integral_last_internal_pen_approximation;
+            
         }
 
         // elements here only serve to impose boundary conditions
         let derivative_phi_zero = basis.basis[0].differentiate();
-        let derivative_phi_last = basis.basis[basis.basis.len()-1].differentiate();
+        let derivative_phi_last = basis.basis[long_basis-1].differentiate();
 
         let transform_function_zero = basis.transformation.build_to_m1_p1(self.mesh[0], self.mesh[1]);
-        let transform_function_last = basis.transformation.build_to_m1_p1(self.mesh[basis.basis.len()-2], self.mesh[basis.basis.len()-1]);
+        let transform_function_last = basis.transformation.build_to_m1_p1(self.mesh[long_basis-2], self.mesh[long_basis-1]);
 
         let derivative_t_zero = transform_function_zero.differentiate();
         let derivative_t_last = transform_function_last.differentiate();
 
-        let derivative_one = basis.basis[1].differentiate();
-        let derivative_pen = basis.basis[basis.basis.len()-2].differentiate();
+        let derivative_one_internal = basis.basis[1].differentiate();
+        let derivative_pen_internal = basis.basis[long_basis-2].differentiate();
 
         let mut integral_zero_one_approximation = 0_f64;
         let mut integral_last_pen_approximation = 0_f64;
@@ -347,19 +410,51 @@ impl DiffussionSolver {
             let translated_point_zero = transform_function_zero.evaluate(x);
             let translated_point_last = transform_function_last.evaluate(x);
 
-            integral_zero_one_approximation +=  (self.mu * derivative_phi_zero.evaluate(translated_point_zero) * derivative_one.evaluate(translated_point_zero) + self.b * derivative_phi_zero.evaluate(translated_point_zero) * basis.basis[1].evaluate(translated_point_zero)) * derivative_t_zero.evaluate(x) * w;
-            integral_last_pen_approximation +=  (self.mu * derivative_phi_last.evaluate(translated_point_last) * derivative_pen.evaluate(translated_point_last) + self.b * derivative_phi_last.evaluate(translated_point_last) * basis.basis[basis.basis.len()-2].evaluate(translated_point_last)) * derivative_t_last.evaluate(x) * w;            
+            integral_zero_one_approximation +=  (self.mu * derivative_phi_zero.evaluate(translated_point_zero) * derivative_one_internal.evaluate(translated_point_zero) + self.b * derivative_phi_zero.evaluate(translated_point_zero) * basis.basis[1].evaluate(translated_point_zero)) * derivative_t_zero.evaluate(x) * w;
+            integral_last_pen_approximation +=  (self.mu * derivative_phi_last.evaluate(translated_point_last) * derivative_pen_internal.evaluate(translated_point_last) + self.b * derivative_phi_last.evaluate(translated_point_last) * basis.basis[long_basis-2].evaluate(translated_point_last)) * derivative_t_last.evaluate(x) * w;            
         }
 
-        let mut b_vector = Array1::from_elem(basis.basis.len()-2, 0_f64);
-        b_vector[[0]] += integral_zero_one_approximation;
-        b_vector[[basis.basis.len()-2]] += integral_last_pen_approximation;  
-
-        (stiffness_matrix,b_vector)
+        let mut b_vector = Array1::from_elem(long_basis-2, 0_f64);
+        b_vector[[0]] += integral_zero_one_approximation * self.boundary_conditions[0];
+        b_vector[[long_basis-3]] += integral_last_pen_approximation * self.boundary_conditions[1];
+        
+        (stiffness_matrix,b_vector) 
+        
     }
 
-    fn solve_linear_system(matrix: Array<f64,Ix2>, b: Array<f64,Ix1>) {
-        todo!()
+    fn solve_linear_system(&self, matrix: Array<f64,Ix2>, b: Array<f64,Ix1>) -> Array1<f64> {
+
+        let mut solution = Array1::from_elem(b.len(), 0_f64);
+        
+        if b.len() == 1 {
+            solution[0] = b[0] / matrix[[0,0]];
+
+        } else if b.len() == 2 {
+            let det = 1_f64 / (matrix[[0,0]]*matrix[[1,1]] - matrix[[1,0]]*matrix[[0,1]]);
+            solution[0] = det * (matrix[[1,1]] * b[0] + matrix[[0,1]] * b[1]);
+            solution[1] = det * (-matrix[[1,0]] * b[0] + matrix[[0,0]] * b[1]);
+
+        } else {
+            let mut c = Array1::from_elem(b.len()-1, 0_f64);
+            let mut d = Array1::from_elem(b.len(), 0_f64);
+            c[0] = matrix[[0,1]] / matrix[[0,0]];
+            d[0] = b[0] / matrix[[0,0]];
+
+            for i in 1..b.len()-1 {
+                c[i] = matrix[[i,i+1]] / (matrix[[i,i]] - matrix[[i,i-1]] * c[i-1]);
+                d[i] = (b[i] - matrix[[i,i-1]] * b[i-1]) / (matrix[[i,i]] - matrix[[i,i-1]] * c[i-1]);
+            }
+
+            d[b.len()-1] = (b[b.len()-1] - matrix[[b.len()-1,b.len()-2]] * b[b.len()-2]) / (matrix[[b.len()-1,b.len()-1]] - matrix[[b.len()-1,b.len()-2]] * c[b.len()-2]);
+
+            solution[b.len()-1] = d[b.len()-1];
+            
+            for i in b.len()-2..0 {
+                solution[i] = d[i] - c[i] * solution[i+1];
+            }
+        }
+
+        solution
     }
 
     fn solve() {
@@ -403,22 +498,24 @@ mod test {
     }
 
     #[test]
-    fn regular_mesh_matrix() {
+    fn regular_mesh_matrix_3p() {
 
         let dif_solver = DiffussionSolver::new([0_f64,1_f64],vec![0_f64,0.5,1_f64],1_f64,1_f64);
         let (a, b) = dif_solver.obtain_dirichlet_homogeneous_linear_system(150);
 
-        println!("{:?}",a);
+        assert!(a[[0,0]] <= 4.1 && a[[0,0]] >= 3.9);
+        assert!(b[0]>=-1.6 && b[0] <= -1.4);
+    }
 
-        assert!(a[[0,0]] <= 1.6 && a[[0,0]] >= 1.4);
-        // assert!(a[[0,1]] <= -1.3 && a[[0,1]] >= -1.6);
-        // assert!(a[[0,2]] <= 0.1 && a[[0,2]] >= -0.1);
-        // assert!(a[[1,0]] <= -2.4 && a[[2,0]] >= -2.6);
-        // assert!(a[[1,1]] <= 4.1 && a[[1,1]] >= 3.9);
-        // assert!(a[[1,2]] <= -1.3 && a[[1,2]] >= -1.6);
-        // assert!(a[[2,0]] <= 0.1 && a[[2,0]] >= -0.1);
-        // assert!(a[[2,1]] <= -2.3 && a[[2,1]] >= -2.6);
-        // assert!(a[[2,2]] <= 2.6 && a[[2,2]] >= 2.4);
+    #[test]
+    fn solve_system_3p() {
+        let dif_solver = DiffussionSolver::new([0_f64,1_f64],vec![0_f64,0.5,1_f64],1_f64,1_f64);
+        let (a, b) = dif_solver.obtain_dirichlet_homogeneous_linear_system(150);
+
+        let res = dif_solver.solve_linear_system(a, b);
+
+        assert!(res.len() == 1);
+        assert!(res[0] <= -0.2 && res[0] >= -0.4);
     }
 
 }
