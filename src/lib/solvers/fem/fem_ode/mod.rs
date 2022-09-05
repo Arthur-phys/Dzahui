@@ -50,18 +50,18 @@ impl Ord for Vertex1D {
 /// basis should be implemented for `[Box<dyn Fn(f32) -> f32>; 5]` and then on a struct representing such basis, the trait 
 /// `FunctionBase1D<[Box<dyn Fn(f32) -> f32>; 5]>` needs to be implemented.
 /// 
-trait BasisLenght {}
+trait BasisLength {}
 
-impl BasisLenght for [Box<dyn Fn(f32) -> f32>; 2] {}
-impl BasisLenght for [Box<dyn Fn(f32) -> f32>; 3] {}
-impl BasisLenght for [Box<dyn Fn(f32) -> f32>; 4] {}
+impl BasisLength for [Box<dyn Fn(f32) -> f32>; 2] {}
+impl BasisLength for [Box<dyn Fn(f32) -> f32>; 3] {}
+impl BasisLength for [Box<dyn Fn(f32) -> f32>; 4] {}
 
 /// # General Information
 /// 
 /// Represents a set of functions that any piecewise polynomial finite basis should have. Since a basis for a given problem cannot be known beforehand because
 /// of interval number and length, most of the functionality of this trait is directed towards generating such a base given an initial set of nodes.
 /// 
-trait FunctionBase1D<A: BasisLenght> {
+trait FunctionBase1D<A: BasisLength> {
     
     /// # General Information
     /// 
@@ -121,40 +121,6 @@ trait FunctionBase1D<A: BasisLenght> {
     /// * `interval_numbner` - Number of  divisions the interval should have.
     /// 
     fn build_equidistant_basis(start: f32, finish: f32, interval_number: u32) -> Vec<Box<dyn Fn(f32) -> f32>>;
-
-}
-
-/// # General Information
-/// 
-/// A trait that represents the differentiability of a basis. **It's probably to be deprecated in favor of a per-function trait that does the same thing**.
-/// When a basis is differentiable, derivatives of it are obtained via chain rule of a transformation and a unit basis. Since both are kwown always, differentiability
-/// of a basis is possible without even knowing the original basis.
-/// 
-trait DifferentiableBasis<A: BasisLenght>: FunctionBase1D<A> {
-
-    /// # General Information
-    /// 
-    /// Simple derivative of the interval transformation function. Since it's a constant, it does not require to return a function, rather it returns a different
-    /// f32 value given an interval.
-    /// 
-    /// # Parameters
-    /// 
-    /// * `start` - Left side of an interval (infimum).
-    /// * `finish` - Right side of an interval (maximum).
-    ///  
-    fn interval_transformation_derivative(start: f32, finish: f32) -> f32 {
-        1.0 / (finish - start)
-    }
-
-    /// # General Information
-    /// 
-    /// Creates the derivative of a given basis and returns it as a vector of functions. It does not depend on knowing the original basis since chain rule is used.
-    /// 
-    /// # Parameters
-    /// 
-    /// * A tuple containing a modified mesh and the number of points per interval (of the original mesh). Normally obtained via `build_basis_mesh(..)`.
-    /// 
-    fn build_derivative_basis(basis_mesh: (&Vec<Vertex1D>,f32)) -> Vec<Box<dyn Fn(f32) -> f32>>;
 
 }
 

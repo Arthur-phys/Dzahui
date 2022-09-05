@@ -1,70 +1,69 @@
 
 use super::{PiecewiseFirstDegreePolynomial,FirstDegreePolynomial,TransformationFactory,IntervalStep,NumberOfArguments,Affine};
-pub(crate) struct LinearBasis {
-    pub(crate) basis: Vec<FirstDegreePolynomial>,
-    pub(crate) transformation: TransformationFactory
-}
 
-pub(crate) struct PiecewiseLinearBasis<A: IntervalStep, B: NumberOfArguments> {
+pub(crate) struct LinearBasis<A: IntervalStep, B: NumberOfArguments> {
     pub(crate) basis: Vec<PiecewiseFirstDegreePolynomial<A,B>>,
-    pub(crate) transformation: TransformationFactory
 }
 
-impl<A: IntervalStep, B: NumberOfArguments> PiecewiseLinearBasis<A, B> { 
-    pub(crate) fn new(basis: Vec<PiecewiseFirstDegreePolynomial<A,B>>) -> Self {
-        Self {
-            basis,
-            transformation: TransformationFactory()
-        }
-    }
-}
-
-impl LinearBasis {
-
-    pub(crate) fn new_unit() -> Self {
+impl<A: IntervalStep, B: NumberOfArguments> LinearBasis<A, B> { 
+    
+    pub(crate) fn new() -> LinearBasisFactory {
+        
         let phi_1 = FirstDegreePolynomial::new(1_f64,0_f64);
         let phi_2 = FirstDegreePolynomial::new(-1_f64,1_f64);
-        Self {
-            basis: vec![phi_1,phi_2],
-            transformation: TransformationFactory()
+        let zero = FirstDegreePolynomial::zero();
+        LinearBasisFactory {
+            phi_1,
+            phi_2,
+            zero,
         }
     }
+}
 
-    pub(crate) fn transform_basis(self, mesh: &Vec<f64>) -> PiecewiseLinearBasis<[f64;3],[f64;4]> {
+pub(crate) struct LinearBasisFactory {
+    phi_1: FirstDegreePolynomial,
+    phi_2: FirstDegreePolynomial,
+    zero: FirstDegreePolynomial,
+}
 
-        let phi_1 = &self.basis[0];
-        let phi_2= &self.basis[1];
+impl LinearBasisFactory {
 
-        let zero = FirstDegreePolynomial::zero();
+    pub(crate) fn with_equidistant_mesh(self, beg: f64, end: f64, n: f64) -> LinearBasis<[f64;3],[f64;4]> {
+        todo!()
+    }
 
-        let transformation = self.transformation.build(mesh[0],mesh[1]);
-        let initial_transform_function = phi_2.compose(transformation);
+    pub(crate) fn with_mesh(self, mesh: &Vec<f64>) -> LinearBasis<[f64;3],[f64;4]> {
+
+        let transformation_factory = TransformationFactory {};
+
+        let transformation = transformation_factory.build(mesh[0],mesh[1]);
+        let initial_transform_function = self.phi_2.compose(transformation);
 
         let mut basis_vec = vec![
-            PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&zero,&initial_transform_function,&zero], [mesh[0]-1_f64,mesh[0],mesh[1]])
+            PiecewiseFirstDegreePolynomial::from_polynomials([&self.zero,&self.zero,&initial_transform_function,&self.zero], [mesh[0]-1_f64,mesh[0],mesh[1]])
         ];
 
         mesh.iter().zip(mesh.iter().skip(1)).zip(mesh.iter().skip(2)).for_each(|((prev, cur), next)| {
             
-            let transformation = self.transformation.build(*prev,*cur);
-            let basis_left = phi_1.compose(transformation);
-            let transformation = self.transformation.build(*cur, *next);
-            let basis_right = phi_2.compose(transformation);
+            let transformation = transformation_factory.build(*prev,*cur);
+            let basis_left = self.phi_1.compose(transformation);
+            let transformation = transformation_factory.build(*cur, *next);
+            let basis_right = self.phi_2.compose(transformation);
             
             basis_vec.push(
-                PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&basis_left,&basis_right,&zero], [*prev,*cur,*next])
+                PiecewiseFirstDegreePolynomial::from_polynomials([&self.zero,&basis_left,&basis_right,&self.zero], [*prev,*cur,*next])
             )
         });
         
-        let transformation = self.transformation.build(mesh[mesh.len()-2],mesh[mesh.len()-1]);
-        let final_transform_function = phi_1.compose(transformation);
+        let transformation = transformation_factory.build(mesh[mesh.len()-2],mesh[mesh.len()-1]);
+        let final_transform_function = self.phi_1.compose(transformation);
 
         basis_vec.push(
-            PiecewiseFirstDegreePolynomial::from_polynomials([&zero,&final_transform_function,&zero,&zero],
+            PiecewiseFirstDegreePolynomial::from_polynomials([&self.zero,&final_transform_function,&self.zero,&self.zero],
                  [mesh[mesh.len()-2],mesh[mesh.len()-1],mesh[mesh.len()-1] + 1_f64])
         );
 
-        PiecewiseLinearBasis::new(basis_vec)
+        LinearBasis {basis: basis_vec}
     }
 }
 
@@ -78,18 +77,17 @@ mod test {
     #[test]
     fn create_unit_basis() {
         
-        let unit_base = LinearBasis::new_unit();
-        let basis = unit_base.basis;
-        assert!(basis[0] == FirstDegreePolynomial::new(1_f64,0_f64));
-        assert!(basis[1] == FirstDegreePolynomial::new(-1_f64,1_f64));
+        let unit_base = LinearBasis::<[f64;3],[f64;4]>::new();
+        assert!(unit_base.phi_1 == FirstDegreePolynomial::new(1_f64,0_f64));
+        assert!(unit_base.phi_2 == FirstDegreePolynomial::new(-1_f64,1_f64));
     }
 
     #[test]
     fn transform_basis_three_nodes() {
 
-        let unit_base = LinearBasis::new_unit();
+        let unit_base = LinearBasis::<[f64;3],[f64;4]>::new();
         let mesh =vec![0_f64,1_f64,2_f64];
-        let transformed = unit_base.transform_basis(&mesh);
+        let transformed = unit_base.with_mesh(&mesh);
 
         assert!(transformed.basis.len() == 3);
 

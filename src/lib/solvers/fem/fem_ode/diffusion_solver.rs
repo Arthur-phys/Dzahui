@@ -13,6 +13,7 @@
 // }
 
 use crate::solvers::DiffEquationSolver;
+use crate::solvers::fem::function::TransformationFactory;
 use crate::solvers::{quadrature::GaussLegendreQuadrature, linear_solver::ThomasSolver};
 use crate::solvers::fem::function::{Differentiable,Function,linear_basis::LinearBasis};
 use ndarray::{Array, Ix2, Ix1, Array1};
@@ -60,15 +61,15 @@ impl GaussLegendreQuadrature for DiffussionSolver {
 
     fn gauss_legendre_integration(&self, gauss_step: usize) -> (Array<f64,Ix2>,Array<f64,Ix1>) {
 
-        let linear_unit = LinearBasis::new_unit();
-        let basis = linear_unit.transform_basis(&self.mesh);
+        let transformation_factory = TransformationFactory {};
+        let basis = LinearBasis::<[f64;3],[f64;4]>::new().with_mesh(&self.mesh);
         let long_basis = basis.basis.len();
 
         let mut stiffness_matrix = ndarray::Array::from_elem((long_basis-2,long_basis-2),0_f64);
 
         if long_basis-2 == 1 {
             let derivative_phi = basis.basis[1].differentiate();
-            let transform_function = basis.transformation.build_to_m1_p1(self.mesh[0], self.mesh[2]);
+            let transform_function = transformation_factory.build_to_m1_p1(self.mesh[0], self.mesh[2]);
             let derivative_t = transform_function.differentiate();
             let mut integral_square_approximation = 0_f64;
 
@@ -96,9 +97,9 @@ impl GaussLegendreQuadrature for DiffussionSolver {
         
                     let derivative_phi = basis.basis[i].differentiate();
         
-                    let transform_function_prev = basis.transformation.build_to_m1_p1(self.mesh[i-1], self.mesh[i]);
-                    let transform_function_next = basis.transformation.build_to_m1_p1(self.mesh[i], self.mesh[i+1]);
-                    let transform_function_square = basis.transformation.build_to_m1_p1(self.mesh[i-1], self.mesh[i+1]);
+                    let transform_function_prev = transformation_factory.build_to_m1_p1(self.mesh[i-1], self.mesh[i]);
+                    let transform_function_next = transformation_factory.build_to_m1_p1(self.mesh[i], self.mesh[i+1]);
+                    let transform_function_square = transformation_factory.build_to_m1_p1(self.mesh[i-1], self.mesh[i+1]);
                     let derivative_t_prev = transform_function_prev.differentiate();
                     let derivative_t_next = transform_function_next.differentiate();
                     let derivative_t_square = transform_function_square.differentiate();
@@ -137,10 +138,10 @@ impl GaussLegendreQuadrature for DiffussionSolver {
             let derivative_phi_zero_internal = basis.basis[1].differentiate();
             let derivative_phi_last_internal = basis.basis[long_basis-2].differentiate();
 
-            let transform_function_zero_internal = basis.transformation.build_to_m1_p1(self.mesh[1], self.mesh[2]);
-            let transform_function_zero_square = basis.transformation.build_to_m1_p1(self.mesh[0], self.mesh[2]);
-            let transform_function_last_internal = basis.transformation.build_to_m1_p1(self.mesh[long_basis-3], self.mesh[long_basis-2]);
-            let transform_function_last_square = basis.transformation.build_to_m1_p1(self.mesh[long_basis-3], self.mesh[long_basis-1]);
+            let transform_function_zero_internal = transformation_factory.build_to_m1_p1(self.mesh[1], self.mesh[2]);
+            let transform_function_zero_square = transformation_factory.build_to_m1_p1(self.mesh[0], self.mesh[2]);
+            let transform_function_last_internal = transformation_factory.build_to_m1_p1(self.mesh[long_basis-3], self.mesh[long_basis-2]);
+            let transform_function_last_square = transformation_factory.build_to_m1_p1(self.mesh[long_basis-3], self.mesh[long_basis-1]);
 
             let derivative_t_zero = transform_function_zero_internal.differentiate();
             let derivative_t_last = transform_function_last_internal.differentiate();
@@ -184,8 +185,8 @@ impl GaussLegendreQuadrature for DiffussionSolver {
         let derivative_phi_zero = basis.basis[0].differentiate();
         let derivative_phi_last = basis.basis[long_basis-1].differentiate();
 
-        let transform_function_zero = basis.transformation.build_to_m1_p1(self.mesh[0], self.mesh[1]);
-        let transform_function_last = basis.transformation.build_to_m1_p1(self.mesh[long_basis-2], self.mesh[long_basis-1]);
+        let transform_function_zero = transformation_factory.build_to_m1_p1(self.mesh[0], self.mesh[1]);
+        let transform_function_last = transformation_factory.build_to_m1_p1(self.mesh[long_basis-2], self.mesh[long_basis-1]);
 
         let derivative_t_zero = transform_function_zero.differentiate();
         let derivative_t_last = transform_function_last.differentiate();
