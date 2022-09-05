@@ -1,5 +1,7 @@
 pub mod gauss_legendre;
 
+pub use gauss_legendre::GaussLegendreQuadrature;
+
 /// # General Information
 /// 
 /// A quadrature represents a process to obtain per-interval areas that (naturally) added can approximate an integral. The current input consits on a vector

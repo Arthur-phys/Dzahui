@@ -1,6 +1,12 @@
 pub mod euler;
 pub mod fem;
 pub mod linear_solver;
+pub mod quadrature;
+
+pub use fem::fem_ode::*;
+
+use std::ops::Index;
+
 
 /// # General Information
 /// 
@@ -8,7 +14,8 @@ pub mod linear_solver;
 /// equation needs to be present in such a structure.
 /// This trait **does not** consider time to be within the variables to be solved for. For that case, refer to `TimeDiffEquationSolver`.
 /// 
-pub trait DiffEquationSolver {
+pub trait DiffEquationSolver<A>
+    where A: Index<usize> + IntoIterator, A::Item: Into<f64> {
     
     /// # General Information
     /// 
@@ -18,8 +25,8 @@ pub trait DiffEquationSolver {
     /// # Parameters
     /// 
     /// * &self - An instance of an ODE/PDE solver.
-    /// 
-    fn solve(&self) -> Vec<f32>;
+    ///
+    fn solve(&self) -> A;
 }
 
 /// # General Information
@@ -28,7 +35,8 @@ pub trait DiffEquationSolver {
 /// A time dependant ODE needs to have a time-step assigned to the function that is to solve the problem, that's why a delta time is accepted by the main function
 /// of the trait.
 /// 
-pub trait TimeDiffEquationSolver {
+pub trait TimeDiffEquationSolver<A>
+    where A: Index<usize> + IntoIterator, A::Item: Into<f64> {
     
     /// # General Information
     /// 
@@ -39,5 +47,5 @@ pub trait TimeDiffEquationSolver {
     /// 
     /// * &self - An instance of an ODE/PDE solver.
     /// 
-    fn do_step(&self) -> Vec<f32>;
+    fn do_step(&self) -> A;
 }

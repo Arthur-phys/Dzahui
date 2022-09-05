@@ -1,5 +1,4 @@
 pub mod diffusion_solver;
-mod quadrature1d;
 
 struct Vertex1D {
     x: f32
@@ -41,10 +40,6 @@ impl Ord for Vertex1D {
             std::cmp::Ordering::Greater
         }
     }
-}
-struct BoundaryVertex1D {
-    id: u32,
-    boundary_condition: f32
 }
 
 /// # General Information
