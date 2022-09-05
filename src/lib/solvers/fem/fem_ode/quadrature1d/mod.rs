@@ -2,9 +2,9 @@ pub mod gauss_legendre;
 
 /// # General Information
 /// 
-/// A quadrature represents a process to obtain per-interval areas that (naturally) summed can approximate an integral. The current input consits on a vector
+/// A quadrature represents a process to obtain per-interval areas that (naturally) added can approximate an integral. The current input consits on a vector
 /// of vectors of function, each that represents a derivate of a given set of function (commonly a basis), but probably will be changed in the future allowing
-/// to only provide a vector of function each wit a trait representing differentiability.
+/// to only provide a vector of functions each wit a trait representing differentiability.
 ///  
 trait Quadrature1D {
     

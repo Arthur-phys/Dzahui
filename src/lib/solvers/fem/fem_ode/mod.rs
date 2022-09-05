@@ -1,56 +1,5 @@
 pub mod diffusion_solver;
 mod quadrature1d;
-mod linear_solver;
-
-use super::Vertex;
-
-/// # General Information
-/// 
-/// A struct that implements DiffEquationSolver is implied to represent all needed information for a certain ODE to be solved. Therefore, a function to solve the
-/// equation needs to be present in such a structure.
-/// This trait **does not** consider time to be within the variables to be solved for. For that case, refer to `TimeDiffEquationSolver`.
-/// 
-trait DiffEquationSolver {
-    
-    /// # General Information
-    /// 
-    /// solve returns a vector of values representing the solution of an equation at a given collection of nodes provided by the user at the creation of an
-    /// instance of a solver.
-    /// 
-    /// # Parameters
-    /// 
-    fn solve() -> Vec<f32>;
-}
-
-/// # General Information
-/// 
-/// A struct that implements TimeDiffEquationSolver is implied to represent all needed information for a certain time-dependant ODE to be solved.
-/// A time dependant ODE needs to have a time-step assigned to the function that is to solve the problem, that's why a delta time is accepted by the main function
-/// of the trait.
-/// 
-trait TimeDiffEquationSolver {
-    
-    /// # General Information
-    /// 
-    /// do_step returns a vector of values representing the solution at a given time and collection of nodes provided by the user at the creation of an instance
-    /// of a time-dependant solver.
-    /// 
-    /// # Parameters
-    /// 
-    /// * `delta_time` - A time step to advance the equation.
-    /// 
-    fn do_step(delta_time: f32) -> Vec<f32>;
-}
-
-enum PolynomialDegree {
-    One,
-    Two,
-    Three,
-}
-
-enum Equation {
-    Diffusion,
-}
 
 struct Vertex1D {
     x: f32
@@ -93,9 +42,6 @@ impl Ord for Vertex1D {
         }
     }
 }
-
-impl Vertex for Vertex1D {}
-
 struct BoundaryVertex1D {
     id: u32,
     boundary_condition: f32
