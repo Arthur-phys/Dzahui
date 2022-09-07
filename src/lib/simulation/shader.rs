@@ -3,6 +3,7 @@ use cgmath::{Matrix4,Matrix};
 use gl::types::{GLint};
 use std::io::Read;
 use gl;
+use crate::Error;
 
 /// # General information
 /// 
@@ -37,17 +38,16 @@ impl Shader {
     /// * `vertex_path` - Path to a vertex shader file.
     /// * `fragment_path` - Path to a fragment shader file.
     /// 
-    pub fn new(vertex_path: impl AsRef<str>, fragment_path: impl AsRef<str>) -> Self {
-        
+    pub fn new(vertex_path: impl AsRef<str>, fragment_path: impl AsRef<str>) -> Result<Self, Error> {
         // Opening files.
-        let mut vertex_shader = File::open(vertex_path.as_ref()).expect("Unable to open the requested file for vertex shader.");
-        let mut fragment_shader = File::open(fragment_path.as_ref()).expect("Unable to open the requested file for fragment shader.");
+        let mut vertex_shader = File::open(vertex_path.as_ref()).map_err(|e| Error::Io(e))?;
+        let mut fragment_shader = File::open(fragment_path.as_ref()).map_err(|e| Error::Io(e))?;
         
         // Reading files.
         let mut vertex_shader_read = String::new();
         let mut fragment_shader_read = String::new();
-        vertex_shader.read_to_string(&mut vertex_shader_read).expect("Unable to read file for vertex shader.");
-        fragment_shader.read_to_string(&mut fragment_shader_read).expect("Unable to read file for fragment shader");
+        vertex_shader.read_to_string(&mut vertex_shader_read).map_err(|e| Error::Io(e))?;
+        fragment_shader.read_to_string(&mut fragment_shader_read).map_err(|e| Error::Io(e))?;
         
         // Casting shaders.
         let vertex_shader_read = CString::new(vertex_shader_read.as_bytes()).unwrap();
@@ -63,7 +63,7 @@ impl Shader {
             let mut success = gl::FALSE as GLint;
             gl::GetShaderiv(vertex_shader, gl::COMPILE_STATUS, &mut success);
             if success == gl::FALSE as GLint { // log does not serve
-                println!("Error while compiling vertex shader!");
+                return Err(Error::custom("Error while compiling vertex shader!"));
             }
         };
         // Fragment shader.
@@ -95,7 +95,7 @@ impl Shader {
             gl::DeleteShader(fragment_shader);
         };
 
-        Shader { id }
+        Ok(Shader { id })
     }
     
     /// Use a certain pair of shaders identified by id. Program can have multiple shaders at once, but only one can be used at a time.

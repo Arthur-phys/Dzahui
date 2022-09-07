@@ -265,7 +265,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             fragment_shader.as_ref().to_string()
         } else {"./assets/text_fragment_shader.fs".to_string()};
         
-        let text_shader = Shader::new(vertex_shader,fragment_shader);
+        let text_shader = Shader::new(vertex_shader,fragment_shader).unwrap();
         
         // Use geometry_shaders chosen
         let vertex_shader: String = if let Some(vertex_shader) = self.geometry_vertex_shader {
@@ -276,7 +276,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             fragment_shader.as_ref().to_string()
         } else {"./assets/geometry_fragment_shader.fs".to_string()};
         
-        let geometry_shader = Shader::new(vertex_shader,fragment_shader);
+        let geometry_shader = Shader::new(vertex_shader,fragment_shader).unwrap();
         
         // Creating mesh based on initial provided file.
         let mesh = self.mesh.build();

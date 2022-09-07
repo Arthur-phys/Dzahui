@@ -1,4 +1,5 @@
 use ndarray::{Array1, Array, Ix1, Ix2};
+use crate::Error;
 
 /// # General Information
 /// 
@@ -32,7 +33,7 @@ pub trait ThomasSolver {
     /// 
     /// * &self - An instance of a ODE/PDE solver (which solves a particular equation).
     /// 
-    fn solve_by_thomas(matrix: &Array<f64,Ix2>, b: &Array<f64,Ix1>) -> Array1<f64> {
+    fn solve_by_thomas(matrix: &Array<f64,Ix2>, b: &Array<f64,Ix1>) -> Result<Array1<f64>, Error> {
 
         let mut solution = Array1::from_elem(b.len(), 0_f64);
         
@@ -63,7 +64,7 @@ pub trait ThomasSolver {
                 solution[i] = d[i] - c[i] * solution[i+1];
             }
         }
-        solution
+        Ok(solution)
     }
 }
 /// # General Information

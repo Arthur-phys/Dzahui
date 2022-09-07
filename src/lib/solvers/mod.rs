@@ -6,6 +6,7 @@ pub mod quadrature;
 pub use fem::fem_ode::*;
 
 use std::ops::Index;
+use crate::Error;
 
 
 /// # General Information
@@ -26,7 +27,7 @@ pub trait DiffEquationSolver<A>
     /// 
     /// * &self - An instance of an ODE/PDE solver.
     ///
-    fn solve(&self) -> A;
+    fn solve(&self) -> Result<A, Error>;
 }
 
 /// # General Information

@@ -12,6 +12,7 @@
 //     }
 // }
 
+use crate::Error;
 use crate::solvers::DiffEquationSolver;
 use crate::solvers::fem::function::TransformationFactory;
 use crate::solvers::{quadrature::GaussLegendreQuadrature, linear_solver::ThomasSolver};
@@ -45,15 +46,15 @@ impl ThomasSolver for DiffussionSolver {}
 
 impl DiffEquationSolver<Array1<f64>> for DiffussionSolver {
     
-    fn solve(&self) -> Array1<f64> {
+    fn solve(&self) -> Result<Array1<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);
 
-        let mut res = Self::solve_by_thomas(&a, &b);
+        let mut res = Self::solve_by_thomas(&a, &b)?;
 
         res[0] += b[0];
         res[b.len()-1] += b[b.len()-1]; 
 
-        res
+        Ok(res)
     }
 }
 
