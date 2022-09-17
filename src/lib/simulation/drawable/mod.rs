@@ -64,7 +64,7 @@ pub(crate) trait Bindable {
 /// All objects that can be drawn by OpenGL should implement a drawable trait. The main functions are
 /// setup and draw. Both which contain general implementations to setup drawable object in GPU and draw it respectively.
 ///
-pub trait Drawable: Bindable {
+pub(crate) trait Drawable: Bindable {
      
     /// Creates a way to obtain vertices from drawable object. Getter.
     fn get_vertices(&self) -> Array1<f32>;
@@ -149,6 +149,6 @@ pub trait Drawable: Bindable {
     }
 }
 
-pub trait TextureDrawable: Bindable {
+pub(crate) trait TextureDrawable: Bindable {
 
 }

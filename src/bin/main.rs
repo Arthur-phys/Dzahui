@@ -3,8 +3,8 @@ use dzahui::solvers::Solver;
 
 fn main() {
     // Creating window with predetermined configuration
-    let window_builder: DzahuiWindowBuilder<&str,&str,&str,&str,&str,&str> = DzahuiWindow::builder("/home/Arthur/Tesis/Dzahui/assets/big_mesh.obj", 
+    let window_builder: DzahuiWindowBuilder = DzahuiWindow::builder("/home/Arthur/Tesis/Dzahui/assets/big_mesh.obj", 
     Solver::DiffussionSolver);
-    let window= window_builder.with_vertex_body("./assets/sphere.obj").with_vertex_body_size(0.03).build();
+    let window= window_builder.build();
     window.run();
 }

@@ -1,8 +1,8 @@
 use cgmath::{Vector3, Vector4, Point3, Point2, Transform, Matrix4, InnerSpace};
-use ndarray::{Array1,Axis};
+use ndarray::{Array1,Axis, ArrayView1};
 
 #[derive(Debug)]
-pub struct Cone {
+pub(crate) struct Cone {
     anchorage_point: Point3<f32>,
     direction: Vector3<f32>,
     angle: f32
@@ -10,7 +10,7 @@ pub struct Cone {
 
 impl Cone {
 
-    pub fn new(anchorage_point: Point3<f32>, direction: Vector3<f32>, angle: f32) -> Cone {
+    pub(crate) fn new(anchorage_point: Point3<f32>, direction: Vector3<f32>, angle: f32) -> Cone {
 
         let direction = direction.normalize();
         Cone { anchorage_point, direction, angle }
@@ -50,14 +50,26 @@ impl Cone {
 
     }
 
+    /// Matrix to translate vertex to a given location (normally determined by a mesh instance).
+    fn get_translation_matrix(arr: &Array1<f64>) -> Matrix4<f32> {
+        let vec_arr = Vector3::new(arr[0] as f32,arr[1] as f32,arr[2] as f32);
+        Matrix4::from_translation(vec_arr)
+    }
+    /// Obtain center coordinates as viewed from camera
+    fn get_view_center(arr: &ArrayView1<f64>, view_matrix: &Matrix4<f32>) -> Vector3<f32> {
+        let vec_arr = Vector4::new(arr[0] as f32,arr[1] as f32,arr[2] as f32,1.0);
+        let view_center = view_matrix * vec_arr;
+        Vector3::new(view_center.x,view_center.y,view_center.z)
+    }
+
 
     pub(crate) fn obtain_nearest_intersection(&self, vertices: &Array1<f64>, view_matrix: &Matrix4<f32>) -> Option<(f32,usize)> {
 
         // Filter objects to only those that are partially or completelly inside cone
         let dim_1 = vertices.len() / 3;
-        let filtered_objects: Array1<f64> = vertices.to_shared().reshape((dim_1,3)).axis_iter(Axis(0)).filter(|vertex| {
-            let view_center = vertex.get_view_center(view_matrix);
-            let view_center = sphere.get_view_center(view_matrix);
+        let reshaped_vertices = vertices.to_shared().reshape((dim_1,3));
+        let filtered_objects: Vec<ArrayView1<f64>> = reshaped_vertices.axis_iter(Axis(0)).filter(|vertex| {
+            let view_center = Cone::get_view_center(vertex,view_matrix);
             let x = view_center.x;
             let y = view_center.y;
             let z = view_center.z;
@@ -83,9 +95,9 @@ impl Cone {
         }).collect();
 
         // Obtain sphere closest to anchorage point
-        filtered_objects.iter().map(|sphere| {
-            let view_center_z =sphere.get_view_center(view_matrix).z;
-            ((view_center_z - self.anchorage_point.z).abs(),sphere.id)
+        filtered_objects.iter().enumerate().map(|(id,vertex)| {
+            let view_center_z = Cone::get_view_center(vertex,view_matrix).z;
+            ((view_center_z - self.anchorage_point.z).abs(),id)
         
         }).reduce(|(past_distance,past_id), (new_distance, new_id)| {
         

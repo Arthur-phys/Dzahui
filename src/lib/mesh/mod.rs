@@ -32,13 +32,13 @@ use vertex_type::VertexType;
 /// * `vertices` -  Vertices in 3d space. Normally used in triads. Specified in gl configuration.
 ///
 #[derive(Debug)]
-pub struct Mesh {
-    pub conditions: Array1<VertexType>,
-    pub max_length: f64,
-    pub model_matrix: Matrix4<f32>,
+pub(crate) struct Mesh {
+    pub(crate) conditions: Array1<VertexType>,
+    pub(crate) max_length: f64,
+    pub(crate) model_matrix: Matrix4<f32>,
     binder: Binder,
-    pub indices: Array1<u32>,
-    pub vertices: Array1<f64>,
+    pub(crate) indices: Array1<u32>,
+    pub(crate) vertices: Array1<f64>,
 }
 
 impl Mesh {

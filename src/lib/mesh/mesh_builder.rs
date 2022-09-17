@@ -100,7 +100,7 @@ impl MeshBuilder {
     /// 
     fn ignored_coordinate(&self) -> Option<usize> {
         
-        let file = File::open(self.location).expect("Error while opening the file. Does the file exists and is readable?");
+        let file = File::open(&self.location).expect("Error while opening the file. Does the file exists and is readable?");
         
         // Sets to check which one has only one element (i.e. which one should be ignored)
         // To implement set from list, use HashMap for better performance.
@@ -191,7 +191,7 @@ impl MeshBuilder {
         let mut coordinates: Array1<f64> = Array1::from_vec(vec![]);
         let mut triangles: Array1<u32> = Array1::from_vec(vec![]);
 
-        let file = File::open(self.location).expect("Error while opening file. Does file exists and is readable?");
+        let file = File::open(&self.location).expect("Error while opening file. Does file exists and is readable?");
 
         // Coordinates to calculate max length and closest element to 0
         let mut max_min = HashMap::from([
@@ -299,7 +299,7 @@ impl MeshBuilder {
     /// 
     /// ddd
     /// 
-    pub fn build(self) -> Mesh {
+    pub(crate) fn build(self) -> Mesh {
 
         let binder = Binder::new();
 

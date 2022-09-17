@@ -5,8 +5,9 @@ use gl;
 
 use crate::solvers::Solver;
 
-use super::drawable::{Drawable, mesh::{Mesh, MeshBuilder}, text::CharacterSet, Bindable};
+use super::drawable::{text::CharacterSet,Bindable,Drawable};
 use super::camera::{Camera, CameraBuilder, cone::Cone};
+use crate::mesh::{Mesh,mesh_builder::MeshBuilder};
 use super::shader::Shader;
 
 
@@ -54,39 +55,26 @@ pub struct DzahuiWindow {
 /// * `width` - Width of window. Defaults to 800 px.
 /// 
 #[derive(Debug)]
-pub struct DzahuiWindowBuilder<A, B, C, D, E, F>
-    where A: AsRef<str>,
-          B: AsRef<str>,
-          C: AsRef<str>,
-          D: AsRef<str>,
-          E: AsRef<str>,
-          F: AsRef<str>,
-    {
-    geometry_fragment_shader: Option<B>,
-    geometry_vertex_shader: Option<A>,
-    text_fragment_shader: Option<D>,
+pub struct DzahuiWindowBuilder {
+    geometry_fragment_shader: Option<String>,
+    geometry_vertex_shader: Option<String>,
+    text_fragment_shader: Option<String>,
     opengl_version: Option<(u8,u8)>,
     character_set: Option<String>,
-    text_vertex_shader: Option<C>,
+    text_vertex_shader: Option<String>,
     vertex_selector: Option<f32>,
-    mesh: MeshBuilder<E,F>,
+    mesh: MeshBuilder,
     camera: CameraBuilder,
     height: Option<u32>,
     width: Option<u32>,
     solver: Solver,
 }
 
-impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
-    where A: AsRef<str>,
-          B: AsRef<str>,
-          C: AsRef<str>,
-          D: AsRef<str>,
-          E: AsRef<str>,
-          F: AsRef<str>,
-    {
+impl DzahuiWindowBuilder {
 
     /// Creates default instance.
-    fn new(location: F, solver: Solver) -> Self {
+    fn new<F>(location: F, solver: Solver) -> Self
+    where F: AsRef<str> {
         Self {
             geometry_vertex_shader: None,
             geometry_fragment_shader: None,
@@ -103,18 +91,24 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         }
     }
     /// Changes geometry shader.
-    pub fn with_geometry_shader(self, vertex_shader: A, fragment_shader: B) -> Self {
+    pub fn with_geometry_shader<A,B>(self, vertex_shader: A, fragment_shader: B) -> Self 
+    where 
+    A: AsRef<str>,
+    B: AsRef<str> {
         Self {
-            geometry_vertex_shader: Some(vertex_shader),
-            geometry_fragment_shader: Some(fragment_shader),
+            geometry_vertex_shader: Some(vertex_shader.as_ref().to_string()),
+            geometry_fragment_shader: Some(fragment_shader.as_ref().to_string()),
             ..self
         }
     }
     /// Changes text shader.
-    pub fn with_text_shader(self, vertex_shader: C, fragment_shader: D) -> Self {
+    pub fn with_text_shader<A,B>(self, vertex_shader: A, fragment_shader: B) -> Self
+    where
+    A: AsRef<str>,
+    B: AsRef<str> {
         Self {
-            text_vertex_shader: Some(vertex_shader),
-            text_fragment_shader: Some(fragment_shader),
+            text_vertex_shader: Some(vertex_shader.as_ref().to_string()),
+            text_fragment_shader: Some(fragment_shader.as_ref().to_string()),
             ..self
         }
     }
@@ -176,24 +170,10 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             ..self
         }
     }
-    /// Changes vertices' body (figure drawn at each vertex).
-    pub fn with_vertex_body(self, vertex_body: E) -> Self {
-        Self {
-            mesh: self.mesh.with_vertex_body(vertex_body),
-            ..self
-        }
-    }
     /// Changes mesh dimension (originally in 2D)
     pub fn with_mesh_in_3d(self) -> Self {
         Self {
             mesh: self.mesh.with_mesh_in_3d(),
-            ..self
-        }
-    }
-    /// Changes vertices' body size
-    pub fn with_vertex_body_size(self, size: f32) -> Self {
-        Self {
-            mesh: self.mesh.with_size(size),
             ..self
         }
     }
@@ -256,22 +236,22 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         
         // Use text_shaders chosen
         let vertex_shader: String = if let Some(vertex_shader) = self.text_vertex_shader {
-            vertex_shader.as_ref().to_string()
+            vertex_shader
         } else {"./assets/text_vertex_shader.vs".to_string()};
         
         let fragment_shader: String = if let Some(fragment_shader) = self.text_fragment_shader {
-            fragment_shader.as_ref().to_string()
+            fragment_shader
         } else {"./assets/text_fragment_shader.fs".to_string()};
         
         let text_shader = Shader::new(vertex_shader,fragment_shader).unwrap();
         
         // Use geometry_shaders chosen
         let vertex_shader: String = if let Some(vertex_shader) = self.geometry_vertex_shader {
-            vertex_shader.as_ref().to_string()
+            vertex_shader
             } else {"./assets/geometry_vertex_shader.vs".to_string()};
             
             let fragment_shader: String = if let Some(fragment_shader) = self.geometry_fragment_shader {
-            fragment_shader.as_ref().to_string()
+            fragment_shader
         } else {"./assets/geometry_fragment_shader.fs".to_string()};
         
         let geometry_shader = Shader::new(vertex_shader,fragment_shader).unwrap();
@@ -280,7 +260,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         let mesh = self.mesh.build();
         
         // Camera created with selected configuration via shortcut functions.
-        let camera = self.camera.build(mesh.max_length, self.height.unwrap(), self.width.unwrap());
+        let camera = self.camera.build(mesh.max_length as f32, self.height.unwrap(), self.width.unwrap());
 
         // Vertex selector (cone)
         let angle = if let Some(angle) = self.vertex_selector { angle } else { 3.0 };
@@ -314,12 +294,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
 impl DzahuiWindow {
 
     /// Creates a new default builder.
-    pub fn builder<A,B,C,D,E,F>(location: F, solver: Solver) -> DzahuiWindowBuilder<A,B,C,D,E,F> where 
-    A: AsRef<str>,
-    B: AsRef<str>,
-    C: AsRef<str>,
-    D: AsRef<str>,
-    E: AsRef<str>, 
+    pub fn builder<F>(location: F, solver: Solver) -> DzahuiWindowBuilder where 
     F: AsRef<str> 
     {
         DzahuiWindowBuilder::new(location, solver)
@@ -360,8 +335,8 @@ impl DzahuiWindow {
     /// Callback to obtain vertex intersection with click produced cone.
     fn get_selected_vertex(&mut self) {
 
-        self.vertex_selector.change_from_mouse_position(&self.mouse_coordinates, &self.camera, self.width, self.height);
-        let sel_vec = self.vertex_selector.obtain_nearest_intersection(&self.mesh.selectable_vertices.list_of_vertices, &self.camera);
+        self.vertex_selector.change_from_mouse_position(&self.mouse_coordinates, &self.camera.projection_matrix, self.width, self.height);
+        let sel_vec = self.vertex_selector.obtain_nearest_intersection(&self.mesh.vertices, &self.camera.view_matrix);
         println!("{:?}",sel_vec);
 
     }
@@ -422,9 +397,6 @@ impl DzahuiWindow {
         // Send mesh info: mesh structure and vertices to create body on each one.
         self.mesh.setup();
         self.mesh.send_to_gpu();
-
-        self.mesh.selectable_vertices.setup();
-        self.mesh.selectable_vertices.send_to_gpu();
 
         // Setup character set info.
         // Maybe need to change shader (but I think shaders and binders are independent, so leave it like this for now).
