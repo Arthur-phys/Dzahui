@@ -36,7 +36,6 @@ use vertex_type::VertexType;
 #[derive(Debug)]
 pub struct Mesh {
     pub conditions: Vec<VertexType>,
-    pub ignored_coordinate: Option<usize>,
     pub max_length: f64,
     pub model_matrix: Matrix4<f32>,
     binder: Binder,
@@ -55,66 +54,6 @@ impl Mesh {
     pub fn builder<B>(location: B) -> MeshBuilder
     where B: AsRef<str> {
         MeshBuilder::new(location)
-    }
-
-    pub fn get_ignored_coordinate<A: AsRef<str>>(file: A) -> Option<usize> {
-        // Obtain unused coordinate index from .obj file.
-        
-        let file = File::open(file.as_ref()).expect("Error while opening the file. Does the file exists and is readable?");
-        // Sets to check which one has only one element (i.e. which one should be ignored)
-        // To implement set from list, use HashMap for better performance.
-        let mut x: HashMap<String,f32> = HashMap::new();
-        let mut y: HashMap<String,f32> = HashMap::new();
-        let mut z: HashMap<String,f32> = HashMap::new();
-        
-        // Filtering lines based on them starting with 'v ' or not. These are the ones we're suppossed to check
-        let lines = BufReader::new(file).lines().filter(|line| {
-            match line {
-                Ok(content) => content.starts_with("v "),
-                Err(error) => panic!("Unable to read file propperly {:?}",error)
-            }
-        });
-        
-        // Every line is treated individually
-        lines.for_each(|line| {
-            
-            match line {
-                Ok(coordinates) => {
-                    // splitting via space
-                    let mut coordinates_iter = coordinates.split(" ");
-                    // skip the 'v'
-                    coordinates_iter.next();
-                    // mapping to tuple for HashMap
-                    let coordinates_vec: [(String,f32);3] = coordinates_iter.map(|c_str| {
-                        // Necessary for -0.0 and 0.0 equality
-                        if c_str.starts_with("0.0") || c_str.starts_with("-0.0") {
-                            (String::from("0.0"),c_str.parse::<f32>().unwrap())
-                        } else {
-                            (c_str.to_string(),c_str.parse::<f32>().unwrap())
-                        }
-                    })
-                    // Now the result is transformed into an array of tuples size 3
-                    .into_iter().collect::<Vec<(String,f32)>>().try_into().expect(".obj's vertices should be composed of triads of numbers");
-                    // Inserting into HashMap
-                    // Do not use clone, find replacement if possible (String needs cloning because of ownership)
-                    x.insert(coordinates_vec[0].0.clone(),coordinates_vec[0].1);
-                    y.insert(coordinates_vec[1].0.clone(),coordinates_vec[1].1);
-                    z.insert(coordinates_vec[2].0.clone(),coordinates_vec[2].1);
-                },
-                // Error case of line matching
-                Err(error) => panic!("Unable to read file propperly {:?}",error)
-            }
-        });
-        // After for_each, we verify which coordinate is constant
-        if x.values().count() == 1 {
-            Some(0)
-        } else if y.values().count() == 1 {
-            Some(1)
-        } else if z.values().count() == 1 {
-            Some(2)
-        } else {
-            panic!("Only coordinates over a plane paralell to x, y or z axis are accepted. Check .obj file.");
-        }
     }
 }
 
