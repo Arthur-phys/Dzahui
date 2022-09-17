@@ -9,51 +9,51 @@ use ndarray::Array1;
 use crate::{DzahuiWindow, Error};
 use binder::Binder;
 
-/// General Information
+/// # General Information
 /// 
 /// An object that can be represented in CPU via a, ebo, vbo, vao and texture (the latter is not necessary).
 /// 
 pub(crate) trait Bindable {
 
         /// Obtains binder associated to object. Getter.
-        fn get_binder(&self) -> &Binder;
+        fn get_binder(&self) -> Result<&Binder,Error>;
         
         /// Obtain binder mutable reference.
-        fn get_mut_binder(&mut self) -> &mut Binder;
+        fn get_mut_binder(&mut self) -> Result<&mut Binder,Error>;
         
         /// Shortcut to binder setup function.
-        fn setup(&mut self) {
-            self.get_mut_binder().setup()
+        fn setup(&mut self) -> Result<(),Error> {
+            Ok(self.get_mut_binder()?.setup())
         }
 
         /// Shortcut to setup texture function.
-        fn setup_texture(&mut self) {
-            self.get_mut_binder().setup_texture()
+        fn setup_texture(&mut self) -> Result<(),Error> {
+            Ok(self.get_mut_binder()?.setup_texture())
         }
 
         /// Shortcut to bind all without texture function.
-        fn bind_all_no_texture(&self) {
-            self.get_binder().bind_all_no_texture()
+        fn bind_all_no_texture(&self) -> Result<(),Error> {
+            Ok(self.get_binder()?.bind_all_no_texture())
         }
 
         /// Shortcut to bind all function.
-        fn bind_all(&self) {
-            self.get_binder().bind_all()
+        fn bind_all(&self) -> Result<(),Error> {
+            Ok(self.get_binder()?.bind_all())
         }
 
         /// Shortcut to bind vao function
-        fn bind_vao(&self) {
-            self.get_binder().bind_vao()
+        fn bind_vao(&self) -> Result<(),Error> {
+            Ok(self.get_binder()?.bind_vao())
         }
 
         /// Shortcut to bind texture
-        fn bind_texture(&self) {
-            self.get_binder().bind_texture()
+        fn bind_texture(&self) -> Result<(),Error> {
+            Ok(self.get_binder()?.bind_texture())
         }
 
         /// Shortcut to unbind texture
-        fn unbind_texture(&self) {
-            self.get_binder().unbind_texture()
+        fn unbind_texture(&self) -> Result<(),Error> {
+            Ok(self.get_binder()?.unbind_texture())
         }
 
 }
@@ -67,9 +67,9 @@ pub(crate) trait Bindable {
 pub(crate) trait Drawable: Bindable {
      
     /// Creates a way to obtain vertices from drawable object. Getter.
-    fn get_vertices(&self) -> Array1<f32>;
+    fn get_vertices(&self) -> Result<Array1<f32>,Error>;
     /// Creates a way to obtain indices to draw vertices (and triangles). Getter.
-    fn get_triangles(&self) -> &Array1<u32>;
+    fn get_triangles(&self) -> Result<&Array1<u32>,Error>;
     /// Creates a way to obtain order of object's dimensions. Getter.
     fn get_max_length(&self) -> Result<f32,Error>;
 
@@ -87,13 +87,12 @@ pub(crate) trait Drawable: Bindable {
     /// 
     /// * `&self` - All information is stored inside the object an accesed through the getter methods above.
     /// 
-    fn send_to_gpu(&self) {
+    fn send_to_gpu(&self) -> Result<(),Error> {
 
-        let vertices = self.get_vertices();
-        let triangles = self.get_triangles();
+        let vertices = self.get_vertices()?;
+        let triangles = self.get_triangles()?;
 
         unsafe {
-
             // Point to data, specify data length and how it should be drawn (static draw serves to only draw once).
             gl::BufferData(gl::ARRAY_BUFFER,
                 (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
@@ -123,6 +122,7 @@ pub(crate) trait Drawable: Bindable {
             // Comment to see the traingles filled instead of only the lines that form them.
             gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
         }
+        Ok(())
     }
 
     /// # General Information
@@ -136,9 +136,9 @@ pub(crate) trait Drawable: Bindable {
     /// 
     /// * `&self` - A reference to the object which is attached to a binder and knows how to get the indices and indices length.
     /// 
-    fn draw(&self, window: &DzahuiWindow) {
+    fn draw(&self, window: &DzahuiWindow) -> Result<(),Error> {
 
-        let indices_len: i32 = self.get_triangles().len() as i32;
+        let indices_len: i32 = self.get_triangles()?.len() as i32;
         
         // Draw only when window is created and inside loop
         // Drawn as triangles
@@ -146,6 +146,8 @@ pub(crate) trait Drawable: Bindable {
             // Draw
             gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
         }
+
+        Ok(())
     }
 }
 

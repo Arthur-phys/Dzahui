@@ -21,7 +21,6 @@ use vertex_type::VertexType;
 /// 
 /// ## Drawing Fields
 /// 
-/// * `ignored_coordinate` - 2D Mesh should ignore one entry: The one which is the same in all of .obj vertex specification.
 /// * `max_length` - Maximum length of figure. Used to center camera arround objective.
 /// * `model_matrix` - Translates and rotates object to final world position.
 /// * `binder` - vao, vbo and ebo variables bound to mesh drawable in GPU.
@@ -32,6 +31,7 @@ use vertex_type::VertexType;
 /// * `vertices` -  Vertices in 3d space. Normally used in triads. Specified in gl configuration.
 ///
 #[derive(Debug)]
+#[allow(dead_code)]
 pub(crate) struct Mesh {
     pub(crate) conditions: Array1<VertexType>,
     pub(crate) max_length: f64,
@@ -57,23 +57,23 @@ impl Mesh {
 
 
 impl Bindable for Mesh {
-    fn get_binder(&self) -> &Binder {
-        &self.binder
+    fn get_binder(&self) -> Result<&Binder,Error> {
+        Ok(&self.binder)
     }
 
-    fn get_mut_binder(&mut self) -> &mut Binder {
-        &mut self.binder
+    fn get_mut_binder(&mut self) -> Result<&mut Binder,Error> {
+        Ok(&mut self.binder)
     }
 }
 
 impl Drawable for Mesh {
 
-    fn get_triangles(&self) -> &Array1<u32> {
-        &self.indices
+    fn get_triangles(&self) -> Result<&Array1<u32>,Error> {
+        Ok(&self.indices)
     }
 
-    fn get_vertices(&self) -> Array1<f32> {
-        Array1::from_iter(self.vertices.iter().map(|x| x.to_f32().unwrap()))
+    fn get_vertices(&self) -> Result<Array1<f32>,Error> {
+        Ok(Array1::from_iter(self.vertices.iter().map(|x| x.to_f32().unwrap())))
     }
 
     fn get_max_length(&self) -> Result<f32,Error> {

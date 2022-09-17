@@ -3,6 +3,8 @@ use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
 use cgmath::{Vector4,Matrix4,Transform,Vector3};
 use image;
 
+use crate::Error;
+
 use super::{binder::Binder, Bindable};
 use super::super::camera::Camera;
 
@@ -87,12 +89,12 @@ impl Eq for Character {}
 
 impl Bindable for CharacterSet {
     
-    fn get_binder(&self) -> &Binder {
-        &self.binder
+    fn get_binder(&self) -> Result<&Binder,Error> {
+        Ok(&self.binder)
     }
 
-    fn get_mut_binder(&mut self) -> &mut Binder {
-        &mut self.binder
+    fn get_mut_binder(&mut self) -> Result<&mut Binder,Error> {
+        Ok(&mut self.binder)
     }
 }
 
@@ -422,7 +424,7 @@ impl CharacterSet {
         // need to divide by w (god knows why)
         let view_coordinates = Vector3::new(view_coordinates.x,view_coordinates.y,view_coordinates.z) / view_coordinates.w;
 
-        Matrix4::from_translation(view_coordinates) * Matrix4::from_scale(0.09)
+        Matrix4::from_translation(view_coordinates) * Matrix4::from_scale(0.0001)
 
     }
 

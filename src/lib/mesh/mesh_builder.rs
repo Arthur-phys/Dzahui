@@ -22,9 +22,18 @@ pub enum MeshDimension {
     Three
 }
 
+/// Holder of .obj fields. Temporary object. Not to be used on it's own.
+struct Obj {
+    pub vertices: Array1<f64>,
+    pub indices: Array1<u32>,
+    pub conditions: Array1<VertexType>,
+    pub max_length: f64,
+    pub middle_point: [f64;3]
+}
+
 /// # General Information
 /// 
-/// Needed elements to create mesh (2D or 3D). Provides option to personalize vertices.
+/// Needed elements to create mesh (2D or 3D). Builds real structure providing parsing of .obj and distinguishing internal an boundary vertices. 
 /// 
 /// # Fields
 /// 
@@ -32,7 +41,7 @@ pub enum MeshDimension {
 /// * `dimension` - Enum with mesh's dimension. Needs to be set to enable/disable checking for repeated coordinate in `.obj` if it's 2D.
 ///
 #[derive(Debug)]
-pub struct MeshBuilder {
+pub(crate) struct MeshBuilder {
     location: String,
     dimension: MeshDimension
 }
@@ -47,6 +56,7 @@ impl MeshBuilder {
             dimension: MeshDimension::Two,
         }
     }
+
     /// Changes mesh dimension.
     pub(crate) fn with_mesh_in_3d(self) -> Self {
         Self {
@@ -57,34 +67,49 @@ impl MeshBuilder {
 
     /// Checks wether a line in an obj has only three vertices.
     /// Part of the checkup made to a given input file.
-    fn obj_vertex_checker<A>(line: A) -> Result<bool,Error>
+    fn obj_vertex_checker<A>(line: &A) -> Result<Vec<f64>,Error>
     where A: AsRef<str> { 
         
-        let line_parts: Vec<&str> = line.as_ref().split(" ").collect();
-        if line_parts.len() != 4 {
+        let mut line_parts = line.as_ref().split(" ");
+        line_parts.next();
+        let line_parts: Vec<f64> = line_parts.map(|c| c.parse::<f64>().unwrap()).collect();
+        
+        if line_parts.len() != 3 {
            return Err(Error::Parse("A vertex line should contain 3 vertices only".to_string()));
         }
-        Ok(true)
+
+        Ok(line_parts)
     }
     
     /// Verifies the amount of face specifications per line is 3 and also that all of them have the correct syntax.
     /// Part of the checkup made to a given input file.
-    fn obj_face_checker<A>(line: A) -> Result<bool, Error>
+    fn obj_face_checker<A>(line: &A) -> Result<Vec<u32>, Error>
     where A: AsRef<str> {
 
-        let line_parts: Vec<&str> = line.as_ref().split(" ").collect();
+        let mut triangle_faces = vec![];
+        
+        let mut line_parts = line.as_ref().split(" ");
+        line_parts.next();
+        let line_parts: Vec<&str> = line_parts.collect();
+        
         // Check lenght of line
-        if line_parts.len() != 4 {
+        if line_parts.len() != 3 {
             return Err(Error::Parse("Amount of face specificating elements should be 3.".to_string()));
         }
+        
         // Check for each part structur /a/b/c
         for face in line_parts {
-            let face_parts: Vec<&str> = face.split("/").collect();
-            if face_parts.len() != 3 {
+            let mut face_part = face.split("/");
+    
+            let face_element: u32 = face_part.next().unwrap().parse::<u32>().unwrap();
+    
+            if face_part.count() != 2 {
                 return Err(Error::Parse("Amount of elements per face specification should be 3 in format a/b/c.".to_string()));
             }
+            triangle_faces.push(face_element-1);
         }
-        Ok(true)
+        
+        Ok(triangle_faces)
     }
 
     /// # General information
@@ -96,7 +121,7 @@ impl MeshBuilder {
     /// 
     /// # Parameters
     /// 
-    /// * `&self` - Only the fiule within self.¿ is needed to make the verification. 
+    /// * `&self` - Only the file within self is needed to make the verification. 
     /// 
     fn ignored_coordinate(&self) -> Option<usize> {
         
@@ -185,11 +210,11 @@ impl MeshBuilder {
     }
 
     /// Obtains variables from .obj. To use after file check.
-    fn get_vertices_indices_and_conditions(&self, ignored_coordinate: Option<usize>) -> (Array1<f64>,Array1<u32>,Array1<VertexType>,f64,[f64;3]) {
+    fn get_vertices_indices_and_conditions(&self, ignored_coordinate: Option<usize>) -> Obj {
 
         // Initial variables
-        let mut coordinates: Array1<f64> = Array1::from_vec(vec![]);
-        let mut triangles: Array1<u32> = Array1::from_vec(vec![]);
+        let mut vertices: Array1<f64> = Array1::from_vec(vec![]);
+        let mut indices: Array1<u32> = Array1::from_vec(vec![]);
 
         let file = File::open(&self.location).expect("Error while opening file. Does file exists and is readable?");
 
@@ -211,12 +236,12 @@ impl MeshBuilder {
                 Ok(content) => {
                     // Whenever there is a v
                     if content.starts_with("v ") {
-                        // Splitting via single space
-                        let mut coordinates_iter = content.split(" ");
-                        // Skip the v
-                        coordinates_iter.next();
-                        // Every coordinate is added. They need to be parsed to f64.
-                        let mut coordinate: Vec<f64> = coordinates_iter.map(|c| c.parse::<f64>().unwrap()).collect();
+                        
+                        // Check line integrity
+                        let mut coordinate = match MeshBuilder::obj_vertex_checker(&content) {
+                            Ok(coord) => coord,
+                            Err(error) => panic!("{}",error.to_string())
+                        };
 
                         // If there is an ignored coordinate:
                         if let Some(ic) = ignored_coordinate {
@@ -254,24 +279,23 @@ impl MeshBuilder {
                         }
 
                         // If 'ignored_coordinate' passes (in the case of D2), this unwrap is warranted to succeed.
-                        coordinates.append(ndarray::Axis(0),Array1::from_vec(coordinate).view());
+                        match vertices.append(ndarray::Axis(0),Array1::from_vec(coordinate).view()) {
+                            Err(err) => panic!("{}",err),
+                            _ => ()
+                        }
                     }
                         // Whenever there is a f
                         else if content.starts_with("f ") {
                             // Splitting via single space
-                            let mut triangles_iter = content.split(" ");
-                            // Skip the f
-                            triangles_iter.next();
-                            // Vertices are sepparated via '/'
-                            let mut triangle: Vec<u32> = triangles_iter.map(|c| {
-                                // There's no checking the line goes like 'f 1/2/2/ 1/1/1/ 2/3/2/'
-                                let mut vertex: u32 = c.split("/").next().unwrap().parse::<u32>().unwrap();
-                                // Return vertex-1 to match with index start in opengl (not_it/it/not_it)
-                                vertex = vertex-1;
-                                vertex
-                            }).collect();
+                            let triangle = match MeshBuilder::obj_face_checker(&content) {
+                                Ok(tr) => tr,
+                                Err(err) => panic!("{}",err)
+                            };
                             // Push into triangles vector of u32
-                            triangles.append(ndarray::Axis(0),Array1::from_vec(triangle).view());
+                            match indices.append(ndarray::Axis(0),Array1::from_vec(triangle).view()) {
+                                Err(err) => panic!("{}",err),
+                                _ => ()
+                            }
                         }
                     },
                 // Error case of line matching
@@ -280,15 +304,21 @@ impl MeshBuilder {
         });
 
         // Initializing array of conditions for mesh
-        let conditions: Array1<VertexType> = Array1::from_vec(Vec::with_capacity(coordinates.len() / 3));
+        let conditions: Array1<VertexType> = Array1::from_vec(Vec::with_capacity(vertices.len() / 3));
         
         // Obtain middle point as if object was a parallelepiped
         let middle_point = [max_min.get("x_max").unwrap()-max_min.get("x_min").unwrap() / 2.0,
             max_min.get("y_max").unwrap()-max_min.get("y_min").unwrap() / 2.0, max_min.get("z_max").unwrap()-max_min.get("z_min").unwrap() / 2.0];
         
-        let max_distance = Self::compare_distances(&max_min);
-        
-        (coordinates,triangles,conditions,max_distance,middle_point)
+        let max_length = Self::compare_distances(&max_min);
+
+        Obj {
+            vertices,
+            indices,
+            conditions,
+            max_length,
+            middle_point
+        }
     }
 
     /// # General Information
@@ -303,7 +333,7 @@ impl MeshBuilder {
 
         let binder = Binder::new();
 
-        let (vertices, indices, conditions, max_length, mid_point) = match self.dimension {
+        let obj = match self.dimension {
             
             MeshDimension::Two => {
                 // Obtained coordinates from 'generate_fields()' function
@@ -317,19 +347,19 @@ impl MeshBuilder {
 
         // Translate matrix to given point
         let model_matrix = Matrix4::from_translation(Vector3::new(
-            mid_point[0] as f32,
-            mid_point[1] as f32,
-            mid_point[2] as f32
+            obj.middle_point[0] as f32,
+            obj.middle_point[1] as f32,
+            obj.middle_point[2] as f32
         ));
         
 
         Mesh {
-            vertices,
-            indices,
-            max_length,
+            vertices: obj.vertices,
+            indices: obj.indices,
+            max_length: obj.max_length,
+            conditions: obj.conditions,
             model_matrix,
             binder,
-            conditions
         }
     }
 }
