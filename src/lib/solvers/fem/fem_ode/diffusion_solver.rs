@@ -12,11 +12,12 @@
 //     }
 // }
 
-use crate::Error;
-use crate::solvers::DiffEquationSolver;
-use crate::solvers::fem::function::TransformationFactory;
 use crate::solvers::{quadrature::GaussLegendreQuadrature, linear_solver::ThomasSolver};
 use crate::solvers::fem::function::{Differentiable,Function,linear_basis::LinearBasis};
+use crate::solvers::fem::function::TransformationFactory;
+use crate::solvers::DiffEquationSolver;
+use crate::Error;
+
 use ndarray::{Array, Ix2, Ix1, Array1};
 
 // struct DiffussionSolverBuilder {
@@ -243,7 +244,7 @@ mod test {
 
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = DiffussionSolver::solve_by_thomas(&a, &b);
+        let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 1);
         assert!(res[0] <= -0.2 && res[0] >= -0.4);
@@ -270,7 +271,7 @@ mod test {
         let dif_solver = DiffussionSolver::new([0_f64,1_f64],vec![0_f64,0.33,0.66,1_f64],1_f64,1_f64);
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = DiffussionSolver::solve_by_thomas(&a, &b);
+        let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
 
         println!("{:?}",res);
 
@@ -303,7 +304,7 @@ mod test {
         let dif_solver = DiffussionSolver::new([0_f64,1_f64],vec![0_f64,0.25,0.5,0.75,1_f64],1_f64,1_f64);
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = DiffussionSolver::solve_by_thomas(&a, &b);
+        let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 3);
         assert!(res[0]<=-0.15 && res[0] >= -0.17);
@@ -315,7 +316,7 @@ mod test {
     fn obtain_non_homogeneous_solution() {
 
         let dif_solver = DiffussionSolver::new([0_f64,1_f64],vec![0_f64,0.25,0.5,0.75,1_f64],1_f64,1_f64);
-        let res = dif_solver.solve();
+        let res = dif_solver.solve().unwrap();
         
         assert!(res.len() == 3);
         assert!(res[0]<=-0.15 && res[0] >= -0.17);

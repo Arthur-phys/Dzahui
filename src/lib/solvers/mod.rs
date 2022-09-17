@@ -1,11 +1,13 @@
-pub mod euler;
-pub mod fem;
 pub mod linear_solver;
 pub mod quadrature;
+pub mod euler;
+pub mod fem;
 
 pub use fem::fem_ode::*;
+pub use fem::Solver;
 
 use std::ops::Index;
+
 use crate::Error;
 
 

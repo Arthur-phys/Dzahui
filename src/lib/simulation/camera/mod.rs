@@ -1,7 +1,5 @@
 use cgmath::{self, Matrix4, Deg, Vector3, Point3};
 
-use super::drawable::{mesh::Mesh,Drawable};
-
 pub mod cone;
 
 /// # General Information
@@ -10,8 +8,8 @@ pub mod cone;
 /// 
 /// # Fields
 /// 
-/// * `camepra_position` - Camera position from original coordinate system (world coordinate system).
-/// * `camera_target` - Normally set to (0,0,0) but can change. What camera points at
+/// * `camera_position` - Camera position from original coordinate system (world coordinate system).
+/// * `camera_target` - Normally set to (0,0,0) but can change. What camera points at.
 /// * `view_matrix` - How camera ends up viewing object.
 /// * `active_view_change` - Wether we can change view matrix. Normally used in callback functions inside loop.
 /// * `projection_matrix` - Perspective matrix to see final results in screen.
@@ -20,15 +18,11 @@ pub mod cone;
 /// * `theta` - y axis - position angle to move camera.
 /// * `phi` - xz plane - position angle to move camera.
 /// * `radius` - how far away camera is from object.
-/// * `camera_speed` - How fast should camera move target.
-/// * `aspect_ratio` - Screen information to create projection matrix.
-/// * `fov` - Field of view of camera
 /// 
 #[derive(Debug)]
-#[allow(dead_code)]
-pub struct Camera {
+pub(crate) struct Camera {
     pub(crate) camera_position: Point3<f32>,
-    pub(crate) camera_target:  Point3<f32>,
+    camera_target:  Point3<f32>,
     pub(crate) view_matrix: Matrix4<f32>,
     pub(crate) active_view_change: bool,
     pub(crate) projection_matrix: Matrix4<f32>,
@@ -37,9 +31,6 @@ pub struct Camera {
     pub(crate) theta: f32,
     pub(crate) phi: f32,
     pub(crate) radius: f32,
-    camera_speed: f32,
-    aspect_ratio: f32,
-    fov: f32,
 }
 
 /// # General Information
@@ -48,13 +39,13 @@ pub struct Camera {
 /// object being point at.
 /// 
 /// # Fields
+/// 
 /// * `radius` - Distance to target.
 /// * `theta` - One of two angles that dictates camera position arround target (in a sphere).
 /// * `phi` - One of two angles that dictates camera position arround target (in a sphere).
 /// * `fov` - Field of view of projection matrix.
-/// * `camera_speed` - Speed at which camera moves target.
-/// * `camera_sensitivity` - Speed at which camera moves arround target and zoom works (in a sphere).
-/// * `camera_target` - Point a which camera is looking.
+/// * `camera_sensitivity` - Speed at which camera moves arround target (in a sphere).
+/// * `camera_target` - Point at which camera is looking.
 /// 
 #[derive(Default,Debug)]
 pub struct CameraBuilder {
@@ -62,7 +53,6 @@ pub struct CameraBuilder {
     theta: Option<f32>,
     phi: Option<f32>,
     fov: Option<f32>,
-    camera_speed: Option<f32>,
     camera_sensitivity: Option<f32>,
     camera_target: Option<Point3<f32>>
 }
@@ -76,7 +66,6 @@ impl CameraBuilder {
             theta: None,
             phi: None,
             fov: None,
-            camera_speed: None,
             camera_sensitivity: None,
             camera_target: None
         }
@@ -110,13 +99,6 @@ impl CameraBuilder {
             ..self
         }
     }
-    /// Changes camera speed (when implemented will move things arround)
-    pub fn with_speed(self, speed: f32) -> Self {
-        CameraBuilder {
-            camera_speed: Some(speed),
-            ..self
-        }
-    }
     /// Changes camera movement arround object being targeted
     pub fn with_sensitivity(self, sensitivity: f32) -> Self {
         CameraBuilder {
@@ -138,24 +120,22 @@ impl CameraBuilder {
     /// 
     /// * `self` -> All camera parameters are within self. Every parameter appearing in Camera struct but not here is derived from the ones that do appear.
     /// 
-    pub fn build(self, mesh: &Mesh, height: u32, width: u32) -> Camera {
+    pub(crate) fn build(self, mesh_length: f32, height: u32, width: u32) -> Camera {
 
         let fov = if let Some(fov) = self.fov { fov } else { 45.0 };
         // Obtain radius or get predetermined one (use the predetermined one is recommended)
         let radius = if let Some(radius) = self.radius {
             radius
         } else {
-            mesh.get_max_length() * 2.0
+            mesh_length * 2.0
         };
         // y axis - position angle
         let theta = if let Some(theta) = self.theta { theta } else { 90.0 };
         // zx plane - position angle
         let phi = if let Some(phi) = self.phi { phi } else { 0.0 };
-        // Camera speed and sensitivity
-        let camera_speed = if let Some(camera_speed) = self.camera_speed { camera_speed } else { 0.5 };
         // It also works for zoom
         let camera_sensitivity = if let Some(camera_sensitivity ) = self.camera_sensitivity { camera_sensitivity } else { 0.5 };
-        // Up vector is always (0,0,1)
+        // Up vector is always (0,1,)
         let up_vector = Vector3::new(0.0,1.0,0.0);
         // Camera target
         let camera_target = if let Some(camera_target) = self.camera_target { camera_target } else { Point3::new(0.0, 0.0, 0.0) };
@@ -193,9 +173,6 @@ impl CameraBuilder {
             view_matrix,
             active_view_change,
             camera_sensitivity,
-            camera_speed,
-            aspect_ratio,
-            fov
         }
     }
 

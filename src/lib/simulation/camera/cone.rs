@@ -1,8 +1,5 @@
 use cgmath::{Vector3, Vector4, Point3, Point2, Transform, Matrix4, InnerSpace};
 
-use super::{Camera};
-use super::super::drawable::mesh::vertex::Vertex;
-
 #[derive(Debug)]
 pub struct Cone {
     anchorage_point: Point3<f32>,
@@ -19,7 +16,7 @@ impl Cone {
 
     }
 
-    pub(crate) fn change_from_mouse_position(&mut self, mouse_coordinates: &Point2<f32>, camera: &Camera, window_width: u32, window_height: u32) {
+    pub(crate) fn change_from_mouse_position(&mut self, mouse_coordinates: &Point2<f32>, projection_matrix: &Matrix4<f32>, window_width: u32, window_height: u32) {
 
         // Create cone from position of mouse
         let near_ndc_coordinates = Vector4::new(
@@ -35,7 +32,7 @@ impl Cone {
             1.0
         );
 
-        let inverse_projection_matrix: Matrix4<f32> = camera.projection_matrix.inverse_transform().expect("No inverse transform exists for this matrix");
+        let inverse_projection_matrix: Matrix4<f32> = projection_matrix.inverse_transform().expect("No inverse transform exists for this matrix");
         let near_view_coordinates = inverse_projection_matrix * near_ndc_coordinates;
         let far_view_coordinates = inverse_projection_matrix * far_ndc_coordinates;
         
@@ -43,7 +40,7 @@ impl Cone {
         let near_view_coordinates = Vector3::new(near_view_coordinates.x,near_view_coordinates.y,near_view_coordinates.z) / near_view_coordinates.w;
         let far_view_coordinates = Vector3::new(far_view_coordinates.x,far_view_coordinates.y,far_view_coordinates.z) / far_view_coordinates.w;
         
-        // cast becomes unnecesary if all values are f32, but camera is not working with f32 and opengl
+        // cast becomes unnecesary if all values are f32, but projection_matrix is not working with f32 and opengl
         let anchorage_point: Point3<f32> = Point3::new(near_view_coordinates.x,near_view_coordinates.y, near_view_coordinates.z);
         let direction: Vector3<f32> = (far_view_coordinates - near_view_coordinates).normalize();
 
@@ -53,11 +50,11 @@ impl Cone {
     }
 
 
-    pub(crate) fn obtain_nearest_intersection(&self, vertices: &Vec<Vertex>, camera: &Camera) -> Option<(f32,usize)> {
+    pub(crate) fn obtain_nearest_intersection(&self, vertices: &Vec<Vertex>, view_matrix: &Matrix4<f32>) -> Option<(f32,usize)> {
 
         // Filter objects to only those that are partially or completelly inside cone
         let filtered_objects: Vec<&Vertex> = vertices.iter().filter(|sphere| {
-            let view_center = sphere.get_view_center(&camera);
+            let view_center = sphere.get_view_center(view_matrix);
             let x = view_center.x;
             let y = view_center.y;
             let z = view_center.z;
@@ -69,7 +66,7 @@ impl Cone {
             // first obtain t from equation f(t) = p + tv
             // z direction can never be zero
             let curve_value_from_z = (z - self.anchorage_point.z)/self.direction.z;
-            // then obtain x and y from such t
+            // then obtain x and y from t
             // this generates circle center
             let c_x = self.anchorage_point.x + curve_value_from_z * self.direction.x;
             let c_y = self.anchorage_point.y + curve_value_from_z * self.direction.y;
@@ -84,7 +81,7 @@ impl Cone {
 
         // Obtain sphere closest to anchorage point
         filtered_objects.iter().map(|sphere| {
-            let view_center_z =sphere.get_view_center(camera).z;
+            let view_center_z =sphere.get_view_center(view_matrix).z;
             ((view_center_z - self.anchorage_point.z).abs(),sphere.id)
         
         }).reduce(|(past_distance,past_id), (new_distance, new_id)| {

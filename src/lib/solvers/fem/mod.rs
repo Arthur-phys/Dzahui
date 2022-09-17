@@ -11,3 +11,10 @@ pub mod function;
 //     Diffusion,
 //     NavierStokes
 // }
+
+#[derive(Debug)]
+pub enum Solver {
+    DiffussionSolver,
+    NavierStokes1DSolver,
+    NavierStokes2DSolver,
+}

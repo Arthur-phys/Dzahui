@@ -1,19 +1,19 @@
 /// Common functions in drawable (2D or 3D objects)
-pub mod mesh;
-pub mod text;
-pub mod binder;
-pub mod from_obj;
+pub(crate) mod text;
+pub(crate) mod binder;
 
 use std::{ptr,mem,os::raw::c_void};
 use gl::{self,types::{GLsizei, GLsizeiptr, GLuint, GLfloat}};
-use crate::DzahuiWindow;
+use ndarray::Array1;
+
+use crate::{DzahuiWindow, Error};
 use binder::Binder;
 
 /// General Information
 /// 
 /// An object that can be represented in CPU via a, ebo, vbo, vao and texture (the latter is not necessary).
 /// 
-pub trait Bindable {
+pub(crate) trait Bindable {
 
         /// Obtains binder associated to object. Getter.
         fn get_binder(&self) -> &Binder;
@@ -67,11 +67,11 @@ pub trait Bindable {
 pub trait Drawable: Bindable {
      
     /// Creates a way to obtain vertices from drawable object. Getter.
-    fn get_vertices(&self) -> &Vec<f32>;
+    fn get_vertices(&self) -> Array1<f32>;
     /// Creates a way to obtain indices to draw vertices (and triangles). Getter.
-    fn get_triangles(&self) -> &Vec<u32>;
+    fn get_triangles(&self) -> &Array1<u32>;
     /// Creates a way to obtain order of object's dimensions. Getter.
-    fn get_max_length(&self) -> f32;
+    fn get_max_length(&self) -> Result<f32,Error>;
 
     /// # General Information
     /// 

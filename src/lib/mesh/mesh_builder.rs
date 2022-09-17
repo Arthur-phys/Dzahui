@@ -1,20 +1,81 @@
-use std::{io::{BufReader, BufRead},collections::HashMap,fs::File};
+use std::io::{BufReader,BufRead};
+use cgmath::{Matrix4,Vector3};
+use ndarray::{Array3,Array1};
+use std::collections::HashMap;
+use std::fs::File;
 
-// If a drawable can come from a file, then the file needs a certain format
-// Therefore, it needs to be checked
-pub trait FromObj {
+use crate::{simulation::drawable::binder::Binder,Error};
+use super::{Mesh, vertex_type::VertexType};
 
-    fn vertex_checker(line: &str) -> Result<bool,&str> {
-        // Default vertex checker. Verifies amount of vertices per line is 3  
+/// # General Information
+/// 
+/// Enum to tell if mesh being in a plane should be checked.
+/// 
+/// # Arms
+/// 
+/// * `Two` - Plane figure. Additional check-up to confirm property will be applied simplifying final mesh.
+///  * `Three` - 3D Body. No dimensional check-ups are done. Results depend solely on user's .obj
+/// 
+#[derive(Debug)]
+pub enum MeshDimension {
+    Two,
+    Three
+}
+
+/// # General Information
+/// 
+/// Needed elements to create mesh (2D or 3D). Provides option to personalize vertices.
+/// 
+/// # Fields
+/// 
+/// * `location` - Path to mesh's `.obj`.
+/// * `dimension` - Enum with mesh's dimension. Needs to be set to enable/disable checking for repeated coordinate in `.obj` if it's 2D.
+///
+#[derive(Debug)]
+pub struct MeshBuilder {
+    location: String,
+    dimension: MeshDimension,
+    vertices: Option<Array1<f64>>,
+    indices: Option<Array1<usize>>,
+    conditions: Option<Array1<VertexType>>
+}
+
+impl MeshBuilder {
+    
+    /// Creates default instance.
+    pub(crate) fn new<B>(location: B) -> Self
+    where B: AsRef<str> {
+        Self {
+            location: location.as_ref().to_string(),
+            dimension: MeshDimension::Two,
+            vertices: None,
+            indices: None,
+            conditions: None
+        }
+    }
+    /// Changes mesh dimension.
+    pub(crate) fn with_mesh_in_3d(self) -> Self {
+        Self {
+            dimension: MeshDimension::Three,
+            ..self
+        }
+    }
+
+    /// Checks wether a line in an obj has only three vertices.
+    /// Part of the checkup made to a given input file.
+    fn obj_vertex_checker(line: &str) -> Result<bool,&str> { 
+        
         let line_parts: Vec<&str> = line.split(" ").collect();
         if line_parts.len() != 4 {
            return Err("Amount of numbers per vertex should be 3.");
         }
         Ok(true)
     }
+    
+    /// Verifies the amount of face specifications per line is 3 and also that all of them have the correct syntax.
+    /// Part of the checkup made to a given input file.
+    fn obj_face_checker(line: &str) -> Result<bool, &str> {
 
-    fn face_checker(line: &str) -> Result<bool, &str> {
-        // Default face checker. Verifies amount of face specifications per line is 3 and also have the correct syntax  
         let line_parts: Vec<&str> = line.split(" ").collect();
         // Check lenght of line
         if line_parts.len() != 4 {
@@ -30,46 +91,49 @@ pub trait FromObj {
         Ok(true)
     }
 
-    fn check_obj(file: &str) {
-        // Takes a series of functions that check one line at a time of a given .obj file.
-        // Each function represents a check that has to be done on certain lines.
-        // Returns a true value if file is usable by the program
-        // Check for file extension
+    /// # General Information
+    ///
+    /// Checks a given .obj file one line at a time. Returns a true value if file can be used to create a mesh.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `file` - Path to a given .obj.
+    ///
+    fn check_obj<A>(file: A) -> Result<bool,Error>
+    where A: AsRef<str> {
+
+        let file = file.as_ref().to_string();
+        
         if !file.ends_with(".obj") {
-            panic!("File chosen does not match extension allowed.");
+            return Err(Error::ExtensionNotAllowed(file,String::from("Mesh creation")));
         }
 
         // Initializing file
-        let file = File::open(file).expect("Error while opening file. Does file exists and is readable?");
+        let file = File::open(file)?;
         let reader = BufReader::new(file).lines();
 
         // For each line checks are made
         reader.for_each(|line| {
-            match line {
-                Ok(content) => {
-                    if content.starts_with("v ") {
 
-                        match Self::vertex_checker(&content) {
-                            Err(e) => panic!("file checking failed because of: {}",e),
-                            _ => {}
-                        }
+            let content = match line {
+                Ok(content) => content,
+                Result::Err(e) => panic!(),
+            };
+            if content.starts_with("v ") {
 
-                    } else if content.starts_with("f ") {
+                let res = Self::obj_vertex_checker(&content).expect("Not implemented"); 
 
-                        match Self::face_checker(&content) {
-                            Err(e) => panic!("file checking failed because of: {}",e),
-                            _ => {}
-                        }
+            } else if content.starts_with("f ") {
 
-                    }
-                },
-                Err(e) => panic!("Unable to read file properly: {}", e) 
-            }
-        });
+                let res = Self::obj_face_checker(&content).expect("Not implemented");
+            }}
+        );
+
+        Ok(true)
     }
 
-    fn compare_distances(max_min: &HashMap<&str,f32>) -> f32 {
-        // Gets bigger distance from hashmap with specific entries.
+    /// Gets biggest distance from hashmap with specific entries related to farthest values in a mesh.
+    fn compare_distances(max_min: &HashMap<&str,f64>) -> f64 {
 
         let x_min = max_min.get("x_min").unwrap();
         let y_min = max_min.get("y_min").unwrap();
@@ -91,7 +155,7 @@ pub trait FromObj {
         }
     }
 
-    fn generate_fields<A: AsRef<str>>(file: A, ignored_coordinate: Option<usize>) -> (Vec<f32>,Vec<u32>,f32,[f32;3]) {
+    fn set_vertices_indices_and_conditions<A: AsRef<str>>(file: A) -> (Array1<f64>,Array1<u32>,f32,[f32;3]) {
         // Obtains variables from .obj. To use after file check.
 
         // Initial variables
@@ -193,5 +257,50 @@ pub trait FromObj {
         let max_distance = Self::compare_distances(&max_min);
         
         (coordinates,triangles,max_distance,middle_point)
+    }
+
+    /// # General Information
+    /// 
+    /// ddd
+    /// 
+    /// # Parameters
+    /// 
+    /// ddd
+    /// 
+    pub fn build(self) -> Mesh {
+
+        let binder = Binder::new();
+
+        let mut ignored_coordinate = None;
+        let (vertices, indices, max_length, mid_point) = match self.dimension {
+
+            MeshDimension::Two => {
+                ignored_coordinate = Mesh::get_ignored_coordinate(self.location);
+                // Obtained coordinates from 'generate_fields()' function
+                MeshBuilder::generate_fields(self.location, ignored_coordinate)
+
+            },
+
+            MeshDimension::Three => {
+                MeshBuilder::generate_fields(self.location, None)
+            }
+        };
+
+        // Translate matrix to given point
+        let model_matrix = Matrix4::from_translation(Vector3::new(
+            mid_point[0] as f32,
+            mid_point[1] as f32,
+            mid_point[2] as f32
+        ));
+        
+
+        Mesh {
+            ignored_coordinate,
+            vertices,
+            indices,
+            max_length,
+            model_matrix,
+            binder
+        }
     }
 }

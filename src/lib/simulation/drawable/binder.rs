@@ -12,7 +12,7 @@ use gl;
 /// * `texture` - Texture in 2D to use over object to draw.
 /// 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Binder {
+pub(crate) struct Binder {
     pub(crate) vbo: u32,
     pub(crate) vao: u32,
     pub(crate) ebo: u32,

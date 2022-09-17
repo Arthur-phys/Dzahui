@@ -3,9 +3,11 @@ use cgmath::{Point3,Vector3,Point2,Matrix4, SquareMatrix};
 use std::time::Instant;
 use gl;
 
-use super::shader::Shader;
-use super::camera::{Camera, CameraBuilder, cone::Cone};
+use crate::solvers::Solver;
+
 use super::drawable::{Drawable, mesh::{Mesh, MeshBuilder}, text::CharacterSet, Bindable};
+use super::camera::{Camera, CameraBuilder, cone::Cone};
+use super::shader::Shader;
 
 
 /// # General Information
@@ -28,14 +30,15 @@ pub struct DzahuiWindow {
     context: ContextWrapper<PossiblyCurrent,Window>,
     pub(crate) geometry_shader: Shader,
     event_loop: Option<EventLoop<()>>,
-    text_shader: Shader,
     mouse_coordinates: Point2<f32>,
     character_set: CharacterSet,
     pub(crate) height: u32,
     pub(crate) width: u32,
     vertex_selector: Cone,
+    text_shader: Shader,
     pub timer: Instant,
     camera: Camera,
+    solver: Solver,
     mesh: Mesh,
 }
 
@@ -69,7 +72,8 @@ pub struct DzahuiWindowBuilder<A, B, C, D, E, F>
     mesh: MeshBuilder<E,F>,
     camera: CameraBuilder,
     height: Option<u32>,
-    width: Option<u32>
+    width: Option<u32>,
+    solver: Solver,
 }
 
 impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
@@ -82,7 +86,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
     {
 
     /// Creates default instance.
-    fn new(location: F) -> Self {
+    fn new(location: F, solver: Solver) -> Self {
         Self {
             geometry_vertex_shader: None,
             geometry_fragment_shader: None,
@@ -94,7 +98,8 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             camera: Camera::builder(),
             mesh: Mesh::builder(location),
             height: Some(600),
-            width: Some(800)
+            width: Some(800),
+            solver
         }
     }
     /// Changes geometry shader.
@@ -161,13 +166,6 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
     pub fn with_fov(self, fov: f32) -> Self {
         Self {
             camera: self.camera.with_fov(fov),
-            ..self
-        }
-    }
-    /// Changes camera speed (when implemented will move things arround)
-    pub fn with_speed(self, speed: f32) -> Self {
-        Self {
-            camera: self.camera.with_speed(speed),
             ..self
         }
     }
@@ -282,7 +280,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
         let mesh = self.mesh.build();
         
         // Camera created with selected configuration via shortcut functions.
-        let camera = self.camera.build(&mesh, self.height.unwrap(), self.width.unwrap());
+        let camera = self.camera.build(mesh.max_length, self.height.unwrap(), self.width.unwrap());
 
         // Vertex selector (cone)
         let angle = if let Some(angle) = self.vertex_selector { angle } else { 3.0 };
@@ -307,7 +305,8 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
             width: self.width.unwrap(),
             height: self.height.unwrap(),
             event_loop: Some(event_loop),
-            mouse_coordinates: Point2::new(0.0,0.0)
+            mouse_coordinates: Point2::new(0.0,0.0),
+            solver: self.solver
         }
     }
 }
@@ -315,7 +314,7 @@ impl<A,B,C,D,E,F> DzahuiWindowBuilder<A,B,C,D,E,F>
 impl DzahuiWindow {
 
     /// Creates a new default builder.
-    pub fn builder<A,B,C,D,E,F>(location: F) -> DzahuiWindowBuilder<A,B,C,D,E,F> where 
+    pub fn builder<A,B,C,D,E,F>(location: F, solver: Solver) -> DzahuiWindowBuilder<A,B,C,D,E,F> where 
     A: AsRef<str>,
     B: AsRef<str>,
     C: AsRef<str>,
@@ -323,7 +322,7 @@ impl DzahuiWindow {
     E: AsRef<str>, 
     F: AsRef<str> 
     {
-        DzahuiWindowBuilder::new(location)
+        DzahuiWindowBuilder::new(location, solver)
     }
 
     /// # General information
@@ -552,6 +551,5 @@ impl DzahuiWindow {
             self.context.swap_buffers().unwrap();
             counter+=1;
         })
-        
     }
 }

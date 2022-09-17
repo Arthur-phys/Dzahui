@@ -1,5 +1,6 @@
-mod simulation;
-mod solvers;
+pub mod simulation;
+pub mod solvers;
+pub(crate) mod mesh;
 mod error;
 
 // Reimports

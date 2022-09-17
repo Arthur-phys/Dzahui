@@ -19,7 +19,9 @@ pub enum Error {
     Io(std::io::Error),
     WrongDims,
     Custom(String),
-    Unimplemented
+    ExtensionNotAllowed(String,String),
+    Overflow,
+    Unimplemented,
 }
 
 impl std::fmt::Display for Error {
@@ -28,6 +30,8 @@ impl std::fmt::Display for Error {
             Error::Io(e) => format!("io error, {}", e),
             Error::WrongDims => format!("one or more of the provided elements do not have the correct dimensions"),
             Error::Custom(e) => format!("{}", e),
+            Error::ExtensionNotAllowed(file,action) => format!("Extension of file {} is not allowed for {}",file,action),
+            Error::Overflow => String::from("Overflow occurred"),
             Error::Unimplemented => format!("este error no debería existir, favor de reportar con el desarrollador")
         };
         write!(formatter, "{}", content)
