@@ -35,7 +35,7 @@ use vertex_type::VertexType;
 ///
 #[derive(Debug)]
 pub struct Mesh {
-    pub conditions: Vec<VertexType>,
+    pub conditions: Array1<VertexType>,
     pub max_length: f64,
     pub model_matrix: Matrix4<f32>,
     binder: Binder,
@@ -97,19 +97,14 @@ impl Drawable for Mesh {
 #[cfg(test)]
 mod test {
     use super::Mesh;
-    
-    #[test]
-    fn verify_coordinates_mesh() {
-        let y = Mesh::get_ignored_coordinate("/home/Arthur/Tesis/Dzahui/assets/untitled.obj");
-        assert!(y == Some(1));
-    }
+    use ndarray::Array1;
     
     #[test]
     fn parse_coordinates() {
     
         let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build();
-        assert!(new_mesh.vertices == vec![-1.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0]);
-        assert!(new_mesh.indices == vec![0,1,2]);
+        assert!(new_mesh.vertices == Array1::from_vec(vec![-1.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0]));
+        assert!(new_mesh.indices == Array1::from_vec(vec![0,1,2]));
     }
     
     #[test]

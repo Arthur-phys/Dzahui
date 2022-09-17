@@ -34,25 +34,17 @@ pub enum MeshDimension {
 #[derive(Debug)]
 pub struct MeshBuilder {
     location: String,
-    dimension: MeshDimension,
-    vertices: Option<Array1<f64>>,
-    indices: Option<Array1<usize>>,
-    conditions: Option<Array1<VertexType>>,
-    ignored_coordinate: Option<usize>
+    dimension: MeshDimension
 }
 
 impl MeshBuilder {
     
-    /// Creates default instance.
+    /// Creates default/initial instance.
     pub(crate) fn new<B>(location: B) -> Self
     where B: AsRef<str> {
         Self {
             location: location.as_ref().to_string(),
             dimension: MeshDimension::Two,
-            vertices: None,
-            indices: None,
-            conditions: None,
-            ignored_coordinate: None
         }
     }
     /// Changes mesh dimension.
@@ -65,124 +57,98 @@ impl MeshBuilder {
 
     /// Checks wether a line in an obj has only three vertices.
     /// Part of the checkup made to a given input file.
-    fn obj_vertex_checker(line: &str) -> Result<bool,&str> { 
+    fn obj_vertex_checker<A>(line: A) -> Result<bool,Error>
+    where A: AsRef<str> { 
         
-        let line_parts: Vec<&str> = line.split(" ").collect();
+        let line_parts: Vec<&str> = line.as_ref().split(" ").collect();
         if line_parts.len() != 4 {
-           return Err("Amount of numbers per vertex should be 3.");
+           return Err(Error::Parse("A vertex line should contain 3 vertices only".to_string()));
         }
         Ok(true)
     }
     
     /// Verifies the amount of face specifications per line is 3 and also that all of them have the correct syntax.
     /// Part of the checkup made to a given input file.
-    fn obj_face_checker(line: &str) -> Result<bool, &str> {
+    fn obj_face_checker<A>(line: A) -> Result<bool, Error>
+    where A: AsRef<str> {
 
-        let line_parts: Vec<&str> = line.split(" ").collect();
+        let line_parts: Vec<&str> = line.as_ref().split(" ").collect();
         // Check lenght of line
         if line_parts.len() != 4 {
-            return Err("Amount of face specification elements should be 3.");
+            return Err(Error::Parse("Amount of face specificating elements should be 3.".to_string()));
         }
         // Check for each part structur /a/b/c
         for face in line_parts {
             let face_parts: Vec<&str> = face.split("/").collect();
             if face_parts.len() != 3 {
-                return Err("Amount of elements per face specification should be 3 in format a/b/c.");
+                return Err(Error::Parse("Amount of elements per face specification should be 3 in format a/b/c.".to_string()));
             }
         }
         Ok(true)
     }
 
-    /// # General Information
-    ///
-    /// Checks a given .obj file one line at a time. Returns a true value if file can be used to create a mesh.
+    /// # General information
+    /// 
+    /// When a mesh is set to 2D, a verification is made on the file, ensuring that one of three coordinates is effectively zero.
+    /// Verifying returns the coordinate that is zero.
+    /// Later on, when reading the file again, coordinates are switched so that z-coordinate becomes the zero coordinate, regardless of it's previous role in .obj, 
+    /// and the original zero coordinate becomes populated with the z-coordinate values.
     /// 
     /// # Parameters
     /// 
-    /// * `file` - Path to a given .obj.
-    ///
-    fn check_obj<A>(file: A) -> Result<bool,Error>
-    where A: AsRef<str> {
-
-        let file = file.as_ref().to_string();
+    /// * `&self` - Only the fiule within self.¿ is needed to make the verification. 
+    /// 
+    fn ignored_coordinate(&self) -> Option<usize> {
         
-        if !file.ends_with(".obj") {
-            return Err(Error::ExtensionNotAllowed(file,String::from("Mesh creation")));
-        }
-
-        // Initializing file
-        let file = File::open(file)?;
-        let reader = BufReader::new(file).lines();
-
-        // For each line checks are made
-        reader.for_each(|line| {
-
-            let content = match line {
-                Ok(content) => content,
-                Result::Err(e) => panic!(),
-            };
-            if content.starts_with("v ") {
-
-                let res = Self::obj_vertex_checker(&content).expect("Not implemented"); 
-
-            } else if content.starts_with("f ") {
-
-                let res = Self::obj_face_checker(&content).expect("Not implemented");
-            }}
-        );
-
-        Ok(true)
-    }
-
-    fn get_ignored_coordinate<A: AsRef<str>>(file: A) -> Option<usize> {
-        // Obtain unused coordinate index from .obj file.
+        let file = File::open(self.location).expect("Error while opening the file. Does the file exists and is readable?");
         
-        let file = File::open(file.as_ref()).expect("Error while opening the file. Does the file exists and is readable?");
         // Sets to check which one has only one element (i.e. which one should be ignored)
         // To implement set from list, use HashMap for better performance.
         let mut x: HashMap<String,f32> = HashMap::new();
         let mut y: HashMap<String,f32> = HashMap::new();
         let mut z: HashMap<String,f32> = HashMap::new();
         
-        // Filtering lines based on them starting with 'v ' or not. These are the ones we're suppossed to check
-        let lines = BufReader::new(file).lines().filter(|line| {
-            match line {
-                Ok(content) => content.starts_with("v "),
-                Err(error) => panic!("Unable to read file propperly {:?}",error)
-            }
-        });
         
         // Every line is treated individually
-        lines.for_each(|line| {
+        BufReader::new(file).lines().for_each(|line| {
             
             match line {
-
                 Ok(coordinates) => {
-                    // splitting via space
-                    let mut coordinates_iter = coordinates.split(" ");
-                    // skip the 'v'
-                    coordinates_iter.next();
-                    // mapping to tuple for HashMap
-                    let coordinates_vec: [(String,f32);3] = coordinates_iter.map(|c_str| {
-                        // Necessary for -0.0 and 0.0 equality
-                        if c_str.starts_with("0.0") || c_str.starts_with("-0.0") {
-                            (String::from("0.0"),c_str.parse::<f32>().unwrap())
-                        } else {
-                            (c_str.to_string(),c_str.parse::<f32>().unwrap())
-                        }
-                    })
-                    // Now the result is transformed into an array of tuples size 3
-                    .into_iter().collect::<Vec<(String,f32)>>().try_into().expect(".obj's vertices should be composed of triads of numbers");
-                    // Inserting into HashMap
-                    // Do not use clone, find replacement if possible (String needs cloning because of ownership)
-                    x.insert(coordinates_vec[0].0.clone(),coordinates_vec[0].1);
-                    y.insert(coordinates_vec[1].0.clone(),coordinates_vec[1].1);
-                    z.insert(coordinates_vec[2].0.clone(),coordinates_vec[2].1);
+                
+                    if coordinates.starts_with("v ") {
+
+                        // splitting via space
+                        let mut coordinates_iter = coordinates.split(" ");
+                        // skip the 'v'
+                        coordinates_iter.next();
+                        
+                        // mapping to tuple for HashMap
+                        let coordinates_vec: [(String,f32);3] = coordinates_iter.map(|c_str| {
+                            // Necessary for -0.0 and 0.0 equality
+                            if c_str.starts_with("0.0") || c_str.starts_with("-0.0") {
+                                (String::from("0.0"),c_str.parse::<f32>().unwrap())
+                            } else {
+                                (c_str.to_string(),c_str.parse::<f32>().unwrap())
+                            }
+                        })
+
+                        // Now the result is transformed into an array of tuples size 3
+                        .into_iter().collect::<Vec<(String,f32)>>().try_into().expect(".obj's vertices should be composed of triads of numbers");
+                        // Inserting into HashMap
+                        // Do not use clone, find replacement if possible (String needs cloning because of ownership)
+                        x.insert(coordinates_vec[0].0.clone(),coordinates_vec[0].1);
+                        y.insert(coordinates_vec[1].0.clone(),coordinates_vec[1].1);
+                        z.insert(coordinates_vec[2].0.clone(),coordinates_vec[2].1);
+
+                    } else {
+
+                    }
                 },
                 // Error case of line matching
                 Err(error) => panic!("Unable to read file propperly {:?}",error)
             }
         });
+
         // After for_each, we verify which coordinate is constant
         if x.values().count() == 1 {
             Some(0)
@@ -219,12 +185,11 @@ impl MeshBuilder {
     }
 
     /// Obtains variables from .obj. To use after file check.
-    fn get_vertices_indices_and_conditions<A: AsRef<str>>(&self) -> (Array1<f64>,Array1<u32>,f64,[f64;3]) {
+    fn get_vertices_indices_and_conditions(&self, ignored_coordinate: Option<usize>) -> (Array1<f64>,Array1<u32>,Array1<VertexType>,f64,[f64;3]) {
 
         // Initial variables
         let mut coordinates: Array1<f64> = Array1::from_vec(vec![]);
         let mut triangles: Array1<u32> = Array1::from_vec(vec![]);
-        let ignored_coordinate = MeshBuilder::get_ignored_coordinate(self.location);
 
         let file = File::open(self.location).expect("Error while opening file. Does file exists and is readable?");
 
@@ -238,8 +203,6 @@ impl MeshBuilder {
             ("z_max",0.0),
         ]);
 
-
-            
         let reader = BufReader::new(file).lines();    
         reader.for_each(|line| {
 
@@ -256,7 +219,7 @@ impl MeshBuilder {
                         let mut coordinate: Vec<f64> = coordinates_iter.map(|c| c.parse::<f64>().unwrap()).collect();
 
                         // If there is an ignored coordinate:
-                        if let Some(ic) = self.ignored_coordinate {
+                        if let Some(ic) = ignored_coordinate {
                             coordinate.remove(ic);
                             // Last coordinate (z) becomes zero
                             coordinate.push(0.0);
@@ -290,7 +253,7 @@ impl MeshBuilder {
                             *y_max = coordinate[1];
                         }
 
-                        // If 'get_ignored_coordinate' passes (in the case of D2), this unwrap is warranted to succeed.
+                        // If 'ignored_coordinate' passes (in the case of D2), this unwrap is warranted to succeed.
                         coordinates.append(ndarray::Axis(0),Array1::from_vec(coordinate).view());
                     }
                         // Whenever there is a f
@@ -315,6 +278,9 @@ impl MeshBuilder {
                 Err(error) => panic!("Unable to read file propperly {:?}",error)
             }
         });
+
+        // Initializing array of conditions for mesh
+        let conditions: Array1<VertexType> = Array1::from_vec(Vec::with_capacity(coordinates.len() / 3));
         
         // Obtain middle point as if object was a parallelepiped
         let middle_point = [max_min.get("x_max").unwrap()-max_min.get("x_min").unwrap() / 2.0,
@@ -322,7 +288,7 @@ impl MeshBuilder {
         
         let max_distance = Self::compare_distances(&max_min);
         
-        (coordinates,triangles,max_distance,middle_point)
+        (coordinates,triangles,conditions,max_distance,middle_point)
     }
 
     /// # General Information
@@ -336,17 +302,16 @@ impl MeshBuilder {
     pub fn build(self) -> Mesh {
 
         let binder = Binder::new();
-        let ignored_coordinate = MeshBuilder::get_ignored_coordinate(self.location);
 
-        let (vertices, indices, max_length, mid_point) = match self.dimension {
+        let (vertices, indices, conditions, max_length, mid_point) = match self.dimension {
             
             MeshDimension::Two => {
                 // Obtained coordinates from 'generate_fields()' function
-                self.get_vertices_indices_and_conditions()
+                let ignored_coordinate = self.ignored_coordinate();
+                self.get_vertices_indices_and_conditions(ignored_coordinate)
             },
-
             MeshDimension::Three => {
-                self.get_vertices_indices_and_conditions()
+                self.get_vertices_indices_and_conditions(None)
             }
         };
 
@@ -363,7 +328,23 @@ impl MeshBuilder {
             indices,
             max_length,
             model_matrix,
-            binder
+            binder,
+            conditions
         }
     }
+}
+
+#[cfg(test)]
+mod test {
+
+    use super::MeshBuilder;
+
+    #[test]
+    fn verify_coordinates_mesh() {
+
+        let new_builder = MeshBuilder::new("/home/Arthur/Tesis/Dzahui/assets/untitled.obj");
+        let y = new_builder.ignored_coordinate();
+        assert!(y == Some(1));
+    }
+
 }

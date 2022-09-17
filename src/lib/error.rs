@@ -22,6 +22,7 @@ pub enum Error {
     ExtensionNotAllowed(String,String),
     Overflow,
     Unimplemented,
+    Parse(String),
 }
 
 impl std::fmt::Display for Error {
@@ -32,6 +33,7 @@ impl std::fmt::Display for Error {
             Error::Custom(e) => format!("{}", e),
             Error::ExtensionNotAllowed(file,action) => format!("Extension of file {} is not allowed for {}",file,action),
             Error::Overflow => String::from("Overflow occurred"),
+            Error::Parse(e) => format!("Error while parsing file: {}",e),
             Error::Unimplemented => format!("este error no debería existir, favor de reportar con el desarrollador")
         };
         write!(formatter, "{}", content)

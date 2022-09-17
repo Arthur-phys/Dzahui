@@ -1,4 +1,5 @@
 use cgmath::{Vector3, Vector4, Point3, Point2, Transform, Matrix4, InnerSpace};
+use ndarray::{Array1,Axis};
 
 #[derive(Debug)]
 pub struct Cone {
@@ -50,10 +51,12 @@ impl Cone {
     }
 
 
-    pub(crate) fn obtain_nearest_intersection(&self, vertices: &Vec<Vertex>, view_matrix: &Matrix4<f32>) -> Option<(f32,usize)> {
+    pub(crate) fn obtain_nearest_intersection(&self, vertices: &Array1<f64>, view_matrix: &Matrix4<f32>) -> Option<(f32,usize)> {
 
         // Filter objects to only those that are partially or completelly inside cone
-        let filtered_objects: Vec<&Vertex> = vertices.iter().filter(|sphere| {
+        let dim_1 = vertices.len() / 3;
+        let filtered_objects: Array1<f64> = vertices.to_shared().reshape((dim_1,3)).axis_iter(Axis(0)).filter(|vertex| {
+            let view_center = vertex.get_view_center(view_matrix);
             let view_center = sphere.get_view_center(view_matrix);
             let x = view_center.x;
             let y = view_center.y;
