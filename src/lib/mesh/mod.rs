@@ -1,8 +1,6 @@
 pub(crate) mod mesh_builder;
 pub(crate) mod vertex_type;
 
-use std::{fs::File,io::{BufReader, BufRead}};
-use std::collections::HashMap;
 use ndarray::Array1;
 use cgmath::Matrix4;
 use num::ToPrimitive;
