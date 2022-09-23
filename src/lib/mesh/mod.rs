@@ -100,7 +100,7 @@ mod test {
     #[test]
     fn parse_coordinates() {
     
-        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build();
+        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build().unwrap();
         assert!(new_mesh.vertices == Array1::from_vec(vec![-1.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0]));
         assert!(new_mesh.indices == Array1::from_vec(vec![0,1,2]));
     }
@@ -108,7 +108,7 @@ mod test {
     #[test]
     fn is_max_distance() {
     
-        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build();
+        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build().unwrap();
         println!("{}",new_mesh.max_length);
         assert!(new_mesh.max_length >= 1.90);
         assert!(new_mesh.max_length <= 2.10);

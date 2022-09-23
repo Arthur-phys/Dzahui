@@ -170,10 +170,17 @@ impl DzahuiWindowBuilder {
             ..self
         }
     }
-    /// Changes mesh dimension (originally in 2D)
+    /// Changes mesh dimension to 3D (originally in 2D)
     pub fn with_mesh_in_3d(self) -> Self {
         Self {
             mesh: self.mesh.with_mesh_in_3d(),
+            ..self
+        }
+    }
+    /// Changes mesh dimension to 1D (originally in 2D)
+    pub fn with_mesh_in_1d(self) -> Self {
+        Self {
+            mesh: self.mesh.with_mesh_in_1d(),
             ..self
         }
     }
@@ -257,7 +264,7 @@ impl DzahuiWindowBuilder {
         let geometry_shader = Shader::new(vertex_shader,fragment_shader).unwrap();
         
         // Creating mesh based on initial provided file.
-        let mesh = self.mesh.build();
+        let mesh = self.mesh.build().unwrap();
         
         // Camera created with selected configuration via shortcut functions.
         let camera = self.camera.build(mesh.max_length as f32, self.height.unwrap(), self.width.unwrap());

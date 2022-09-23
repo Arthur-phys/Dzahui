@@ -18,6 +18,7 @@ use super::{Mesh, vertex_type::VertexType};
 /// 
 #[derive(Debug)]
 pub enum MeshDimension {
+    One,
     Two,
     Three
 }
@@ -57,10 +58,18 @@ impl MeshBuilder {
         }
     }
 
-    /// Changes mesh dimension.
+    /// Changes mesh dimension to 3D.
     pub(crate) fn with_mesh_in_3d(self) -> Self {
         Self {
             dimension: MeshDimension::Three,
+            ..self
+        }
+    }
+
+    /// Changes mesh dimension to 1D.
+    pub(crate) fn with_mesh_in_1d(self) -> Self {
+        Self {
+            dimension: MeshDimension::One,
             ..self
         }
     }
@@ -114,18 +123,22 @@ impl MeshBuilder {
 
     /// # General information
     /// 
-    /// When a mesh is set to 2D, a verification is made on the file, ensuring that one of three coordinates is effectively zero.
+    /// When a mesh is set to 2D or 1D, a verification is made on the file, ensuring that one of three coordinates is effectively constant.
     /// Verifying returns the coordinate that is zero.
-    /// Later on, when reading the file again, coordinates are switched so that z-coordinate becomes the zero coordinate, regardless of it's previous role in .obj, 
+    /// Later on, when reading the file again, coordinates are switched so that z-coordinate becomes a zero coordinate, regardless of it's previous values in .obj, 
     /// and the original zero coordinate becomes populated with the z-coordinate values.
     /// 
     /// # Parameters
     /// 
-    /// * `&self` - Only the file within self is needed to make the verification. 
+    /// * `&self` - Only the file and dimension within self is needed to make the verification. 
     /// 
-    fn ignored_coordinate(&self) -> Option<usize> {
+    fn ignored_coordinate(&self) -> Result<[bool;3],Error> {
+
+        if let MeshDimension::Three = self.dimension {
+            return Ok([false;3]);
+        }
         
-        let file = File::open(&self.location).expect("Error while opening the file. Does the file exists and is readable?");
+        let file = File::open(&self.location)?;
         
         // Sets to check which one has only one element (i.e. which one should be ignored)
         // To implement set from list, use HashMap for better performance.
@@ -175,14 +188,30 @@ impl MeshBuilder {
         });
 
         // After for_each, we verify which coordinate is constant
-        if x.values().count() == 1 {
-            Some(0)
-        } else if y.values().count() == 1 {
-            Some(1)
-        } else if z.values().count() == 1 {
-            Some(2)
-        } else {
-            panic!("Only coordinates over a plane paralell to x, y or z axis are accepted. Check .obj file.");
+        match self.dimension {
+            MeshDimension::One => {
+                if x.values().count() == 1 && y.values().count() == 1 {
+                    Ok([true,true,false])
+                } else if y.values().count() == 1 && z.values().count() == 1  {
+                    Ok([false,true,true])
+                } else if z.values().count() == 1 && x.values().count() == 1 {
+                    Ok([true,false,true])
+                } else {
+                    panic!("Only coordinates over a line paralell to x, y or z planes are accepted. Check .obj file.");
+                }
+            },
+            MeshDimension::Two => {
+                if x.values().count() == 1 {
+                    Ok([true,false,false])
+                } else if y.values().count() == 1 {
+                    Ok([false,true,false])
+                } else if z.values().count() == 1 {
+                    Ok([false,false,true])
+                } else {
+                    panic!("Only coordinates over a plane paralell to x, y or z axis are accepted. Check .obj file.");
+                }
+            },
+            _ => Ok([false;3])
         }
     }
 
@@ -210,7 +239,7 @@ impl MeshBuilder {
     }
 
     /// Obtains variables from .obj. To use after file check.
-    fn get_vertices_indices_and_conditions(&self, ignored_coordinate: Option<usize>) -> Obj {
+    fn get_vertices_indices_and_conditions(&self, ignored_coord: [bool;3]) -> Obj {
 
         // Initial variables
         let mut vertices: Array1<f64> = Array1::from_vec(vec![]);
@@ -244,10 +273,16 @@ impl MeshBuilder {
                         };
 
                         // If there is an ignored coordinate:
-                        if let Some(ic) = ignored_coordinate {
-                            coordinate.remove(ic);
-                            // Last coordinate (z) becomes zero
-                            coordinate.push(0.0);
+                        if ignored_coord.contains(&true) {
+                            let mut i: usize = 0;
+                            for (index,coord) in ignored_coord.iter().enumerate() {
+                                if *coord {
+                                    coordinate.remove(index - i);
+                                    // Last coordinate becomes zero
+                                    coordinate.push(0.0);
+                                    i += 1;
+                                }
+                            }
                         } else {
                             // Check for z only on 3d
                             // Chech min and max value
@@ -329,21 +364,11 @@ impl MeshBuilder {
     /// 
     /// ddd
     /// 
-    pub(crate) fn build(self) -> Mesh {
+    pub(crate) fn build(self) -> Result<Mesh,Error> {
 
         let binder = Binder::new();
-
-        let obj = match self.dimension {
-            
-            MeshDimension::Two => {
-                // Obtained coordinates from 'generate_fields()' function
-                let ignored_coordinate = self.ignored_coordinate();
-                self.get_vertices_indices_and_conditions(ignored_coordinate)
-            },
-            MeshDimension::Three => {
-                self.get_vertices_indices_and_conditions(None)
-            }
-        };
+        let ignored_coordinate = self.ignored_coordinate()?;
+        let obj = self.get_vertices_indices_and_conditions(ignored_coordinate);
 
         // Translate matrix to given point
         let model_matrix = Matrix4::from_translation(Vector3::new(
@@ -353,14 +378,14 @@ impl MeshBuilder {
         ));
         
 
-        Mesh {
+        Ok(Mesh {
             vertices: obj.vertices,
             indices: obj.indices,
             max_length: obj.max_length,
             conditions: obj.conditions,
             model_matrix,
             binder,
-        }
+        })
     }
 }
 
@@ -373,8 +398,16 @@ mod test {
     fn verify_coordinates_mesh() {
 
         let new_builder = MeshBuilder::new("/home/Arthur/Tesis/Dzahui/assets/untitled.obj");
-        let y = new_builder.ignored_coordinate();
-        assert!(y == Some(1));
+        let y = new_builder.ignored_coordinate().unwrap();
+        assert!(y == [false,true,false]);
+    }
+
+    #[test]
+    fn verify_coordinates_mesh_1d() {
+
+        let new_builder = MeshBuilder::new("/home/Arthur/Tesis/Dzahui/assets/1dbar.obj").with_mesh_in_1d();
+        let y = new_builder.ignored_coordinate().unwrap();
+        assert!(y == [false,true,true]);
     }
 
 }
