@@ -27,7 +27,6 @@ pub enum MeshDimension {
 struct Obj {
     pub vertices: Array1<f64>,
     pub indices: Array1<u32>,
-    pub conditions: Array1<VertexType>,
     pub max_length: f64,
     pub middle_point: [f64;3]
 }
@@ -239,7 +238,7 @@ impl MeshBuilder {
     }
 
     /// Obtains variables from .obj. To use after file check.
-    fn get_vertices_indices_and_conditions(&self, ignored_coord: [bool;3]) -> Obj {
+    fn get_vertices_and_indices(&self, ignored_coord: [bool;3]) -> Obj {
 
         // Initial variables
         let mut vertices: Array1<f64> = Array1::from_vec(vec![]);
@@ -337,9 +336,6 @@ impl MeshBuilder {
                 Err(error) => panic!("Unable to read file propperly {:?}",error)
             }
         });
-
-        // Initializing array of conditions for mesh
-        let conditions: Array1<VertexType> = Array1::from_vec(Vec::with_capacity(vertices.len() / 3));
         
         // Obtain middle point as if object was a parallelepiped
         let middle_point = [max_min.get("x_max").unwrap()-max_min.get("x_min").unwrap() / 2.0,
@@ -350,10 +346,68 @@ impl MeshBuilder {
         Obj {
             vertices,
             indices,
-            conditions,
             max_length,
             middle_point
         }
+    }
+
+    /// # General Information
+    /// 
+    /// Basically an implementation of merge sort.
+    /// Helps indetify vertices of mesh.
+    /// First and last vertices are boundaries. Everything else is an internal vertex.
+    /// 
+    /// 
+    fn define_mesh_vertices_1d(vertices: &Array1<f64>) -> Array1<VertexType> {
+
+        let non_zero_vertices: Vec<f64> = vertices.iter().filter_map(|x: &f64| {
+            if *x != 0.0 {
+                Some(*x)
+            } else {
+                None
+            }
+        }).collect();
+
+        fn merge(mut initial_array: Array1<f64>, left_array: Array1<f64>, right_array: Array1<f64>) -> Array1<f64> {
+            let mut i = 0;
+            let mut j = 0;
+            let mut k = 0;
+
+            while i < left_array.len() && j < right_array.len() {
+                if left_array[i] < right_array[j] {
+                    initial_array[k] = left_array[i];
+                    i += 1;
+                } else {
+                    initial_array[k] = right_array[j];
+                    j += 1;
+                }
+                k += 1;
+            }
+            if i >= left_array.len() {
+                initial_array[k..] = right_array[j..];
+            } else {
+                initial_array[k..] = left_array[i..]
+            }
+
+            initial_array
+        }
+
+        fn merge_sort(mut arr: Array1<f64>) -> Array1<f64> {
+            let len = arr.len();
+            if len < 2 {
+                return arr
+            } else {
+                let mid = len / 2;
+                let left = arr[..mid];
+                let right = arr[len-mid..];
+                let left = merge_sort(left);
+                let right = merge_sort(right);
+                merge(arr,left,right)
+            }
+        }
+
+
+        todo!()
     }
 
     /// # General Information
@@ -368,7 +422,7 @@ impl MeshBuilder {
 
         let binder = Binder::new();
         let ignored_coordinate = self.ignored_coordinate()?;
-        let obj = self.get_vertices_indices_and_conditions(ignored_coordinate);
+        let obj = self.get_vertices_and_indices(ignored_coordinate);
 
         // Translate matrix to given point
         let model_matrix = Matrix4::from_translation(Vector3::new(
@@ -377,12 +431,14 @@ impl MeshBuilder {
             obj.middle_point[2] as f32
         ));
         
+        // Initializing array of conditions for mesh
+        let conditions: Array1<VertexType> = Array1::from_vec(Vec::with_capacity(obj.vertices.len() / 3));
 
         Ok(Mesh {
             vertices: obj.vertices,
             indices: obj.indices,
             max_length: obj.max_length,
-            conditions: obj.conditions,
+            conditions,
             model_matrix,
             binder,
         })
