@@ -238,7 +238,7 @@ impl MeshBuilder {
     }
 
     /// Obtains variables from .obj. To use after file check.
-    fn get_vertices_and_indices(&self, ignored_coord: [bool;3]) -> Obj {
+    fn get_vertices_and_indices(&self, ignored_coord: [bool;3]) -> Result<Obj, Error> {
 
         // Initial variables
         let mut vertices: Array1<f64> = Array1::from_vec(vec![]);
@@ -257,7 +257,7 @@ impl MeshBuilder {
         ]);
 
         let reader = BufReader::new(file).lines();    
-        reader.for_each(|line| {
+        reader.map(|line| -> Result<(), Error> {
 
             // Each line we're interested in is either a 'v ' or an 'f '
             match line {
@@ -335,7 +335,9 @@ impl MeshBuilder {
                 // Error case of line matching
                 Err(error) => panic!("Unable to read file propperly {:?}",error)
             }
-        });
+
+            Ok(())
+        }).collect::<Result<Vec<_>,_>>()?;
         
         // Obtain middle point as if object was a parallelepiped
         let middle_point = [max_min.get("x_max").unwrap()-max_min.get("x_min").unwrap() / 2.0,
@@ -343,12 +345,12 @@ impl MeshBuilder {
         
         let max_length = Self::compare_distances(&max_min);
 
-        Obj {
+        Ok(Obj {
             vertices,
             indices,
             max_length,
             middle_point
-        }
+        })
     }
 
     /// # General Information
@@ -422,7 +424,7 @@ impl MeshBuilder {
 
         let binder = Binder::new();
         let ignored_coordinate = self.ignored_coordinate()?;
-        let obj = self.get_vertices_and_indices(ignored_coordinate);
+        let obj = self.get_vertices_and_indices(ignored_coordinate)?;
 
         // Translate matrix to given point
         let model_matrix = Matrix4::from_translation(Vector3::new(
