@@ -1,6 +1,6 @@
 use std::io::{BufReader,BufRead};
 use cgmath::{Matrix4,Vector3};
-use ndarray::Array1;
+use ndarray::{Array1,s};
 use std::collections::HashMap;
 use std::fs::File;
 
@@ -38,7 +38,7 @@ struct Obj {
 /// # Fields
 /// 
 /// * `location` - Path to mesh's `.obj`.
-/// * `dimension` - Enum with mesh's dimension. Needs to be set to enable/disable checking for repeated coordinate in `.obj` if it's 2D.
+/// * `dimension` - Enum with mesh's dimension. Needs to be set to enable/disable checking for repeated coordinate in `.obj` if it's 2D or 1D.
 ///
 #[derive(Debug)]
 pub(crate) struct MeshBuilder {
@@ -122,20 +122,13 @@ impl MeshBuilder {
 
     /// # General information
     /// 
-    /// When a mesh is set to 2D or 1D, a verification is made on the file, ensuring that one of three coordinates is effectively constant.
-    /// Verifying returns the coordinate that is zero.
-    /// Later on, when reading the file again, coordinates are switched so that z-coordinate becomes a zero coordinate, regardless of it's previous values in .obj, 
-    /// and the original zero coordinate becomes populated with the z-coordinate values.
+    /// Checks values of x, y and z coordinates to see if one or two of them is effectively constant.
     /// 
     /// # Parameters
     /// 
-    /// * `&self` - Only the file and dimension within self is needed to make the verification. 
+    /// * `&self` - Only the file in self is needed to make the verification.
     /// 
-    fn ignored_coordinate(&self) -> Result<[bool;3],Error> {
-
-        if let MeshDimension::Three = self.dimension {
-            return Ok([false;3]);
-        }
+    fn check_for_constant_coordinates(&self) -> Result<[HashMap<String,f32>;3],Error> {
         
         let file = File::open(&self.location)?;
         
@@ -185,56 +178,7 @@ impl MeshBuilder {
                 Err(error) => panic!("Unable to read file propperly {:?}",error)
             }
         });
-
-        // After for_each, we verify which coordinate is constant
-        match self.dimension {
-            MeshDimension::One => {
-                if x.values().count() == 1 && y.values().count() == 1 {
-                    Ok([true,true,false])
-                } else if y.values().count() == 1 && z.values().count() == 1  {
-                    Ok([false,true,true])
-                } else if z.values().count() == 1 && x.values().count() == 1 {
-                    Ok([true,false,true])
-                } else {
-                    panic!("Only coordinates over a line paralell to x, y or z planes are accepted. Check .obj file.");
-                }
-            },
-            MeshDimension::Two => {
-                if x.values().count() == 1 {
-                    Ok([true,false,false])
-                } else if y.values().count() == 1 {
-                    Ok([false,true,false])
-                } else if z.values().count() == 1 {
-                    Ok([false,false,true])
-                } else {
-                    panic!("Only coordinates over a plane paralell to x, y or z axis are accepted. Check .obj file.");
-                }
-            },
-            _ => Ok([false;3])
-        }
-    }
-
-    /// Gets biggest distance from hashmap with specific entries related to farthest values in a mesh.
-    fn compare_distances(max_min: &HashMap<&str,f64>) -> f64 {
-
-        let x_min = max_min.get("x_min").unwrap();
-        let y_min = max_min.get("y_min").unwrap();
-        let z_min = max_min.get("z_min").unwrap();
-        let x_max = max_min.get("x_max").unwrap();
-        let y_max = max_min.get("y_max").unwrap();
-        let z_max = max_min.get("z_max").unwrap();
-        
-        let d_x = *x_max-*x_min;
-        let d_y = *y_max-*y_min;
-        let d_z = *z_max-*z_min;
-
-        if d_x >= d_y && d_x >= d_z {
-            d_x
-        } else if d_y >= d_z && d_y >= d_x {
-            d_y
-        } else {
-            d_z
-        }
+        Ok([x,y,z])
     }
 
     /// Obtains variables from .obj. To use after file check.
@@ -312,13 +256,12 @@ impl MeshBuilder {
                             *y_max = coordinate[1];
                         }
 
-                        // If 'ignored_coordinate' passes (in the case of D2), this unwrap is warranted to succeed.
                         match vertices.append(ndarray::Axis(0),Array1::from_vec(coordinate).view()) {
                             Err(err) => panic!("{}",err),
                             _ => ()
                         }
                     }
-                        // Whenever there is a f
+                        // Whenever there is an f
                         else if content.starts_with("f ") {
                             // Splitting via single space
                             let triangle = match MeshBuilder::obj_face_checker(&content) {
@@ -351,63 +294,27 @@ impl MeshBuilder {
         }
     }
 
-    /// # General Information
-    /// 
-    /// Basically an implementation of merge sort.
-    /// Helps indetify vertices of mesh.
-    /// First and last vertices are boundaries. Everything else is an internal vertex.
-    /// 
-    /// 
-    fn define_mesh_vertices_1d(vertices: &Array1<f64>) -> Array1<VertexType> {
+    /// Gets biggest distance from hashmap with specific entries related to farthest values in a mesh.
+    fn compare_distances(max_min: &HashMap<&str,f64>) -> f64 {
 
-        let non_zero_vertices: Vec<f64> = vertices.iter().filter_map(|x: &f64| {
-            if *x != 0.0 {
-                Some(*x)
-            } else {
-                None
-            }
-        }).collect();
+        let x_min = max_min.get("x_min").unwrap();
+        let y_min = max_min.get("y_min").unwrap();
+        let z_min = max_min.get("z_min").unwrap();
+        let x_max = max_min.get("x_max").unwrap();
+        let y_max = max_min.get("y_max").unwrap();
+        let z_max = max_min.get("z_max").unwrap();
+        
+        let d_x = *x_max-*x_min;
+        let d_y = *y_max-*y_min;
+        let d_z = *z_max-*z_min;
 
-        fn merge(mut initial_array: Array1<f64>, left_array: Array1<f64>, right_array: Array1<f64>) -> Array1<f64> {
-            let mut i = 0;
-            let mut j = 0;
-            let mut k = 0;
-
-            while i < left_array.len() && j < right_array.len() {
-                if left_array[i] < right_array[j] {
-                    initial_array[k] = left_array[i];
-                    i += 1;
-                } else {
-                    initial_array[k] = right_array[j];
-                    j += 1;
-                }
-                k += 1;
-            }
-            if i >= left_array.len() {
-                initial_array[k..] = right_array[j..];
-            } else {
-                initial_array[k..] = left_array[i..]
-            }
-
-            initial_array
+        if d_x >= d_y && d_x >= d_z {
+            d_x
+        } else if d_y >= d_z && d_y >= d_x {
+            d_y
+        } else {
+            d_z
         }
-
-        fn merge_sort(mut arr: Array1<f64>) -> Array1<f64> {
-            let len = arr.len();
-            if len < 2 {
-                return arr
-            } else {
-                let mid = len / 2;
-                let left = arr[..mid];
-                let right = arr[len-mid..];
-                let left = merge_sort(left);
-                let right = merge_sort(right);
-                merge(arr,left,right)
-            }
-        }
-
-
-        todo!()
     }
 
     /// # General Information
@@ -421,6 +328,98 @@ impl MeshBuilder {
     pub(crate) fn build(self) -> Result<Mesh,Error> {
 
         let binder = Binder::new();
+        let mut vertices: Vec<f64> = vec![];
+        let mut indices: Vec<u32> = vec![];
+        let mut codnitions: Vec<VertexType> = vec![];
+        let file = File::open(&self.location)?;
+        
+        match self.dimension {
+            MeshDimension::One => {
+                
+                // Check for two constant coordinates
+                let [set_x,set_y,set_z]= self.check_for_constant_coordinates()?;
+
+                let constant_coordinates: [usize;2] = if set_x.values().count() == 1 && set_y.values().count() == 1 {
+                    [1,0]
+                } else if set_y.values().count() == 1 && set_z.values().count() == 1  {
+                    [2,1]
+                } else if set_z.values().count() == 1 && set_x.values().count() == 1 {
+                    [2,0]
+                } else {
+                    return Err(Error::Parse("Only coordinates over a line paralell to x, y or z axis are accepted. Check .obj file.".to_string()));
+                };
+
+                // Obtain ordered vertices
+
+                let reader = BufReader::new(file).lines();    
+                reader.for_each(|line| {
+                    // Each line we're interested in starts with 'v '
+                    match line {
+                        
+                        Ok(content) => {
+                            // Whenever there is a v
+                            if content.starts_with("v ") {
+                                // Check line integrity
+                                let mut coordinate = match MeshBuilder::obj_vertex_checker(&content) {
+                                    Ok(coord) => coord,
+                                    Err(error) => panic!("{}",error.to_string())
+                                };
+
+                                for coord in constant_coordinates {
+                                    coordinate.remove(coord);
+                                    coordinate.push(0.0);
+                                }
+
+                                let new_value = coordinate[0];
+                                vertices.append(&mut coordinate);
+                                // Insertion sort skipping zero coordinates
+                                let mut j = vertices.len() - 5 - 1;
+                                while j>=0 && vertices[j] > new_value {
+                                    vertices[j+3] = vertices[j];
+                                    j-=3;
+                                }
+                                vertices[j+3] = new_value;
+                            }
+                        },
+                        // Error case of line matching
+                        Err(error) => panic!("Unable to read file propperly {}",error)
+                    }
+                });
+
+                let vertices_len: u32 = vertices.len() as u32;
+                // Create a second vector of vertices above the first one to make a bar (seen on screen, for solving it serves no purpose) and append it to the first.
+                let max_width = vertices[0] - vertices[vertices_len as usize - 3];
+                let prom_width = max_width * (3 / vertices_len) as f64;
+                vertices.append(&mut vertices.iter().enumerate().map(|(idx,x)| {if idx % 3 == 1 {prom_width} else {*x}}).collect::<Vec<f64>>());
+                // Create indices for drawing
+                indices.append(&mut vec![0,1,vertices_len]);
+                indices.append(&mut vec![(vertices_len - 1),(vertices_len * 2 - 1),(vertices_len * 2 - 2)]);
+                for i in 1..(vertices_len) - 1 {
+                    indices.append(&mut vec![i,i + vertices_len,i + vertices_len - 1,i,i + 1,i + vertices_len])
+                }
+                
+            },
+            MeshDimension::Two => {
+                
+                // Check for one constant coordinate 
+                let [set_x,set_y,set_z]= self.check_for_constant_coordinates()?;
+                
+                let constant_coordinate: u32 = if set_x.values().count() == 1 {
+                    1
+                } else if set_y.values().count() == 1 {
+                    2
+                } else if set_z.values().count() == 1 {
+                    3
+                } else {
+                    return Err(Error::Parse("Only coordinates over a plane paralell to x, y or z plane are accepted. Check .obj file.".to_string()));
+                };
+
+            },
+            MeshDimension::Three => {
+
+            }
+        }
+
         let ignored_coordinate = self.ignored_coordinate()?;
         let obj = self.get_vertices_and_indices(ignored_coordinate);
 
