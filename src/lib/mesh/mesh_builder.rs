@@ -1,11 +1,11 @@
 use std::io::{BufReader,BufRead};
 use cgmath::{Matrix4,Vector3};
-use ndarray::{Array1,s};
+use ndarray::{Array1,arr1};
 use std::collections::HashMap;
 use std::fs::File;
 
 use crate::{simulation::drawable::binder::Binder,Error};
-use super::{Mesh, vertex_type::VertexType};
+use super::{Mesh, vertex_type::{VertexType, Condition}};
 
 /// # General Information
 /// 
@@ -182,119 +182,119 @@ impl MeshBuilder {
     }
 
     /// Obtains variables from .obj. To use after file check.
-    fn get_vertices_and_indices(&self, ignored_coord: [bool;3]) -> Result<Obj, Error> {
+    // fn get_vertices_and_indices(&self, ignored_coord: [bool;3]) -> Result<Obj, Error> {
 
-        // Initial variables
-        let mut vertices: Array1<f64> = Array1::from_vec(vec![]);
-        let mut indices: Array1<u32> = Array1::from_vec(vec![]);
+    //     // Initial variables
+    //     let mut vertices: Array1<f64> = Array1::from_vec(vec![]);
+    //     let mut indices: Array1<u32> = Array1::from_vec(vec![]);
 
-        let file = File::open(&self.location).expect("Error while opening file. Does file exists and is readable?");
+    //     let file = File::open(&self.location).expect("Error while opening file. Does file exists and is readable?");
 
-        // Coordinates to calculate max length and closest element to 0
-        let mut max_min = HashMap::from([
-            ("x_min",0.0),
-            ("y_min",0.0),
-            ("z_min",0.0),
-            ("x_max",0.0),
-            ("y_max",0.0),
-            ("z_max",0.0),
-        ]);
+    //     // Coordinates to calculate max length and closest element to 0
+    //     let mut max_min = HashMap::from([
+    //         ("x_min",0.0),
+    //         ("y_min",0.0),
+    //         ("z_min",0.0),
+    //         ("x_max",0.0),
+    //         ("y_max",0.0),
+    //         ("z_max",0.0),
+    //     ]);
 
-        let reader = BufReader::new(file).lines();    
-        reader.map(|line| -> Result<(), Error> {
+    //     let reader = BufReader::new(file).lines();    
+    //     reader.map(|line| -> Result<(), Error> {
 
-            // Each line we're interested in is either a 'v ' or an 'f '
-            match line {
-                Ok(content) => {
-                    // Whenever there is a v
-                    if content.starts_with("v ") {
+    //         // Each line we're interested in is either a 'v ' or an 'f '
+    //         match line {
+    //             Ok(content) => {
+    //                 // Whenever there is a v
+    //                 if content.starts_with("v ") {
                         
-                        // Check line integrity
-                        let mut coordinate = match MeshBuilder::obj_vertex_checker(&content) {
-                            Ok(coord) => coord,
-                            Err(error) => panic!("{}",error.to_string())
-                        };
+    //                     // Check line integrity
+    //                     let mut coordinate = match MeshBuilder::obj_vertex_checker(&content) {
+    //                         Ok(coord) => coord,
+    //                         Err(error) => panic!("{}",error.to_string())
+    //                     };
 
-                        // If there is an ignored coordinate:
-                        if ignored_coord.contains(&true) {
-                            let mut i: usize = 0;
-                            for (index,coord) in ignored_coord.iter().enumerate() {
-                                if *coord {
-                                    coordinate.remove(index - i);
-                                    // Last coordinate becomes zero
-                                    coordinate.push(0.0);
-                                    i += 1;
-                                }
-                            }
-                        } else {
-                            // Check for z only on 3d
-                            // Chech min and max value
-                            let z_min = max_min.get_mut("z_min").unwrap();
-                            if &coordinate[2] < z_min {
-                                *z_min = coordinate[2];
-                            }
-                            let z_max = max_min.get_mut("z_max").unwrap();
-                            if &coordinate[2] > z_max {
-                                *z_max = coordinate[2];
-                            }
-                        }
-                        // Check for min and max
-                        let x_min = max_min.get_mut("x_min").unwrap();
-                        if &coordinate[0] < x_min {
-                            *x_min = coordinate[0];
-                        }
-                        let x_max = max_min.get_mut("x_max").unwrap();
-                        if &coordinate[0] > x_max {
-                            *x_max = coordinate[0];
-                        }
-                        let y_min = max_min.get_mut("y_min").unwrap();
-                        if &coordinate[1] < y_min {
-                            *y_min = coordinate[1];
-                        }
-                        let y_max = max_min.get_mut("y_max").unwrap();
-                        if &coordinate[1] < y_max {
-                            *y_max = coordinate[1];
-                        }
+    //                     // If there is an ignored coordinate:
+    //                     if ignored_coord.contains(&true) {
+    //                         let mut i: usize = 0;
+    //                         for (index,coord) in ignored_coord.iter().enumerate() {
+    //                             if *coord {
+    //                                 coordinate.remove(index - i);
+    //                                 // Last coordinate becomes zero
+    //                                 coordinate.push(0.0);
+    //                                 i += 1;
+    //                             }
+    //                         }
+    //                     } else {
+    //                         // Check for z only on 3d
+    //                         // Chech min and max value
+    //                         let z_min = max_min.get_mut("z_min").unwrap();
+    //                         if &coordinate[2] < z_min {
+    //                             *z_min = coordinate[2];
+    //                         }
+    //                         let z_max = max_min.get_mut("z_max").unwrap();
+    //                         if &coordinate[2] > z_max {
+    //                             *z_max = coordinate[2];
+    //                         }
+    //                     }
+    //                     // Check for min and max
+    //                     let x_min = max_min.get_mut("x_min").unwrap();
+    //                     if &coordinate[0] < x_min {
+    //                         *x_min = coordinate[0];
+    //                     }
+    //                     let x_max = max_min.get_mut("x_max").unwrap();
+    //                     if &coordinate[0] > x_max {
+    //                         *x_max = coordinate[0];
+    //                     }
+    //                     let y_min = max_min.get_mut("y_min").unwrap();
+    //                     if &coordinate[1] < y_min {
+    //                         *y_min = coordinate[1];
+    //                     }
+    //                     let y_max = max_min.get_mut("y_max").unwrap();
+    //                     if &coordinate[1] < y_max {
+    //                         *y_max = coordinate[1];
+    //                     }
 
-                        match vertices.append(ndarray::Axis(0),Array1::from_vec(coordinate).view()) {
-                            Err(err) => panic!("{}",err),
-                            _ => ()
-                        }
-                    }
-                        // Whenever there is an f
-                        else if content.starts_with("f ") {
-                            // Splitting via single space
-                            let triangle = match MeshBuilder::obj_face_checker(&content) {
-                                Ok(tr) => tr,
-                                Err(err) => panic!("{}",err)
-                            };
-                            // Push into triangles vector of u32
-                            match indices.append(ndarray::Axis(0),Array1::from_vec(triangle).view()) {
-                                Err(err) => panic!("{}",err),
-                                _ => ()
-                            }
-                        }
-                    },
-                // Error case of line matching
-                Err(error) => panic!("Unable to read file propperly {:?}",error)
-            }
+    //                     match vertices.append(ndarray::Axis(0),Array1::from_vec(coordinate).view()) {
+    //                         Err(err) => panic!("{}",err),
+    //                         _ => ()
+    //                     }
+    //                 }
+    //                     // Whenever there is an f
+    //                     else if content.starts_with("f ") {
+    //                         // Splitting via single space
+    //                         let triangle = match MeshBuilder::obj_face_checker(&content) {
+    //                             Ok(tr) => tr,
+    //                             Err(err) => panic!("{}",err)
+    //                         };
+    //                         // Push into triangles vector of u32
+    //                         match indices.append(ndarray::Axis(0),Array1::from_vec(triangle).view()) {
+    //                             Err(err) => panic!("{}",err),
+    //                             _ => ()
+    //                         }
+    //                     }
+    //                 },
+    //             // Error case of line matching
+    //             Err(error) => panic!("Unable to read file propperly {:?}",error)
+    //         }
 
-            Ok(())
-        }).collect::<Result<Vec<_>,_>>()?;
+    //         Ok(())
+    //     }).collect::<Result<Vec<_>,_>>()?;
         
-        // Obtain middle point as if object was a parallelepiped
-        let middle_point = [max_min.get("x_max").unwrap()-max_min.get("x_min").unwrap() / 2.0,
-            max_min.get("y_max").unwrap()-max_min.get("y_min").unwrap() / 2.0, max_min.get("z_max").unwrap()-max_min.get("z_min").unwrap() / 2.0];
+    //     // Obtain middle point as if object was a parallelepiped
+    //     let middle_point = [max_min.get("x_max").unwrap()-max_min.get("x_min").unwrap() / 2.0,
+    //         max_min.get("y_max").unwrap()-max_min.get("y_min").unwrap() / 2.0, max_min.get("z_max").unwrap()-max_min.get("z_min").unwrap() / 2.0];
         
-        let max_length = Self::compare_distances(&max_min);
+    //     let max_length = Self::compare_distances(&max_min);
 
-        Ok(Obj {
-            vertices,
-            indices,
-            max_length,
-            middle_point
-        })
-    }
+    //     Ok(Obj {
+    //         vertices,
+    //         indices,
+    //         max_length,
+    //         middle_point
+    //     })
+    // }
 
     /// Gets biggest distance from hashmap with specific entries related to farthest values in a mesh.
     fn compare_distances(max_min: &HashMap<&str,f64>) -> f64 {
@@ -332,7 +332,9 @@ impl MeshBuilder {
         let binder = Binder::new();
         let mut vertices: Vec<f64> = vec![];
         let mut indices: Vec<u32> = vec![];
-        let mut codnitions: Vec<VertexType> = vec![];
+        let mut conditions: Vec<VertexType> = vec![];
+        let mut max_length = 0.0;
+        let mut middle_point: [f32;3] = [0.;3];
         let file = File::open(&self.location)?;
         
         match self.dimension {
@@ -375,12 +377,12 @@ impl MeshBuilder {
                                 let new_value = coordinate[0];
                                 vertices.append(&mut coordinate);
                                 // Insertion sort skipping zero coordinates
-                                let mut j = vertices.len() - 5 - 1;
-                                while j>=0 && vertices[j] > new_value {
-                                    vertices[j+3] = vertices[j];
+                                let mut j = vertices.len() as i32 - 5 - 1;
+                                while j>=0 && vertices[j as usize] > new_value {
+                                    vertices[j as usize + 3] = vertices[j as usize];
                                     j-=3;
                                 }
-                                vertices[j+3] = new_value;
+                                vertices[(j + 3) as usize] = new_value;
                             }
                         },
                         // Error case of line matching
@@ -390,16 +392,27 @@ impl MeshBuilder {
 
                 let vertices_len: u32 = vertices.len() as u32;
                 // Create a second vector of vertices above the first one to make a bar (seen on screen, for solving it serves no purpose) and append it to the first.
-                let max_width = vertices[0] - vertices[vertices_len as usize - 3];
-                let prom_width = max_width * (3 / vertices_len) as f64;
-                vertices.append(&mut vertices.iter().enumerate().map(|(idx,x)| {if idx % 3 == 1 {prom_width} else {*x}}).collect::<Vec<f64>>());
-                // Create indices for drawing
-                indices.append(&mut vec![0,1,vertices_len]);
-                indices.append(&mut vec![(vertices_len - 1),(vertices_len * 2 - 1),(vertices_len * 2 - 2)]);
-                for i in 1..(vertices_len) - 1 {
-                    indices.append(&mut vec![i,i + vertices_len,i + vertices_len - 1,i,i + 1,i + vertices_len])
-                }
+                max_length = - vertices[0] + vertices[vertices_len as usize - 3];
+                let prom_width = max_length * 3.0 / (vertices_len as f64 - 3.);
+                vertices.append(&mut vertices.iter().enumerate().map(|(idx,x)| {if idx % 3 == 1 {println!("{}",idx);prom_width} else {*x}}).collect::<Vec<f64>>());
                 
+                // Create indices for drawing
+                indices.append(&mut vec![0,1,vertices_len/3]);
+                indices.append(&mut vec![(vertices_len - 3)/3,(vertices_len * 2 - 3)/3,(vertices_len * 2 - 6)/3]);
+                for i in 1..(vertices_len)/3 - 1 {
+                    indices.append(&mut vec![i,i + vertices_len/3,i + vertices_len/3 - 1,i,i + 1,i + vertices_len/3])
+                }
+
+                //Create vector of vertex types
+                conditions = vec![VertexType::Internal(arr1(&[0.0,0.0,0.0]));vertices_len as usize * 2];
+                conditions[0] = VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0,0.0,0.0])));
+                conditions[vertices_len as usize - 1] = VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0,0.0,0.0])));
+                conditions[vertices_len as usize] = VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0,0.0,0.0])));
+                conditions[vertices_len as usize * 2 - 1] = VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0,0.0,0.0])));
+
+                // get middle point
+                middle_point[0] = max_length as f32 / 2.;
+                middle_point[1] = prom_width as f32 / 2.; 
             },
             MeshDimension::Two => {
                 
@@ -421,50 +434,20 @@ impl MeshBuilder {
 
             }
         }
-
-        let ignored_coordinate = self.ignored_coordinate()?;
-        let obj = self.get_vertices_and_indices(ignored_coordinate)?;
-
         // Translate matrix to given point
         let model_matrix = Matrix4::from_translation(Vector3::new(
-            obj.middle_point[0] as f32,
-            obj.middle_point[1] as f32,
-            obj.middle_point[2] as f32
+            middle_point[0] as f32,
+            middle_point[1] as f32,
+            middle_point[2] as f32
         ));
         
-        // Initializing array of conditions for mesh
-        let conditions: Array1<VertexType> = Array1::from_vec(Vec::with_capacity(obj.vertices.len() / 3));
-
         Ok(Mesh {
-            vertices: obj.vertices,
-            indices: obj.indices,
-            max_length: obj.max_length,
-            conditions,
+            vertices: Array1::from_vec(vertices),
+            indices: Array1::from_vec(indices),
+            max_length,
+            conditions: Array1::from_vec(conditions),
             model_matrix,
             binder,
         })
     }
-}
-
-#[cfg(test)]
-mod test {
-
-    use super::MeshBuilder;
-
-    #[test]
-    fn verify_coordinates_mesh() {
-
-        let new_builder = MeshBuilder::new("/home/Arthur/Tesis/Dzahui/assets/untitled.obj");
-        let y = new_builder.ignored_coordinate().unwrap();
-        assert!(y == [false,true,false]);
-    }
-
-    #[test]
-    fn verify_coordinates_mesh_1d() {
-
-        let new_builder = MeshBuilder::new("/home/Arthur/Tesis/Dzahui/assets/1dbar.obj").with_mesh_in_1d();
-        let y = new_builder.ignored_coordinate().unwrap();
-        assert!(y == [false,true,true]);
-    }
-
 }

@@ -13,7 +13,7 @@ use ndarray::Array1;
 /// * Neumann: Holds a boundary condition that most likely needs to be used to first approximate a function value.
 /// 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub(crate) enum Condition {
     Dirichlet(Array1<f64>),
     Neumann(Array1<f64>),
@@ -28,9 +28,8 @@ pub(crate) enum Condition {
 /// # Arms
 /// 
 /// * `Boundary`: Can be of two kinds: Dirichlet or Neumann.
-/// * `Internal`: Holds an initial value. 
-#[allow(dead_code)]
-#[derive(Debug)]
+/// * `Internal`: Holds an initial value.
+#[derive(Debug,Clone)]
 pub(crate) enum VertexType {
     Boundary(Condition),
     Internal(Array1<f64>)

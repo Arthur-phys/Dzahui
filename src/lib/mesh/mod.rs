@@ -92,25 +92,25 @@ impl Drawable for Mesh {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::Mesh;
-    use ndarray::Array1;
+// #[cfg(test)]
+// mod test {
+//     use super::Mesh;
+//     use ndarray::Array1;
     
-    #[test]
-    fn parse_coordinates() {
+//     #[test]
+//     fn parse_coordinates() {
     
-        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build().unwrap();
-        assert!(new_mesh.vertices == Array1::from_vec(vec![-1.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0]));
-        assert!(new_mesh.indices == Array1::from_vec(vec![0,1,2]));
-    }
+//         let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build().unwrap();
+//         assert!(new_mesh.vertices == Array1::from_vec(vec![-1.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0]));
+//         assert!(new_mesh.indices == Array1::from_vec(vec![0,1,2]));
+//     }
     
-    #[test]
-    fn is_max_distance() {
+//     #[test]
+//     fn is_max_distance() {
     
-        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build().unwrap();
-        println!("{}",new_mesh.max_length);
-        assert!(new_mesh.max_length >= 1.90);
-        assert!(new_mesh.max_length <= 2.10);
-    }
-}
+//         let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build().unwrap();
+//         println!("{}",new_mesh.max_length);
+//         assert!(new_mesh.max_length >= 1.90);
+//         assert!(new_mesh.max_length <= 2.10);
+//     }
+// }
