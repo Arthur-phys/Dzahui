@@ -23,14 +23,6 @@ pub enum MeshDimension {
     Three
 }
 
-/// Holder of .obj fields. Temporary object. Not to be used on it's own.
-struct Obj {
-    pub vertices: Array1<f64>,
-    pub indices: Array1<u32>,
-    pub max_length: f64,
-    pub middle_point: [f64;3]
-}
-
 /// # General Information
 /// 
 /// Needed elements to create mesh (2D or 3D). Builds real structure providing parsing of .obj and distinguishing internal an boundary vertices. 
@@ -195,7 +187,7 @@ impl MeshBuilder {
         let mut vertices: Vec<f64> = vec![];
         let mut indices: Vec<u32> = vec![];
         let mut conditions: Vec<VertexType> = vec![];
-        let mut max_length = 0.0;
+        let max_length: f64;
         let mut middle_point: [f32;3] = [0.;3];
         let file = File::open(&self.location)?;
         
@@ -364,6 +356,86 @@ impl MeshBuilder {
             },
 
             MeshDimension::Three => {
+
+                let mut max_min = HashMap::from([
+                    ("x_min",0.0),
+                    ("y_min",0.0),
+                    ("z_min",0.0),
+                    ("x_max",0.0),
+                    ("y_max",0.0),
+                    ("z_max",0.0)
+                ]);
+
+                let reader = BufReader::new(file).lines();    
+                reader.map(|line| -> Result<(), Error> {
+                    // Each line we're interested in is either a 'v ' or an 'f '
+                    match line {
+                        Ok(content) => {
+                            // Whenever there is a v
+                            if content.starts_with("v ") {
+                                
+                                // Check line integrity
+                                let mut coordinate = match MeshBuilder::obj_vertex_checker(&content) {
+                                    Ok(coord) => coord,
+                                    Err(error) => panic!("{}",error.to_string())
+                                };
+
+
+                                // Check for min and max
+                                let x_min = max_min.get_mut("x_min").unwrap();
+                                if &coordinate[0] < x_min {
+                                    *x_min = coordinate[0];
+                                }
+                                let x_max = max_min.get_mut("x_max").unwrap();
+                                if &coordinate[0] > x_max {
+                                    *x_max = coordinate[0];
+                                }
+                                let y_min = max_min.get_mut("y_min").unwrap();
+                                if &coordinate[1] < y_min {
+                                    *y_min = coordinate[1];
+                                }
+                                let y_max = max_min.get_mut("y_max").unwrap();
+                                if &coordinate[1] < y_max {
+                                    *y_max = coordinate[1];
+                                }
+                                let z_min = max_min.get_mut("z_min").unwrap();
+                                if &coordinate[1] < z_min {
+                                    *z_min = coordinate[1];
+                                }
+                                let z_max = max_min.get_mut("z_max").unwrap();
+                                if &coordinate[1] < z_max {
+                                    *z_max = coordinate[1];
+                                }
+
+                                vertices.append(&mut coordinate);
+                            }
+                                // Whenever there is an f
+                                else if content.starts_with("f ") {
+                                    // Splitting via single space
+                                    let mut triangle = match MeshBuilder::obj_face_checker(&content) {
+                                        Ok(tr) => tr,
+                                        Err(err) => panic!("{}",err)
+                                    };
+                                    // Push into triangles vector of u32
+                                    indices.append(&mut triangle);
+                                }
+                            },
+                        // Error case of line matching
+                        Err(error) => panic!("Unable to read file propperly {:?}",error)
+                    }
+
+                    Ok(())
+                }).collect::<Result<Vec<_>,_>>()?;
+
+                let len_x = max_min.get("x_max").unwrap()-max_min.get("x_min").unwrap();
+                let len_y = max_min.get("y_max").unwrap()-max_min.get("y_min").unwrap();
+                let len_z = max_min.get("z_max").unwrap()-max_min.get("z_min").unwrap();
+                middle_point[0] = len_x as f32 / 2.0;
+                middle_point[1] = len_y as f32 / 2.0;
+                middle_point[2] = len_z as f32 / 2.0;
+        
+                max_length = if len_x >= len_y && len_x >= len_z {len_x} else if len_y >= len_x && len_y >= len_z {len_y} else {len_z};
+
 
             }
         }
