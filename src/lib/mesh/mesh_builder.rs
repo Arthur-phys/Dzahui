@@ -394,7 +394,7 @@ impl MeshBuilder {
                 // Create a second vector of vertices above the first one to make a bar (seen on screen, for solving it serves no purpose) and append it to the first.
                 max_length = - vertices[0] + vertices[vertices_len as usize - 3];
                 let prom_width = max_length * 3.0 / (vertices_len as f64 - 3.);
-                vertices.append(&mut vertices.iter().enumerate().map(|(idx,x)| {if idx % 3 == 1 {println!("{}",idx);prom_width} else {*x}}).collect::<Vec<f64>>());
+                vertices.append(&mut vertices.iter().enumerate().map(|(idx,x)| {if idx % 3 == 1 {prom_width} else {*x}}).collect::<Vec<f64>>());
                 
                 // Create indices for drawing
                 indices.append(&mut vec![0,1,vertices_len/3]);
