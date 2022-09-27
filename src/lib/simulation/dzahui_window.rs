@@ -3,7 +3,7 @@ use cgmath::{Point3,Vector3,Point2,Matrix4, SquareMatrix};
 use std::time::Instant;
 use gl;
 
-use crate::solvers::Solver;
+use crate::{solvers::Solver, mesh::mesh_builder::MeshDimension};
 
 use super::drawable::{text::CharacterSet,Bindable,Drawable};
 use super::camera::{Camera, CameraBuilder, cone::Cone};
@@ -64,6 +64,7 @@ pub struct DzahuiWindowBuilder {
     text_vertex_shader: Option<String>,
     vertex_selector: Option<f32>,
     mesh: MeshBuilder,
+    mesh_dimension: MeshDimension,
     camera: CameraBuilder,
     height: Option<u32>,
     width: Option<u32>,
@@ -85,6 +86,7 @@ impl DzahuiWindowBuilder {
             vertex_selector: None,
             camera: Camera::builder(),
             mesh: Mesh::builder(location),
+            mesh_dimension: MeshDimension::Two,
             height: Some(600),
             width: Some(800),
             solver
@@ -173,14 +175,14 @@ impl DzahuiWindowBuilder {
     /// Changes mesh dimension to 3D (originally in 2D)
     pub fn with_mesh_in_3d(self) -> Self {
         Self {
-            mesh: self.mesh.with_mesh_in_3d(),
+            mesh_dimension: MeshDimension::Three,
             ..self
         }
     }
     /// Changes mesh dimension to 1D (originally in 2D)
     pub fn with_mesh_in_1d(self) -> Self {
         Self {
-            mesh: self.mesh.with_mesh_in_1d(),
+            mesh_dimension: MeshDimension::One,
             ..self
         }
     }
@@ -264,7 +266,11 @@ impl DzahuiWindowBuilder {
         let geometry_shader = Shader::new(vertex_shader,fragment_shader).unwrap();
         
         // Creating mesh based on initial provided file.
-        let mesh = self.mesh.build().unwrap();
+        let mesh = match self.mesh_dimension {
+            MeshDimension::One => {self.mesh.build_mesh_1d()},
+            MeshDimension::Two => {self.mesh.build_mesh_2d()},
+            MeshDimension::Three => {self.mesh.build_mesh_3d()},
+        }.unwrap();
         
         // Camera created with selected configuration via shortcut functions.
         let camera = self.camera.build(mesh.max_length as f32, self.height.unwrap(), self.width.unwrap());
@@ -402,13 +408,13 @@ impl DzahuiWindow {
         let event_loop = Option::take(&mut self.event_loop).unwrap();
 
         // Send mesh info: mesh structure and vertices to create body on each one.
-        self.mesh.setup();
-        self.mesh.send_to_gpu();
+        self.mesh.setup().unwrap();
+        self.mesh.send_to_gpu().unwrap();
 
         // Setup character set info.
         // Maybe need to change shader (but I think shaders and binders are independent, so leave it like this for now).
-        self.character_set.setup();
-        self.character_set.setup_texture();
+        self.character_set.setup().unwrap();
+        self.character_set.setup_texture().unwrap();
         self.character_set.send_to_gpu();
 
 
@@ -511,17 +517,17 @@ impl DzahuiWindow {
                 // Text shader to draw text
                 self.text_shader.use_shader();
 
-                self.character_set.bind_all();
+                self.character_set.bind_all().unwrap();
                 self.character_set.draw_text(format!("x: {}, y: {}, FPS: {}", self.mouse_coordinates.x, self.mouse_coordinates.y, fps));
-                self.character_set.unbind_texture();
+                self.character_set.unbind_texture().unwrap();
 
                 // Geometry shader to draw mesh                
                 self.geometry_shader.use_shader();
                 self.geometry_shader.set_mat4("view", &self.camera.view_matrix);
                 self.geometry_shader.set_mat4("model", &Matrix4::identity());
                 
-                self.mesh.bind_vao();
-                self.mesh.draw(&self);
+                self.mesh.bind_vao().unwrap();
+                self.mesh.draw(&self).unwrap();
                 
                 // self.mesh.selectable_vertices.draw(&self);
                 
