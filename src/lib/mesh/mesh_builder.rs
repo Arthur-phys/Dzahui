@@ -209,13 +209,15 @@ impl MeshBuilder {
 
                         let new_value = coordinate[0];
                         vertices.append(&mut coordinate);
+                        // Adding color
+                        vertices.append(&mut vec![0.0,0.0,1.0]);
                         // Insertion sort skipping zero coordinates
-                        let mut j = vertices.len() as i32 - 5 - 1;
+                        let mut j = vertices.len() as i32 - 6 - 5 - 1;
                         while j>=0 && vertices[j as usize] > new_value {
-                            vertices[j as usize + 3] = vertices[j as usize];
-                            j-=3;
+                            vertices[j as usize + 6] = vertices[j as usize];
+                            j-=6;
                         }
-                        vertices[(j + 3) as usize] = new_value;
+                        vertices[(j + 6) as usize] = new_value;
                     }
                 },
                 // Error case of line matching
@@ -225,15 +227,15 @@ impl MeshBuilder {
 
         let vertices_len: u32 = vertices.len() as u32;
         // Create a second vector of vertices above the first one to make a bar (seen on screen, for solving it serves no purpose) and append it to the first.
-        max_length = - vertices[0] + vertices[vertices_len as usize - 3];
-        let prom_width = max_length * 3.0 / (vertices_len as f64 - 3.);
-        vertices.append(&mut vertices.iter().enumerate().map(|(idx,x)| {if idx % 3 == 1 {prom_width} else {*x}}).collect::<Vec<f64>>());
+        max_length = - vertices[0] + vertices[vertices_len as usize - 6];
+        let prom_width = max_length * 6.0 / (vertices_len as f64 - 6.);
+        vertices.append(&mut vertices.iter().enumerate().map(|(idx,x)| {if idx % 6 == 1 {prom_width} else {*x}}).collect::<Vec<f64>>());
         
         // Create indices for drawing
-        indices.append(&mut vec![0,1,vertices_len/3]);
-        indices.append(&mut vec![(vertices_len - 3)/3,(vertices_len * 2 - 3)/3,(vertices_len * 2 - 6)/3]);
-        for i in 1..(vertices_len)/3 - 1 {
-            indices.append(&mut vec![i,i + vertices_len/3,i + vertices_len/3 - 1,i,i + 1,i + vertices_len/3])
+        indices.append(&mut vec![0,1,vertices_len/6]);
+        indices.append(&mut vec![(vertices_len - 6)/6,(vertices_len * 2 - 6)/6,(vertices_len * 2 - 12)/6]);
+        for i in 1..(vertices_len)/6 - 1 {
+            indices.append(&mut vec![i,i + vertices_len/6,i + vertices_len/6 - 1,i,i + 1,i + vertices_len/6])
         }
 
         //Create vector of vertex types

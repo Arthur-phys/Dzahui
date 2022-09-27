@@ -114,13 +114,17 @@ pub(crate) trait Drawable: Bindable {
             // The offset to start reading coordinates (for position it's normally zero. It is used when having texture and/or color coordinates).
             gl::VertexAttribPointer(0,3,gl::FLOAT,
                 gl::FALSE,
-                (3*mem::size_of::<GLfloat>()) as GLsizei,
+                (6*mem::size_of::<GLfloat>()) as GLsizei,
                 ptr::null());
-                        
             // Enable vertex atributes giving vertex location (setup in vertex shader).
             gl::EnableVertexAttribArray(0);
-            // Comment to see the traingles filled instead of only the lines that form them.
-            gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
+
+            // Enable color visibility
+            gl::VertexAttribPointer(1,3,gl::FLOAT,
+                gl::FALSE,
+                (6*mem::size_of::<GLfloat>()) as GLsizei,
+                (3 * mem::size_of::<GLfloat>()) as *const c_void);
+            gl::EnableVertexAttribArray(1);
         }
         Ok(())
     }
@@ -128,9 +132,8 @@ pub(crate) trait Drawable: Bindable {
     /// # General Information
     /// 
     /// A simple call to glDrawElements in triangles mode. It assumes all information to be drawn has been sent and is stored in a single vbo, veo pair.
-    /// This means this functions sometimes will be overriden by classes' behavior or even not implemented when objects need a more versatile version of the
-    /// function (Making multiple calls to draw is, in general, not a good idea, since it can really slow down a program reducing the FPS. When drawing
-    /// multiple objects, it'ss better to use the so called 'batch rendering').
+    /// (Making multiple calls to draw is, in general, not a good idea, since it can really slow down a program reducing the FPS. When drawing
+    /// multiple objects, it's better to use the so called 'batch rendering').
     /// 
     /// # Parameters
     /// 
@@ -144,6 +147,8 @@ pub(crate) trait Drawable: Bindable {
         // Drawn as triangles
         unsafe {
             // Draw
+            // Comment to see the triangles filled instead of only the lines that form them.
+            gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
             gl::DrawElements(gl::TRIANGLES,indices_len,gl::UNSIGNED_INT,ptr::null());
         }
 
