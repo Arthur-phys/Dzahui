@@ -1,16 +1,4 @@
-// use super::{Vertex1D, BoundaryVertex1D, PolynomialDegree, DiffEquationSolver};
 
-// struct DiffussionSolverBuilder {
-//     boundary_vertices: [BoundaryVertex1D; 2],
-//     vertices: Option<Vec<Vertex1D>>,
-//     polynomial_degree: Option<PolynomialDegree>,
-// }
-
-// impl DiffussionSolverBuilder {
-//     fn build(self) -> DiffussionSolver {
-//         todo!()
-//     }
-// }
 
 use crate::solvers::{quadrature::GaussLegendreQuadrature, linear_solver::ThomasSolver};
 use crate::solvers::fem::function::{Differentiable,Function,linear_basis::LinearBasis};
@@ -19,10 +7,6 @@ use crate::solvers::DiffEquationSolver;
 use crate::Error;
 
 use ndarray::{Array, Ix2, Ix1, Array1};
-
-// struct DiffussionSolverBuilder {
-    
-// }
 
 pub struct DiffussionSolver {
     boundary_conditions: [f64; 2],
@@ -33,7 +17,7 @@ pub struct DiffussionSolver {
 
 impl DiffussionSolver {
 
-    fn new(boundary_conditions: [f64; 2], mesh: Vec<f64>, mu: f64, b: f64) -> Self {
+    pub fn new(boundary_conditions: [f64; 2], mesh: Vec<f64>, mu: f64, b: f64) -> Self {
         Self {
             boundary_conditions,
             mesh,

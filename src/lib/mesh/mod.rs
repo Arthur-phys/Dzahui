@@ -31,7 +31,6 @@ use vertex_type::VertexType;
 /// * `vertices` -  Vertices in 3d space. Normally used in triads. Specified in gl configuration.
 ///
 #[derive(Debug)]
-#[allow(dead_code)]
 pub(crate) struct Mesh {
     pub(crate) conditions: Array1<VertexType>,
     pub(crate) max_length: f64,
@@ -52,6 +51,13 @@ impl Mesh {
     pub fn builder<B>(location: B) -> MeshBuilder
     where B: AsRef<str> {
         MeshBuilder::new(location)
+    }
+
+    //
+    pub(crate) fn filter_for_solving_1d(&self) -> Array1<f64> {
+        // size of vertex is 6. There are double the vertices in 1d since a new pair is generated to draw a bar, therefore len is divided by 12.
+        let vertices_len = self.vertices.len() / 12;
+        self.vertices.iter().enumerate().filter_map(|(idx,x)| {if idx % 6 == 0 && idx < vertices_len*6 {Some(*x)} else {None}}).collect()
     }
 }
 

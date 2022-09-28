@@ -163,6 +163,7 @@ impl TransformationFactory {
         FirstDegreePolynomial { coefficient, independent_term }
     }
 
+    // minus one plus one
     pub fn build_to_m1_p1(&self, beg: f64, end: f64) -> FirstDegreePolynomial {
         let coefficient = (end - beg) / 2_f64;
         let independent_term = (end + beg) / 2_f64;

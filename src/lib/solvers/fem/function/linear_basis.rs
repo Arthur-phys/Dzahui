@@ -28,10 +28,6 @@ pub(crate) struct LinearBasisFactory {
 
 impl LinearBasisFactory {
 
-    pub(crate) fn with_equidistant_mesh(self, beg: f64, end: f64, n: f64) -> LinearBasis<[f64;3],[f64;4]> {
-        todo!()
-    }
-
     pub(crate) fn with_mesh(self, mesh: &Vec<f64>) -> LinearBasis<[f64;3],[f64;4]> {
 
         let transformation_factory = TransformationFactory {};
