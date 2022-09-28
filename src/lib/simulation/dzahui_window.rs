@@ -411,16 +411,17 @@ impl DzahuiWindow {
         println!("{:?}",self.mesh.vertices);
         println!("filtered: {:?}",self.mesh.filter_for_solving_1d());
         let solver = match self.solver {
-            Solver::DiffussionSolver => { DiffussionSolver::new([0.0,1.0],self.mesh.filter_for_solving_1d().to_vec(),1.0,1.0)},
+            Solver::DiffussionSolver => { DiffussionSolver::new([0.0,10.0],self.mesh.filter_for_solving_1d().to_vec(),1.0,1.0)},
             _ => {panic!()}
         };
         // updating colors. Only one time per vertex should it be updated (that is, every 6 steps).
-        let solution = solver.solve().unwrap();
+        let solution = solver.solve().unwrap().map(|x| x.abs());
+        let sol_max = solution.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let sol_min = solution.iter().copied().fold(f64::INFINITY, f64::min);
         let vertices_len = self.mesh.vertices.len();
         println!("{}",vertices_len);
         for i in 1..(vertices_len/12 - 1) {
-            let norm_sol = solution[i-1]/100.;
-            let norm_sol = if norm_sol < 1. {norm_sol} else {1.};
+            let norm_sol = (solution[i-1]-sol_min)/(sol_max-sol_min) * (std::f64::consts::PI / 2.);
             self.mesh.vertices[6*i+3] = norm_sol.sin();
             self.mesh.vertices[6*i+5] = norm_sol.cos();
             self.mesh.vertices[6*i+3 + vertices_len/2] = norm_sol.sin();
