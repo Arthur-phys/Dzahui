@@ -8,6 +8,7 @@ use crate::Error;
 
 use ndarray::{Array, Ix2, Ix1, Array1};
 
+#[derive(Debug)]
 pub struct DiffussionSolver {
     boundary_conditions: [f64; 2],
     mesh: Vec<f64>,
@@ -29,7 +30,7 @@ impl DiffussionSolver {
 
 impl ThomasSolver for DiffussionSolver {}
 
-impl DiffEquationSolver<Array1<f64>> for DiffussionSolver {
+impl DiffEquationSolver for DiffussionSolver {
     
     fn solve(&self) -> Result<Array1<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);

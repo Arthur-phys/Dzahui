@@ -1,7 +1,7 @@
 use std::io::{BufReader,BufRead};
 use cgmath::{Matrix4,Vector3};
 use ndarray::{Array1,arr1};
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 use std::fs::File;
 
 use crate::{simulation::drawable::binder::Binder,Error};
@@ -9,7 +9,7 @@ use super::{Mesh, vertex_type::{VertexType, Condition}};
 
 /// # General Information
 /// 
-/// Enum to tell if mesh being in a plane should be checked.
+/// Enum to tell if mesh being in a plane or line should be checked.
 /// 
 /// # Arms
 /// 
@@ -296,6 +296,8 @@ impl MeshBuilder {
             ("y_max",0.0),
         ]);
 
+        let mut boundary_edges: HashMap<[u32;2],usize> = HashMap::new();
+
         let reader = BufReader::new(file).lines();    
         reader.map(|line| -> Result<(), Error> {
             // Each line we're interested in is either a 'v ' or an 'f '
@@ -332,6 +334,7 @@ impl MeshBuilder {
                         }
 
                         vertices.append(&mut coordinate);
+                        conditions.push(VertexType::Internal(Array1::from_vec(vec![0.0,0.0,0.0])));
                     }
                         // Whenever there is an f
                         else if content.starts_with("f ") {
@@ -340,6 +343,25 @@ impl MeshBuilder {
                                 Ok(tr) => tr,
                                 Err(err) => panic!("{}",err)
                             };
+                            
+                            // filling boundary edges hashmap to obtain boundary vertices
+                            // three possible combinations hardcoded. Find better way to insert them
+                            if let Some(counter) = boundary_edges.get_mut(&[triangle[0],triangle[1]]) {
+                                *counter += 1;
+                            } else {
+                                boundary_edges.insert([triangle[0],triangle[1]], 0);
+                            }
+                            if let Some(counter) = boundary_edges.get_mut(&[triangle[0],triangle[2]]) {
+                                *counter += 1;
+                            } else {
+                                boundary_edges.insert([triangle[0],triangle[2]], 0);
+                            }
+                            if let Some(counter) = boundary_edges.get_mut(&[triangle[2],triangle[1]]) {
+                                *counter += 1;
+                            } else {
+                                boundary_edges.insert([triangle[2],triangle[1]], 0);
+                            }
+
                             // Push into triangles vector of u32
                             indices.append(&mut triangle);
                         }
@@ -357,6 +379,10 @@ impl MeshBuilder {
         middle_point[1] = len_y as f32 / 2.0;
  
         max_length = if len_x > len_y {len_x} else {len_y};
+
+        // reducing boundary edges to vertices
+        HashSet::<u32>::from_iter(boundary_edges.into_iter().filter(|(_duple,counter)| {if *counter != 1 {false} else {true}}).collect::<HashMap<[u32;2],usize>>().
+            into_keys().flatten()).into_iter().for_each(|boundary_vertex| {conditions[boundary_vertex as usize] = VertexType::Boundary(Condition::Dirichlet(Array1::from_vec(vec![0.0,0.0,0.0])))});
 
         let model_matrix = Matrix4::from_translation(Vector3::new(
             middle_point[0] as f32,
