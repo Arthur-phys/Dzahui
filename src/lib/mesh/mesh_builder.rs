@@ -9,12 +9,13 @@ use super::{Mesh, vertex_type::{VertexType, Condition}};
 
 /// # General Information
 /// 
-/// Enum to tell if mesh being in a plane or line should be checked.
+/// Enum to tell if additional checking over mesh should be done.
 /// 
 /// # Arms
-/// 
-/// * `Two` - Plane figure. Additional check-up to confirm property will be applied simplifying final mesh.
-///  * `Three` - 3D Body. No dimensional check-ups are done. Results depend solely on user's .obj
+///
+/// * `One` - Line. In 1D, two of three coordinates must be constant throught the whole mesh. 
+/// * `Two` - Plane figure. In 2D, one coordinate needs to be constant through the whole mesh.
+/// * `Three` - 3D Body. No dimensional check-ups are done. Results depend solely on user's mesh.
 /// 
 #[derive(Debug)]
 pub enum MeshDimension {
@@ -25,12 +26,12 @@ pub enum MeshDimension {
 
 /// # General Information
 /// 
-/// Needed elements to create mesh (2D or 3D). Builds real structure providing parsing of .obj and distinguishing internal an boundary vertices. 
+/// **Needs .obj**.
+/// Needed elements to create mesh (1D, 2D or 3D). Builds real structure parsing .obj and distinguishing internal and boundary vertices. 
 /// 
 /// # Fields
 /// 
-/// * `location` - Path to mesh's `.obj`.
-/// * `dimension` - Enum with mesh's dimension. Needs to be set to enable/disable checking for repeated coordinate in `.obj` if it's 2D or 1D.
+/// * `location` - Path to .obj.
 ///
 #[derive(Debug)]
 pub(crate) struct MeshBuilder {
@@ -39,7 +40,7 @@ pub(crate) struct MeshBuilder {
 
 impl MeshBuilder {
     
-    /// Creates default/initial instance.
+    /// Creates initial instance. Not to be used on it's own. Use `Mesh::build`.
     pub(crate) fn new<B>(location: B) -> Self
     where B: AsRef<str> {
         Self {
@@ -47,23 +48,26 @@ impl MeshBuilder {
         }
     }
 
-    /// Checks wether a line in an obj has only three vertices.
+    /// Checks wether a line starting with 'v ' in an obj has the three vertices needed.
+    /// Auxiliar function used inside build methods.
     /// Part of the checkup made to a given input file.
     fn obj_vertex_checker<A>(line: &A) -> Result<Vec<f64>,Error>
     where A: AsRef<str> { 
         
         let mut line_parts = line.as_ref().split(" ");
         line_parts.next();
-        let line_parts: Vec<f64> = line_parts.map(|c| c.parse::<f64>().unwrap()).collect();
+        let line_parts: Vec<f64> = line_parts.map(|c| -> Result<f64, Error> {c.parse::<f64>().
+            map_err(|e| {Error::Parse(format!("Error while parsing vertex coordinate from obj: {}",e))})}).collect::<Result<Vec<f64>,_>>()?;
         
         if line_parts.len() != 3 {
-           return Err(Error::Parse("A vertex line should contain 3 vertices only".to_string()));
+           return Err(Error::Parse("A vertex line should contain 3 elements only".to_string()));
         }
 
         Ok(line_parts)
     }
     
     /// Verifies the amount of face specifications per line is 3 and also that all of them have the correct syntax.
+    /// Auxiliar function used inside build methods.
     /// Part of the checkup made to a given input file.
     fn obj_face_checker<A>(line: &A) -> Result<Vec<u32>, Error>
     where A: AsRef<str> {
@@ -83,7 +87,9 @@ impl MeshBuilder {
         for face in line_parts {
             let mut face_part = face.split("/");
     
-            let face_element: u32 = face_part.next().unwrap().parse::<u32>().unwrap();
+            let face_element = face_part.next();
+            let face_element: u32 = if let Some(f) = face_element {f.parse::<u32>().map_err(|e| {Error::Parse(format!("Error while parsing face coordinate: {}",e))})}
+                else {Err(Error::Custom("".to_string()))}?;
     
             if face_part.count() != 2 {
                 return Err(Error::Parse("Amount of elements per face specification should be 3 in format a/b/c.".to_string()));
@@ -96,7 +102,7 @@ impl MeshBuilder {
 
     /// # General information
     /// 
-    /// Checks values of x, y and z coordinates to see if one or two of them is effectively constant.
+    /// Returns hashmap with every diferent value per coordinate inside .obj.
     /// 
     /// # Parameters
     /// 

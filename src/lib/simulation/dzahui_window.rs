@@ -189,6 +189,7 @@ impl DzahuiWindowBuilder {
     pub fn solve_1d_diffussion(self, boundary_conditions:[f64;2], mu:f64, b:f64) -> Self {
         Self {
             solver: Solver::DiffussionSolver(boundary_conditions, mu, b),
+            mesh_dimension: MeshDimension::One,
             ..self
         }
     }
