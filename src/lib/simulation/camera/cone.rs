@@ -1,6 +1,19 @@
 use cgmath::{Vector3, Vector4, Point3, Point2, Transform, Matrix4, InnerSpace};
 use ndarray::{Array1,Axis, ArrayView1};
 
+/// # General Information
+/// 
+/// A cone firstly serves as an object with 'ray casting'-like functionality to be able to click elements from screen.
+/// It transforms viewport coordinates to object coordinates and projects a cone inside this viewport. Then, an intersectrion can ben done to obtain closest
+/// object and return it to the user to do something.
+/// 
+/// # Fields
+/// 
+/// * `anchorage_point` - Point from where the cone starts. Normally coincides with near plane of camera.
+/// * `direction` - Direction the cone will take. Given mouse position, a line is determined inside viewport. Near and far coordinates are determined and
+/// the direction vector of the line generated (by near and far points) is used.
+/// * `angle` - How much should the cone be open.
+/// 
 #[derive(Debug)]
 pub(crate) struct Cone {
     anchorage_point: Point3<f32>,
@@ -10,13 +23,25 @@ pub(crate) struct Cone {
 
 impl Cone {
 
+    /// Function to create new instance. Normalizes direction vector. 
     pub(crate) fn new(anchorage_point: Point3<f32>, direction: Vector3<f32>, angle: f32) -> Cone {
-
         let direction = direction.normalize();
         Cone { anchorage_point, direction, angle }
 
     }
-
+    
+    /// # General Information
+    /// 
+    /// Change cone given mouse input.
+    /// This function is normally used along cone and window. Steps reffered to in struct definition, are performed here.
+    ///
+    /// # Parameters
+    /// 
+    /// * `mouse_coordinates` - viewport coordinates to change anchorage point.
+    /// * `projection_matrix` - camera projection matrix to find reverse transformation.
+    /// * `window_width` - original window width needed to normalize viewport coordinates
+    /// * `window_height` - original window height needed to normalize viewport coordinates
+    /// 
     pub(crate) fn change_from_mouse_position(&mut self, mouse_coordinates: &Point2<f32>, projection_matrix: &Matrix4<f32>, window_width: u32, window_height: u32) {
 
         // Create cone from position of mouse
@@ -41,20 +66,19 @@ impl Cone {
         let near_view_coordinates = Vector3::new(near_view_coordinates.x,near_view_coordinates.y,near_view_coordinates.z) / near_view_coordinates.w;
         let far_view_coordinates = Vector3::new(far_view_coordinates.x,far_view_coordinates.y,far_view_coordinates.z) / far_view_coordinates.w;
         
-        // cast becomes unnecesary if all values are f32, but projection_matrix is not working with f32 and opengl
         let anchorage_point: Point3<f32> = Point3::new(near_view_coordinates.x,near_view_coordinates.y, near_view_coordinates.z);
         let direction: Vector3<f32> = (far_view_coordinates - near_view_coordinates).normalize();
 
         self.anchorage_point = anchorage_point;
         self.direction = direction;
-
     }
 
     /// Matrix to translate vertex to a given location (normally determined by a mesh instance).
-    fn get_translation_matrix(arr: &Array1<f64>) -> Matrix4<f32> {
+    fn get_translation_matrix(arr: &Array1<f32>) -> Matrix4<f32> {
         let vec_arr = Vector3::new(arr[0] as f32,arr[1] as f32,arr[2] as f32);
         Matrix4::from_translation(vec_arr)
     }
+
     /// Obtain center coordinates as viewed from camera
     fn get_view_center(arr: &ArrayView1<f64>, view_matrix: &Matrix4<f32>) -> Vector3<f32> {
         let vec_arr = Vector4::new(arr[0] as f32,arr[1] as f32,arr[2] as f32,1.0);
@@ -62,7 +86,16 @@ impl Cone {
         Vector3::new(view_center.x,view_center.y,view_center.z)
     }
 
-
+    /// # General Information
+    /// 
+    /// Determine closest intersection given some vertices (sextuples of points) and current cone status. Only one vertex is returned with id.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&self` - To determine cone location.
+    /// * `vertices` - Vertices check wether they're inside or outside the cone
+    /// * `view_matrix` - Camera view matrix needed to see where a vertex is (in view space).
+    /// 
     pub(crate) fn obtain_nearest_intersection(&self, vertices: &Array1<f64>, view_matrix: &Matrix4<f32>) -> Option<(f32,usize)> {
 
         // Filter objects to only those that are partially or completelly inside cone

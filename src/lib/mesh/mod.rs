@@ -11,13 +11,13 @@ use vertex_type::VertexType;
 
 /// # General Information
 /// 
-/// Representation of a plane figure/ body. Contains information to draw to screen and move/rotate it to final position.
+/// Representation of a plane figure/ 3d body. Contains information to draw to screen and move/rotate mesh representation to final position.
 /// 
 /// # Fields
 /// 
 /// ## Numerical Integration Fields
 /// 
-/// * `conditions` - Kind of vertex a given triad is. Can be a boundary or internal vertex. Also contains the possible initial/boundary condition.
+/// * `conditions` - Kind a given vertex has. Can be a boundary or internal vertex. Also contains the possible initial/boundary condition.
 /// 
 /// ## Drawing Fields
 /// 
@@ -28,7 +28,7 @@ use vertex_type::VertexType;
 ///
 /// ## Shared Fields
 ///
-/// * `vertices` -  Vertices in 3d space. Normally used in triads. Specified in gl configuration.
+/// * `vertices` -  Vertices in 3d space. Normally used in sextuples (coordinate and color). Specified in gl configuration.
 ///
 #[derive(Debug)]
 pub(crate) struct Mesh {
@@ -53,7 +53,7 @@ impl Mesh {
         MeshBuilder::new(location)
     }
 
-    //
+    // Filtering vertices to give to 1d solver. Temporal function. To be changed for better solution.
     pub(crate) fn filter_for_solving_1d(&self) -> Array1<f64> {
         // size of vertex is 6. There are double the vertices in 1d since a new pair is generated to draw a bar, therefore len is divided by 12.
         let vertices_len = self.vertices.len() / 12;
@@ -63,6 +63,7 @@ impl Mesh {
 
 
 impl Bindable for Mesh {
+
     fn get_binder(&self) -> Result<&Binder,Error> {
         Ok(&self.binder)
     }
@@ -98,25 +99,26 @@ impl Drawable for Mesh {
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     use super::Mesh;
-//     use ndarray::Array1;
+#[cfg(test)]
+mod test {
+    use super::Mesh;
+    use ndarray::Array1;
     
-//     #[test]
-//     fn parse_coordinates() {
+    #[test]
+    fn parse_coordinates() {
     
-//         let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build().unwrap();
-//         assert!(new_mesh.vertices == Array1::from_vec(vec![-1.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0]));
-//         assert!(new_mesh.indices == Array1::from_vec(vec![0,1,2]));
-//     }
+        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build_mesh_3d().unwrap();
+        println!("{:?}",new_mesh.vertices);
+        assert!(new_mesh.vertices == Array1::from_vec(vec![-1.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0]));
+        assert!(new_mesh.indices == Array1::from_vec(vec![0,1,2]));
+    }
     
-//     #[test]
-//     fn is_max_distance() {
+    #[test]
+    fn is_max_distance() {
     
-//         let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build().unwrap();
-//         println!("{}",new_mesh.max_length);
-//         assert!(new_mesh.max_length >= 1.90);
-//         assert!(new_mesh.max_length <= 2.10);
-//     }
-// }
+        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build_mesh_2d().unwrap();
+        println!("{}",new_mesh.max_length);
+        assert!(new_mesh.max_length >= 1.90);
+        assert!(new_mesh.max_length <= 2.10);
+    }
+}

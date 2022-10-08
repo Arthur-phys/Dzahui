@@ -36,7 +36,7 @@ pub(crate) struct Camera {
 /// # General Information
 /// 
 /// The camera builder. Gives some control to user, such as distance from target, initial position arround target, fov, speed, sensitivity and
-/// object being point at.
+/// object being pointed at.
 /// 
 /// # Fields
 /// 
@@ -84,7 +84,7 @@ impl CameraBuilder {
             ..self
         }
     }
-    /// Changes camera position in a sphere with center `camera_target`
+    /// Changes initial camera position in a sphere with center `camera_target`
     pub fn with_camera_position(self, theta: f32, phi: f32) -> Self {
         CameraBuilder {
             theta: Some(theta),
@@ -99,7 +99,7 @@ impl CameraBuilder {
             ..self
         }
     }
-    /// Changes camera movement arround object being targeted
+    /// Changes camera movement sensitivity arround object being targeted
     pub fn with_sensitivity(self, sensitivity: f32) -> Self {
         CameraBuilder {
             camera_sensitivity: Some(sensitivity),
@@ -112,9 +112,9 @@ impl CameraBuilder {
     /// 
     /// # Details
     /// 
-    /// Camera moves arround a sphere (theta, phi, radius) centered on a point of a highlightabeVertices object with a given radius.
+    /// Camera moves arround a sphere (theta, phi, radius) centered on a point of an object with a given radius.
     /// Object on camera is projected on viewport via a projection matrix with a certain fov. There's no plan to add orthogonal projection.
-    /// Camera sensitivity and speed help move camera arround given sphere and towards new camera target.
+    /// Camera sensitivity helps move camera around sphere.
     /// 
     /// # Parameters
     /// 
@@ -122,8 +122,9 @@ impl CameraBuilder {
     /// 
     pub(crate) fn build(self, mesh_length: f32, height: u32, width: u32) -> Camera {
 
+        // Normal fov is 45 degrees
         let fov = if let Some(fov) = self.fov { fov } else { 45.0 };
-        // Obtain radius or get predetermined one (use the predetermined one is recommended)
+        // Obtain radius or get predetermined one (use of the predetermined radius is recommended)
         let radius = if let Some(radius) = self.radius {
             radius
         } else {
@@ -135,9 +136,9 @@ impl CameraBuilder {
         let phi = if let Some(phi) = self.phi { phi } else { 0.0 };
         // It also works for zoom
         let camera_sensitivity = if let Some(camera_sensitivity ) = self.camera_sensitivity { camera_sensitivity } else { 0.5 };
-        // Up vector is always (0,1,)
+        // Up vector is always (0,1,0) (y goes upwards)
         let up_vector = Vector3::new(0.0,1.0,0.0);
-        // Camera target
+        // Camera target. Normally leaving 0,0,0 is best, since object's center is translated to such point.
         let camera_target = if let Some(camera_target) = self.camera_target { camera_target } else { Point3::new(0.0, 0.0, 0.0) };
 
         // After obtaining values from builder:
@@ -152,9 +153,15 @@ impl CameraBuilder {
         // Aspect ratio is obtained from height and width of viewport
         let aspect_ratio: f32 = width as f32 / height as f32 ;
         // Camera position is given by theta and phi (since it's a sphere)
-        let camera_position: Point3<f32> = Point3::new(theta.to_radians().sin()*phi.to_radians().sin(),
-            theta.to_radians().cos(),theta.to_radians().sin()*phi.to_radians().cos()) * radius + Vector3::new(
-            camera_target.x,camera_target.y,camera_target.z);
+        let camera_position: Point3<f32> = Point3::new(
+            theta.to_radians().sin()*phi.to_radians().sin(),
+            theta.to_radians().cos(),theta.to_radians().sin()*phi.to_radians().cos()) * 
+            radius + 
+        Vector3::new(
+            camera_target.x,
+            camera_target.y,
+            camera_target.z
+        );
         // View and projection matrix
         // They are closely related, that's why they're both in the same structure.
         let view_matrix = Matrix4::look_at_rh(camera_position, camera_target, up_vector);

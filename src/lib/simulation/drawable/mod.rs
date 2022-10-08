@@ -155,7 +155,3 @@ pub(crate) trait Drawable: Bindable {
         Ok(())
     }
 }
-
-pub(crate) trait TextureDrawable: Bindable {
-
-}

@@ -326,14 +326,7 @@ impl DzahuiWindow {
         DzahuiWindowBuilder::new(location)
     }
 
-    /// # General information
-    /// 
     /// To restart timer of window in case is needed.
-    /// 
-    /// # Parameters
-    /// 
-    /// `&mut self` - To change status of field `timer`.
-    /// 
     pub fn restart_timer(&mut self) {
 
         self.timer = Instant::now();
@@ -402,7 +395,7 @@ impl DzahuiWindow {
 
     /// # General Information
     /// 
-    /// Run window with a mesh and an event loop. Consumes every object since they're not to be used afterwards.
+    /// Run window with a mesh and an event loop. Consumes every object.
     /// 
     /// # Parameters
     /// 
