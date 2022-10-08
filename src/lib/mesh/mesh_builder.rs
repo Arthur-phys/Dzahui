@@ -103,6 +103,7 @@ impl MeshBuilder {
     /// # General information
     /// 
     /// Returns hashmap with every diferent value per coordinate inside .obj.
+    /// It's useful to check if a given .obj is a 2d or 1d mesh.
     /// 
     /// # Parameters
     /// 
@@ -163,14 +164,19 @@ impl MeshBuilder {
 
     /// # General Information
     /// 
-    /// ddd
+    /// Builds a one dimensional mesh.
+    /// Only a line of well defined points is needed. The method will create another paralell line to generate a bar
+    /// copying every important element.
+    /// Colors for mesh are inserted into vertices array, therefore, every vertex has 6 entries: 3 for coordinates and 3 for color (RGB),
+    /// **Faces are not needed in .obj for this method**
     /// 
     /// # Parameters
     /// 
-    /// ddd
+    /// `self` - Consumes builder.
     /// 
     pub fn build_mesh_1d(self) -> Result<Mesh,Error> {
         
+        // Generate every element needed at a functional scope.
         let binder = Binder::new();
         let mut vertices: Vec<f64> = vec![];
         let mut indices: Vec<u32> = vec![];
@@ -179,9 +185,10 @@ impl MeshBuilder {
         let mut middle_point: [f32;3] = [0.;3];
         let file = File::open(&self.location)?;
 
-        // Check for two constant coordinates
+        // Obtain hashmaps of coordinates
         let [set_x,set_y,set_z]= self.check_for_constant_coordinates()?;
 
+        // Obtain constant coordinates
         let constant_coordinates: [usize;2] = if set_x.values().count() == 1 && set_y.values().count() == 1 {
             [1,0]
         } else if set_y.values().count() == 1 && set_z.values().count() == 1  {
@@ -193,9 +200,8 @@ impl MeshBuilder {
         };
 
         // Obtain ordered vertices
-
         let reader = BufReader::new(file).lines();    
-        reader.for_each(|line| {
+        reader.map(|line| -> Result<(),Error> {
             // Each line we're interested in starts with 'v '
             match line {
                 
@@ -203,21 +209,21 @@ impl MeshBuilder {
                     // Whenever there is a v
                     if content.starts_with("v ") {
                         // Check line integrity
-                        let mut coordinate = match MeshBuilder::obj_vertex_checker(&content) {
-                            Ok(coord) => coord,
-                            Err(error) => panic!("{}",error.to_string())
-                        };
+                        let mut coordinate = MeshBuilder::obj_vertex_checker(&content)?;
 
+                        // Remove both coordinates. Since they are ordered above, this can be done as below
                         for coord in constant_coordinates {
                             coordinate.remove(coord);
                             coordinate.push(0.0);
                         }
 
+                        // copying coordinate's only non-zero value as is needed below 
                         let new_value = coordinate[0];
+                        // Adding coordinate
                         vertices.append(&mut coordinate);
-                        // Adding color
+                        // Adding initial color
                         vertices.append(&mut vec![0.0,0.0,1.0]);
-                        // Insertion sort skipping zero coordinates
+                        // Insertion sort skipping zero coordinates to order line (smaller to bigger elements) in case .obj is not.
                         let mut j = vertices.len() as i32 - 6 - 5 - 1;
                         while j>=0 && vertices[j as usize] > new_value {
                             vertices[j as usize + 6] = vertices[j as usize];
@@ -225,21 +231,27 @@ impl MeshBuilder {
                         }
                         vertices[(j + 6) as usize] = new_value;
                     }
+                    Ok(())
                 },
                 // Error case of line matching
-                Err(error) => panic!("Unable to read file propperly {}",error)
+                Err(error) => Err(Error::Io(error))
             }
-        });
+        }).collect::<Result<Vec<_>,_>>()?;
 
         let vertices_len: u32 = vertices.len() as u32;
-        // Create a second vector of vertices above the first one to make a bar (seen on screen, for solving it serves no purpose) and append it to the first.
+        // Obtain max_length easily once vertices are ordered
         max_length = - vertices[0] + vertices[vertices_len as usize - 6];
+        // Prom width serves to give height to bar
         let prom_width = max_length * 6.0 / (vertices_len as f64 - 6.);
+        // Create a second vector of vertices above the first one to make a bar (to be seen on screen, it serves no other purpose) and append it to the first.
         vertices.append(&mut vertices.iter().enumerate().map(|(idx,x)| {if idx % 6 == 1 {prom_width} else {*x}}).collect::<Vec<f64>>());
         
         // Create indices for drawing
+        // First triangle
         indices.append(&mut vec![0,1,vertices_len/6]);
+        // Last triangle
         indices.append(&mut vec![(vertices_len - 6)/6,(vertices_len * 2 - 6)/6,(vertices_len * 2 - 12)/6]);
+        // Every other (intermediate) triangle
         for i in 1..(vertices_len)/6 - 1 {
             indices.append(&mut vec![i,i + vertices_len/6,i + vertices_len/6 - 1,i,i + 1,i + vertices_len/6])
         }
@@ -251,7 +263,7 @@ impl MeshBuilder {
         conditions[vertices_len as usize] = VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0,0.0,0.0])));
         conditions[vertices_len as usize * 2 - 1] = VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0,0.0,0.0])));
 
-        // get middle point
+        // get middle point for camera
         middle_point[0] = max_length as f32 / 2.;
         middle_point[1] = prom_width as f32 / 2.; 
 
@@ -272,8 +284,21 @@ impl MeshBuilder {
         })
     }
 
+    /// # General Information
+    /// 
+    /// Builds a two dimensional mesh.
+    /// A different approach needs to be taken to distinguish boundary vertices from internal ones. Algorithm consists on checking if a given edge 
+    /// from mesh appears once or more. If it appears only once, then the vertex is at the boundary (since it's only adjacent to a single traingle), otherwise,
+    /// it's internal.
+    /// Colors for mesh are inserted into vertices array, therefore, every vertex has 6 entries: 3 for coordinates and 3 for color (RGB).
+    /// 
+    /// # Parameters
+    /// 
+    /// `self` - Consumes builder.
+    ///
     pub fn build_mesh_2d(self) -> Result<Mesh,Error> {
 
+        // Generate every element needed at a functional scope.
         let binder = Binder::new();
         let mut vertices: Vec<f64> = vec![];
         let mut indices: Vec<u32> = vec![];
@@ -282,9 +307,10 @@ impl MeshBuilder {
         let mut middle_point: [f32;3] = [0.;3];
         let file = File::open(&self.location)?;
 
-         // Check for one constant coordinate 
+        // Obtain hashmaps of every coordinate with only different coordinates' value.
         let [set_x,set_y,set_z]= self.check_for_constant_coordinates()?;
-            
+        
+        // Get constant coordinate
         let constant_coordinate: usize = if set_x.values().count() == 1 {
             0
         } else if set_y.values().count() == 1 {
@@ -295,6 +321,7 @@ impl MeshBuilder {
             return Err(Error::Parse("Only coordinates over a plane paralell to x, y or z plane are accepted. Check .obj file.".to_string()));
         };
 
+        // Generate maximum and minimum value hashmap for x and y to encapsulate mesh in a square (for properly viewing purposes). 
         let mut max_min = HashMap::from([
             ("x_min",0.0),
             ("y_min",0.0),
@@ -302,6 +329,7 @@ impl MeshBuilder {
             ("y_max",0.0),
         ]);
 
+        // Primary data structure for boundary vertices algorithm (first we work with deges in the form (a,b))
         let mut boundary_edges: HashMap<[u32;2],usize> = HashMap::new();
 
         let reader = BufReader::new(file).lines();    
@@ -315,13 +343,14 @@ impl MeshBuilder {
                         // Check line integrity
                         let mut coordinate = match MeshBuilder::obj_vertex_checker(&content) {
                             Ok(coord) => coord,
-                            Err(error) => panic!("{}",error.to_string())
+                            Err(error) => {return Err(error);}
                         };
 
+                        // Remotion of the constant coordinate
                         coordinate.remove(constant_coordinate);
                         coordinate.push(0.0);
 
-                        // Check for min and max
+                        // Check for min and max values
                         let x_min = max_min.get_mut("x_min").unwrap();
                         if &coordinate[0] < x_min {
                             *x_min = coordinate[0];
@@ -340,56 +369,67 @@ impl MeshBuilder {
                         }
 
                         vertices.append(&mut coordinate);
+                        // Adding initial color: blue
+                        vertices.append(&mut vec![0.0,0.0,1.0]);
+                        // Initialize condtions vector along with vertices
                         conditions.push(VertexType::Internal(Array1::from_vec(vec![0.0,0.0,0.0])));
                     }
                         // Whenever there is an f
-                        else if content.starts_with("f ") {
-                            // Splitting via single space
-                            let mut triangle = match MeshBuilder::obj_face_checker(&content) {
-                                Ok(tr) => tr,
-                                Err(err) => panic!("{}",err)
-                            };
-                            
-                            // filling boundary edges hashmap to obtain boundary vertices
-                            // three possible combinations hardcoded. Find better way to insert them
-                            if let Some(counter) = boundary_edges.get_mut(&[triangle[0],triangle[1]]) {
-                                *counter += 1;
-                            } else {
-                                boundary_edges.insert([triangle[0],triangle[1]], 0);
-                            }
-                            if let Some(counter) = boundary_edges.get_mut(&[triangle[0],triangle[2]]) {
-                                *counter += 1;
-                            } else {
-                                boundary_edges.insert([triangle[0],triangle[2]], 0);
-                            }
-                            if let Some(counter) = boundary_edges.get_mut(&[triangle[2],triangle[1]]) {
-                                *counter += 1;
-                            } else {
-                                boundary_edges.insert([triangle[2],triangle[1]], 0);
-                            }
-
-                            // Push into triangles vector of u32
-                            indices.append(&mut triangle);
+                    else if content.starts_with("f ") {
+                        // Splitting via single space
+                        let mut triangle = MeshBuilder::obj_face_checker(&content)?;
+                        
+                        // filling boundary edges hashmap to obtain boundary vertices
+                        // three possible combinations. Find better way to insert them
+                        if let Some(counter) = boundary_edges.get_mut(&[triangle[0],triangle[1]]) {
+                            *counter += 1;
+                        } else {
+                            boundary_edges.insert([triangle[0],triangle[1]], 0);
                         }
+                        if let Some(counter) = boundary_edges.get_mut(&[triangle[0],triangle[2]]) {
+                            *counter += 1;
+                        } else {
+                            boundary_edges.insert([triangle[0],triangle[2]], 0);
+                        }
+                        if let Some(counter) = boundary_edges.get_mut(&[triangle[2],triangle[1]]) {
+                            *counter += 1;
+                        } else {
+                            boundary_edges.insert([triangle[2],triangle[1]], 0);
+                        }
+
+                        // Push into triangles vector of u32
+                        indices.append(&mut triangle);
+                    }
+                    Ok(())
                     },
                 // Error case of line matching
-                Err(error) => panic!("Unable to read file propperly {:?}",error)
+                Err(error) => Err(Error::Io(error))
             }
 
-            Ok(())
          }).collect::<Result<Vec<_>,_>>()?;
 
+        // Obtaining max and min from hashmap
         let len_x = max_min.get("x_max").unwrap()-max_min.get("x_min").unwrap();
         let len_y = max_min.get("y_max").unwrap()-max_min.get("y_min").unwrap();
+        // Obtaining middle point
         middle_point[0] = len_x as f32 / 2.0;
         middle_point[1] = len_y as f32 / 2.0;
- 
+        // Finally obtaining max length
         max_length = if len_x > len_y {len_x} else {len_y};
 
-        // reducing boundary edges to vertices
-        HashSet::<u32>::from_iter(boundary_edges.into_iter().filter(|(_duple,counter)| {if *counter != 1 {false} else {true}}).collect::<HashMap<[u32;2],usize>>().
-            into_keys().flatten()).into_iter().for_each(|boundary_vertex| {conditions[boundary_vertex as usize] = VertexType::Boundary(Condition::Dirichlet(Array1::from_vec(vec![0.0,0.0,0.0])))});
-
+        // reducing boundary edges to vertices with a filter based ob wether they are at the boundary or not.
+        HashSet::<u32>::from_iter(boundary_edges.
+            into_iter().
+            filter(|(_duple,counter)| {if *counter != 1 {false} else {true}}).
+            collect::<HashMap<[u32;2],usize>>().
+            into_keys().
+            flatten()).
+        into_iter().
+        for_each(|boundary_vertex| 
+            {conditions[boundary_vertex as usize] = VertexType::Boundary(Condition::Dirichlet(Array1::from_vec(vec![0.0,0.0,0.0])))}
+        );
+        
+        // Model matrix for viewing purposes
         let model_matrix = Matrix4::from_translation(Vector3::new(
             middle_point[0] as f32,
             middle_point[1] as f32,
@@ -406,6 +446,16 @@ impl MeshBuilder {
         })
     }
     
+    /// # General Information
+    /// 
+    /// Builds a three dimensional mesh.
+    /// A different approach needs to be taken to distinguish boundary vertices from internal ones. Algorithm not yet implemented
+    /// Colors for mesh are inserted into vertices array, therefore, every vertex has 6 entries: 3 for coordinates and 3 for color (RGB).
+    /// 
+    /// # Parameters
+    /// 
+    /// `self` - Consumes builder.
+    ///
     pub fn build_mesh_3d(self) -> Result<Mesh,Error> {
 
         let binder = Binder::new();
@@ -467,6 +517,7 @@ impl MeshBuilder {
                         }
 
                         vertices.append(&mut coordinate);
+                        vertices.append(&mut vec![0.0,0.0,1.0]);
                     }
                         // Whenever there is an f
                         else if content.starts_with("f ") {
