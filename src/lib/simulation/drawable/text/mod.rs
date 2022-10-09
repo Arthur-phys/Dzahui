@@ -10,11 +10,14 @@ use super::super::camera::Camera;
 
 /// # General Information
 /// 
-/// 
+/// Representation of a character
 /// 
 /// # Fields
 /// 
-/// 
+/// * `id` - Id of a character (unicode).
+/// * `origin` - Place of the character in charmap image. 
+/// * `size` - Width and height in a tuple. 
+/// * `character_start` - Where the character begins from rectangle ditctated in size. 
 /// 
 #[derive(Debug)]
 struct Character {
@@ -30,11 +33,22 @@ struct Character {
 
 /// # General Information
 /// 
-/// 
+/// A list of characters with a series of important options that make it into a font.
 /// 
 /// # Fields
 /// 
-/// 
+/// * `characters` - Every character literal (char) with it's corresponding character struct.
+/// * `font_type` - Name of the font.
+/// * `font_size` - Size of the font (pt).
+/// * `is_italic` - Self-explanatory.
+/// * `is_bool` - Self-explanatory.
+/// * `encoding` - Type of encoding (unicode, normally)
+/// * `line_height` - Where characters should start to be drawn vertically.
+/// * `character_number` - Number of characters in font.
+/// * `texture_file` - Where texture file is located.
+/// * `texture_size` - Size of the whole texture file.
+/// * `binder` - Binder associated to font.
+/// * `image_as_vec` - Image as a vector.
 /// 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct CharacterSet {
@@ -54,14 +68,7 @@ pub(crate) struct CharacterSet {
 
 impl Character {
 
-    /// # General Information
-    /// 
-    /// 
-    /// 
-    /// # Parameters
-    /// 
-    /// 
-    /// 
+    /// New instance of a character
     pub fn new(id: u32, origin: (f32,f32), size: (f32,f32), character_start: (f32,f32)) -> Self {
         Self { 
             id,
@@ -102,11 +109,12 @@ impl CharacterSet {
 
     /// # General Information
     /// 
-    /// 
+    /// New character set given a character file. It reads every line, substracting information neccesary to get every struct property and later
+    /// create every character and associating it to it's char. It also loads the image and generates a vector with it within.
     /// 
     /// # Parameters
     /// 
-    /// 
+    /// * `character_file` - fnt file. It is important that the file is correctly created since metadata is important to struct instance.
     /// 
     pub fn new(character_file: &str) -> Self {
 
@@ -224,11 +232,12 @@ impl CharacterSet {
 
     /// # General Information
     /// 
-    /// 
+    /// Struct has it's own method to send to gpu since texture has to be considered. This means send_to_gpu method inside bindable trait does not work 
+    /// with this struct. Text are sent by letter. Performance is not affected much since the amount of letters is small. Image vector is sent in it's entirety.
     /// 
     /// # Parameters
     /// 
-    /// 
+    /// * `&self` - Only a couple properties within self are enough to configure: vector from image, size of image.
     /// 
     pub(crate) fn send_to_gpu(&self) {
 
@@ -278,11 +287,12 @@ impl CharacterSet {
 
     /// # General Information
     /// 
-    /// 
+    /// Obtain every letter given an entry of text, generating everything necessary to send each one to the gpu: indices, texture coordinates.
     /// 
     /// # Parameters
     /// 
-    /// 
+    /// * `&self` - Obtain character struct for a given character to access it's properties.
+    /// * `text` - A text string to parse and display on screen. Every character has to be in the original font (CharacterSet).
     /// 
     fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> (Vec<[f32;20]>,Vec<[u32;6]>) {
 
@@ -369,11 +379,12 @@ impl CharacterSet {
 
     /// # General Information
     /// 
-    /// 
+    /// Draw a given text string. It can even be dynamic and, as long as the text is not too big, there will be no framerate drop.
     /// 
     /// # Parameters
     /// 
-    /// 
+    /// * `&self` - Obtain vertices from text function
+    /// * `text` - A given text input to draw into screen
     /// 
     pub(crate) fn draw_text<A: AsRef<str>>(&self, text: A) {
 
@@ -403,11 +414,15 @@ impl CharacterSet {
 
     /// # General Information
     /// 
-    /// 
+    /// Obtain a matrix to make text appear on screen in a certain position with a certain size. There's still a problem of scale happening: it is hardcoded.
     /// 
     /// # Parameters
     /// 
-    /// 
+    /// * `viewport_x` - Place where text will be rendered in viewport.
+    /// * `viewport_y` - Place where text will be rendered in viewport.
+    /// * `camera` - A reference to a camera to obtain a projection matrix (should change)
+    /// * `window_height` - Size of viewport to normalize coordinates.
+    /// * `window_width` - Size of viewport to normalize coordinates.
     ///
     pub(crate) fn matrix_for_screen(viewport_x: f32, viewport_y: f32, camera: &Camera, window_height: u32, window_width: u32) -> Matrix4<f32> {
         
