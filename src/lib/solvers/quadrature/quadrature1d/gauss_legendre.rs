@@ -1,4 +1,8 @@
 #![allow(dead_code)]
+/// This algorithm was adapted from c++ to rust from:
+/// 
+/// **Bogaert, I. (2014). Iteration-free computation of Gauss--Legendre quadrature nodes and weights. SIAM Journal on Scientific Computing, 36(3). https://doi.org/10.1137/140954969**
+/// 
 use std::f64::consts::PI;
 use ndarray::{Array, Ix2, Ix1};
 
@@ -227,6 +231,23 @@ const EVEN_THETA_ZEROS: [&[f64];50] = [&EVENTHETAZERO1,&EVENTHETAZERO2,&EVENTHET
 const ODD_WEIGHTS: [&[f64]; 49] = [&ODDW1,&ODDW2,&ODDW3,&ODDW4,&ODDW5,&ODDW6,&ODDW7,&ODDW8,&ODDW9,&ODDW10,&ODDW11,&ODDW12,&ODDW13,&ODDW14,&ODDW15,&ODDW16,&ODDW17,&ODDW18,&ODDW19,&ODDW20,&ODDW21,&ODDW22,&ODDW23,&ODDW24,&ODDW25,&ODDW26,&ODDW27,&ODDW28,&ODDW29,&ODDW30,&ODDW31,&ODDW32,&ODDW33,&ODDW34,&ODDW35,&ODDW36,&ODDW37,&ODDW38,&ODDW39,&ODDW40,&ODDW41,&ODDW42,&ODDW43,&ODDW44,&ODDW45,&ODDW46,&ODDW47,&ODDW48,&ODDW49];
 const EVEN_WEIGHTS: [&[f64]; 50] = [&EVENW1, &EVENW2, &EVENW3, &EVENW4, &EVENW5, &EVENW6, &EVENW7, &EVENW8, &EVENW9, &EVENW10, &EVENW11, &EVENW12, &EVENW13, &EVENW14, &EVENW15, &EVENW16, &EVENW17, &EVENW18, &EVENW19, &EVENW20, &EVENW21, &EVENW22, &EVENW23, &EVENW24, &EVENW25, &EVENW26, &EVENW27, &EVENW28, &EVENW29, &EVENW30, &EVENW31, &EVENW32, &EVENW33, &EVENW34, &EVENW35, &EVENW36, &EVENW37, &EVENW38, &EVENW39, &EVENW40, &EVENW41, &EVENW42, &EVENW43, &EVENW44, &EVENW45, &EVENW46, &EVENW47, &EVENW48, &EVENW49, &EVENW50];
 
+/// # Where it comes from
+/// 
+/// This algorithm was adapted from c++ to rust from:
+/// 
+/// **Bogaert, I. (2014). Iteration-free computation of Gauss--Legendre quadrature nodes and weights. SIAM Journal on Scientific Computing, 36(3). https://doi.org/10.1137/140954969**
+/// 
+/// Gauss Legendre Quadrature is an integration method that consists on moving the integration interval to -1,1 evaluating the integrand on a series of roots
+/// of the Gauss-Legendre polynomials multiplied by a series of weights given by the roots and derivatives of the polynomials.
+/// Since calculating the n-th Gauss-Legendre polynomal is computationally expensive, a series of approximations are made using asymptotic expansion
+/// and bessel functions to obtain the roots and weights directly. This makes the algorithm have O(n) complexity, which makes it feasible for real-time integration.
+/// 
+/// # General information
+/// 
+/// This trait has all the methods required to integrate a one-dimensional function on a given interval. Can be implemented on any solver 
+/// to generate such functionalty.
+/// Only the function `gauss_legendre_integration(...)` needs to be implemented since every solver will have a different equation to integrate.
+///  
 pub trait GaussLegendreQuadrature {    
 
     fn bessel_j_zero(k: usize) -> f64 {

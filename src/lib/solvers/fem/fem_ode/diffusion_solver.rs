@@ -1,5 +1,3 @@
-
-
 use crate::solvers::{quadrature::GaussLegendreQuadrature, linear_solver::ThomasSolver};
 use crate::solvers::fem::function::{Differentiable,Function,linear_basis::LinearBasis};
 use crate::solvers::fem::function::TransformationFactory;
@@ -9,6 +7,17 @@ use crate::Error;
 use ndarray::{Array, Ix2, Ix1, Array1};
 
 #[derive(Debug)]
+/// # General Information
+/// 
+/// A diffusion solver abstracts the equation to solve: "μu'' + bu' = 0" and contains boundary conditions along with mesh, "b" and "μ"
+/// 
+/// # Fields
+/// 
+/// * `boundary_conditions` - Original boundary conditions (Only dirichlet is supported for now, Neumann is being worked on).
+/// * `mesh` - A vector of floats representing a line.
+/// * `mu` - First ot two needed constants.
+/// * `b` - Second of two needed constants.
+/// 
 pub struct DiffussionSolver {
     boundary_conditions: [f64; 2],
     mesh: Vec<f64>,
@@ -18,6 +27,7 @@ pub struct DiffussionSolver {
 
 impl DiffussionSolver {
 
+    /// Creates new instance
     pub fn new(boundary_conditions: [f64; 2], mesh: Vec<f64>, mu: f64, b: f64) -> Self {
         Self {
             boundary_conditions,

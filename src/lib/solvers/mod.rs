@@ -15,7 +15,6 @@ use crate::Error;
 /// 
 /// A struct that implements DiffEquationSolver is implied to contain all needed information for a certain ODE/PDE to be solved. Therefore, a function to solve the
 /// equation needs to be present in such a structure.
-/// This trait **does not** consider time to be within the variables to be solved for. For that case, refer to `TimeDiffEquationSolver`.
 ///
 pub trait DiffEquationSolver: Debug {
     

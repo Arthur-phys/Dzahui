@@ -1,12 +1,22 @@
 
 use super::{PiecewiseFirstDegreePolynomial,FirstDegreePolynomial,TransformationFactory,IntervalStep,NumberOfArguments,Affine};
 
+/// # General Information
+/// 
+/// A Linear Basis is a set composed entirely of linearly independent functions that also generate the space in which they are contained.
+/// In this case, functions are piecewise first-degree polynomials
+/// 
+/// # Fields
+/// 
+/// * `basis` - A vector of `PieceWiseFirstDegreePolynomial`.
+/// 
 pub(crate) struct LinearBasis<A: IntervalStep, B: NumberOfArguments> {
     pub(crate) basis: Vec<PiecewiseFirstDegreePolynomial<A,B>>,
 }
 
 impl<A: IntervalStep, B: NumberOfArguments> LinearBasis<A, B> { 
     
+    /// Returns a LinearBasisFactory, with only three functions representing the original [0,1] basis with cardinality 2 and a zero function.
     pub(crate) fn new() -> LinearBasisFactory {
         
         let phi_1 = FirstDegreePolynomial::new(1_f64,0_f64);
@@ -20,6 +30,16 @@ impl<A: IntervalStep, B: NumberOfArguments> LinearBasis<A, B> {
     }
 }
 
+/// # General Information
+/// 
+/// A LinearBasisFactory abstraacts completely the creation of a basis from the three original functions via transformations. May change in the future.
+/// 
+/// # Fields
+/// 
+/// * `phi_1` - identity function.
+/// * `phi_2` - 1-x function.
+/// * `zero` - 0 function.
+/// 
 pub(crate) struct LinearBasisFactory {
     phi_1: FirstDegreePolynomial,
     phi_2: FirstDegreePolynomial,
@@ -28,17 +48,33 @@ pub(crate) struct LinearBasisFactory {
 
 impl LinearBasisFactory {
 
+    /// # General information
+    /// 
+    /// Creation of a LinearBasis from a 1D mesh. may change to also provide 2D functionality.
+    /// Obtains every function from the original two and a series of transformations.
+    /// First and last functions are defined in four intervals even though they're needed only in three. This is done so that the vector `basis` contains always
+    /// the same implementation of PieceWiseFirstDegreePolynomial.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `self` - Consumes self to return a LinearBasis
+    /// * `mesh` - A reference to the original mesh of points (may be filtered to omit RGB values).
+    /// 
     pub(crate) fn with_mesh(self, mesh: &Vec<f64>) -> LinearBasis<[f64;3],[f64;4]> {
 
         let transformation_factory = TransformationFactory {};
 
+        // Left-side function
         let transformation = transformation_factory.build(mesh[0],mesh[1]);
         let initial_transform_function = self.phi_2.compose(transformation);
 
+        // First function is generated, note the extra point 'mesh[0]-1'
         let mut basis_vec = vec![
             PiecewiseFirstDegreePolynomial::from_polynomials([&self.zero,&self.zero,&initial_transform_function,&self.zero], [mesh[0]-1_f64,mesh[0],mesh[1]])
         ];
 
+        // Every other function is generated. Observe a double zip that generates triads of values needed to generate a single function in every interval it is
+        // not zero
         mesh.iter().zip(mesh.iter().skip(1)).zip(mesh.iter().skip(2)).for_each(|((prev, cur), next)| {
             
             let transformation = transformation_factory.build(*prev,*cur);
@@ -51,6 +87,7 @@ impl LinearBasisFactory {
             )
         });
         
+        // Last function is generated. note the extra point 'mesh[mesh.len()-1] + 1.0'.
         let transformation = transformation_factory.build(mesh[mesh.len()-2],mesh[mesh.len()-1]);
         let final_transform_function = self.phi_1.compose(transformation);
 
