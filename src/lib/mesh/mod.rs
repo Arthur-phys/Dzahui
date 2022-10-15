@@ -1,26 +1,29 @@
 pub(crate) mod mesh_builder;
 pub(crate) mod vertex_type;
 
-use ndarray::Array1;
 use cgmath::Matrix4;
+use ndarray::Array1;
 use num::ToPrimitive;
 
-use crate::{simulation::drawable::{binder::Binder,Drawable,Bindable}, Error};
+use crate::{
+    simulation::drawable::{binder::Binder, Bindable, Drawable},
+    Error,
+};
 use mesh_builder::MeshBuilder;
 use vertex_type::VertexType;
 
 /// # General Information
-/// 
+///
 /// Representation of a plane figure/ 3d body. Contains information to draw to screen and move/rotate mesh representation to final position.
-/// 
+///
 /// # Fields
-/// 
+///
 /// ## Numerical Integration Fields
-/// 
+///
 /// * `conditions` - Kind a given vertex has. Can be a boundary or internal vertex. Also contains the possible initial/boundary condition.
-/// 
+///
 /// ## Drawing Fields
-/// 
+///
 /// * `max_length` - Maximum length of figure. Used to center camera arround objective.
 /// * `model_matrix` - Translates and rotates object to final world position.
 /// * `binder` - vao, vbo and ebo variables bound to mesh drawable in GPU.
@@ -41,7 +44,6 @@ pub(crate) struct Mesh {
 }
 
 impl Mesh {
-
     /// Getter for model_matrix
     pub fn get_model_matrix(&self) -> &Matrix4<f32> {
         &self.model_matrix
@@ -49,7 +51,9 @@ impl Mesh {
 
     /// Creates new instance of builder
     pub fn builder<B>(location: B) -> MeshBuilder
-    where B: AsRef<str> {
+    where
+        B: AsRef<str>,
+    {
         MeshBuilder::new(location)
     }
 
@@ -57,35 +61,61 @@ impl Mesh {
     pub(crate) fn filter_for_solving_1d(&self) -> Array1<f64> {
         // size of vertex is 6. There are double the vertices in 1d since a new pair is generated to draw a bar, therefore len is divided by 12.
         let vertices_len = self.vertices.len() / 12;
-        self.vertices.iter().enumerate().filter_map(|(idx,x)| {if idx % 6 == 0 && idx < vertices_len*6 {Some(*x)} else {None}}).collect()
+        self.vertices
+            .iter()
+            .enumerate()
+            .filter_map(|(idx, x)| {
+                if idx % 6 == 0 && idx < vertices_len * 6 {
+                    Some(*x)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    /// Temporary solution to move gradient updating out of dzahui window. Probably will be changed in the future.
+    /// Obtains max and min of solution (normallly some sort of rate of change), divides every element by the difference and then multiplies them by
+    /// pi/2 so that, when calculating their sine and cosine, there's a mapping between max velocity <-> red and min velocity <-> blue
+    pub(crate) fn update_gradient_1d(&mut self, grad: Array1<f64>) {
+        let sol_max = grad.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let sol_min = grad.iter().copied().fold(f64::INFINITY, f64::min);
+        let vertices_len = self.vertices.len();
+        for i in 1..(vertices_len / 12 - 1) {
+            let norm_sol =
+                (grad[i - 1] - sol_min) / (sol_max - sol_min) * (std::f64::consts::PI / 2.);
+            self.vertices[6 * i + 3] = norm_sol.sin();
+            self.vertices[6 * i + 5] = norm_sol.cos();
+            self.vertices[6 * i + 3 + vertices_len / 2] = norm_sol.sin();
+            self.vertices[6 * i + 5 + vertices_len / 2] = norm_sol.cos();
+        }
     }
 }
 
-
 impl Bindable for Mesh {
-
-    fn get_binder(&self) -> Result<&Binder,Error> {
+    fn get_binder(&self) -> Result<&Binder, Error> {
         Ok(&self.binder)
     }
 
-    fn get_mut_binder(&mut self) -> Result<&mut Binder,Error> {
+    fn get_mut_binder(&mut self) -> Result<&mut Binder, Error> {
         Ok(&mut self.binder)
     }
 }
 
 impl Drawable for Mesh {
-
-    fn get_triangles(&self) -> Result<&Array1<u32>,Error> {
+    fn get_triangles(&self) -> Result<&Array1<u32>, Error> {
         Ok(&self.indices)
     }
 
-    fn get_vertices(&self) -> Result<Array1<f32>,Error> {
-        Ok(Array1::from_iter(self.vertices.iter().map(|x| x.to_f32().unwrap())))
+    fn get_vertices(&self) -> Result<Array1<f32>, Error> {
+        Ok(Array1::from_iter(
+            self.vertices.iter().map(|x| x.to_f32().unwrap()),
+        ))
     }
 
-    fn get_max_length(&self) -> Result<f32,Error> {
+    fn get_max_length(&self) -> Result<f32, Error> {
         let max_len = self.max_length.to_f32();
-        
+
         match max_len {
             Some(f) => {
                 if f.is_finite() {
@@ -93,8 +123,8 @@ impl Drawable for Mesh {
                 } else {
                     Err(Error::Overflow)
                 }
-            },
-            None => Err(Error::Unimplemented)
+            }
+            None => Err(Error::Unimplemented),
         }
     }
 }
@@ -103,21 +133,29 @@ impl Drawable for Mesh {
 mod test {
     use super::Mesh;
     use ndarray::Array1;
-    
+
     #[test]
     fn parse_coordinates() {
-    
-        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build_mesh_3d().unwrap();
-        println!("{:?}",new_mesh.vertices);
-        assert!(new_mesh.vertices == Array1::from_vec(vec![-1.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0]));
-        assert!(new_mesh.indices == Array1::from_vec(vec![0,1,2]));
+        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj")
+            .build_mesh_3d()
+            .unwrap();
+        println!("{:?}", new_mesh.vertices);
+        assert!(
+            new_mesh.vertices
+                == Array1::from_vec(vec![
+                    -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+                    0.0, 0.0, 1.0
+                ])
+        );
+        assert!(new_mesh.indices == Array1::from_vec(vec![0, 1, 2]));
     }
-    
+
     #[test]
     fn is_max_distance() {
-    
-        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj").build_mesh_2d().unwrap();
-        println!("{}",new_mesh.max_length);
+        let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj")
+            .build_mesh_2d()
+            .unwrap();
+        println!("{}", new_mesh.max_length);
         assert!(new_mesh.max_length >= 1.90);
         assert!(new_mesh.max_length <= 2.10);
     }

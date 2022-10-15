@@ -4,14 +4,14 @@ enum ErrorKind {
     Io(std::io::Error),
     WrongDims,
     Custom(String),
-    Unimplemented
+    Unimplemented,
 }
 
 #[derive(Debug)]
 #[allow(dead_code)]
 struct RealError {
     internal: ErrorKind,
-    helper_message: Option<String>    
+    helper_message: Option<String>,
 }
 
 #[derive(Debug)]
@@ -19,7 +19,7 @@ pub enum Error {
     Io(std::io::Error),
     WrongDims,
     Custom(String),
-    ExtensionNotAllowed(String,String),
+    ExtensionNotAllowed(String, String),
     Overflow,
     Unimplemented,
     Parse(String),
@@ -29,18 +29,24 @@ impl std::fmt::Display for Error {
     fn fmt(&self, formatter: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         let content = match self {
             Error::Io(e) => format!("io error, {}", e),
-            Error::WrongDims => format!("one or more of the provided elements do not have the correct dimensions"),
+            Error::WrongDims => {
+                format!("one or more of the provided elements do not have the correct dimensions")
+            }
             Error::Custom(e) => format!("{}", e),
-            Error::ExtensionNotAllowed(file,action) => format!("Extension of file {} is not allowed for {}",file,action),
+            Error::ExtensionNotAllowed(file, action) => {
+                format!("Extension of file {} is not allowed for {}", file, action)
+            }
             Error::Overflow => String::from("Overflow occurred"),
-            Error::Parse(e) => format!("Error while parsing file: {}",e),
-            Error::Unimplemented => format!("este error no debería existir, favor de reportar con el desarrollador")
+            Error::Parse(e) => format!("Error while parsing file: {}", e),
+            Error::Unimplemented => {
+                format!("este error no debería existir, favor de reportar con el desarrollador")
+            }
         };
         write!(formatter, "{}", content)
     }
 }
 
-impl std::error::Error for Error{}
+impl std::error::Error for Error {}
 
 impl Error {
     pub fn custom<A: Into<String>>(message: A) -> Self {
