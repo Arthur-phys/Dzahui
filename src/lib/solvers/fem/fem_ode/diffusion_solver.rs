@@ -42,7 +42,6 @@ impl ThomasSolver for DiffussionSolver {}
 impl DiffEquationSolver for DiffussionSolver {
     fn solve(&self) -> Result<Array1<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);
-        println!("a: {:?}\n\n b: {:?}", a, b);
 
         let mut res = Self::solve_by_thomas(&a, &b)?;
 
@@ -316,8 +315,8 @@ mod test {
 
         let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
 
-        assert!(res.len() == 1);
-        assert!(res[0] <= -0.2 && res[0] >= -0.4);
+        assert!(res.len() == 3);
+        assert!(res[1] <= -0.2 && res[1] >= -0.4);
     }
 
     #[test]
@@ -343,11 +342,9 @@ mod test {
 
         let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
 
-        println!("{:?}", res);
-
-        assert!(res.len() == 2);
-        assert!(res[0] <= -0.20 && res[0] >= -0.24);
-        assert!(res[1] <= -0.52 && res[1] >= -0.56);
+        assert!(res.len() == 4);
+        assert!(res[1] <= -0.20 && res[1] >= -0.24);
+        assert!(res[2] <= -0.52 && res[2] >= -0.56);
     }
 
     #[test]
@@ -381,12 +378,16 @@ mod test {
         );
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
+        println!("a: {:?}\n\n b: {:?}", a, b);
+
         let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
 
-        assert!(res.len() == 3);
-        assert!(res[0] <= -0.15 && res[0] >= -0.17);
-        assert!(res[1] <= -0.36 && res[1] >= -0.38);
-        assert!(res[2] <= -0.63 && res[2] >= -0.655);
+        println!("\n\nresult is: {:?}\n\n",res);
+
+        assert!(res.len() == 5);
+        assert!(res[1] <= -0.15 && res[1] >= -0.17);
+        assert!(res[2] <= -0.36 && res[2] >= -0.38);
+        assert!(res[3] <= -0.63 && res[3] >= -0.655);
     }
 
     #[test]
@@ -398,10 +399,11 @@ mod test {
             1_f64,
         );
         let res = dif_solver.solve().unwrap();
+        println!("\n\nresult is: {:?}\n\n",res);
 
-        assert!(res.len() == 3);
-        assert!(res[0] <= -0.15 && res[0] >= -0.17);
-        assert!(res[1] <= -0.36 && res[1] >= -0.38);
-        assert!(res[2] <= -4.05 && res[2] >= -4.25);
+        assert!(res.len() == 5);
+        assert!(res[1] <= -0.15 && res[1] >= -0.17);
+        assert!(res[2] <= -0.36 && res[2] >= -0.38);
+        assert!(res[3] <= -4.05 && res[3] >= -4.25);
     }
 }
