@@ -77,13 +77,16 @@ impl Mesh {
     /// Temporary solution to move gradient updating out of dzahui window. Probably will be changed in the future.
     /// Obtains max and min of solution (normallly some sort of rate of change), divides every element by the difference and then multiplies them by
     /// pi/2 so that, when calculating their sine and cosine, there's a mapping between max velocity <-> red and min velocity <-> blue
-    pub(crate) fn update_gradient_1d(&mut self, grad: Array1<f64>) {
-        let sol_max = grad.iter().copied().fold(f64::NEG_INFINITY, f64::max);
-        let sol_min = grad.iter().copied().fold(f64::INFINITY, f64::min);
+    pub(crate) fn update_gradient_1d(&mut self, velocity_norm: Array1<f64>) {
+        let sol_max = velocity_norm
+            .iter()
+            .copied()
+            .fold(f64::NEG_INFINITY, f64::max);
+        let sol_min = velocity_norm.iter().copied().fold(f64::INFINITY, f64::min);
         let vertices_len = self.vertices.len();
-        for i in 1..(vertices_len / 12 - 1) {
+        for i in 0..(vertices_len / 12) {
             let norm_sol =
-                (grad[i - 1] - sol_min) / (sol_max - sol_min) * (std::f64::consts::PI / 2.);
+                (velocity_norm[i] - sol_min) / (sol_max - sol_min) * (std::f64::consts::PI / 2.);
             self.vertices[6 * i + 3] = norm_sol.sin();
             self.vertices[6 * i + 5] = norm_sol.cos();
             self.vertices[6 * i + 3 + vertices_len / 2] = norm_sol.sin();

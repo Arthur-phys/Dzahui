@@ -308,13 +308,13 @@ impl MeshBuilder {
             VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0, 0.0, 0.0])));
 
         // get middle point for camera
-        middle_point[0] = max_length as f32 / 2.;
-        middle_point[1] = prom_width as f32 / 2.;
+        middle_point[0] = max_length as f32 / 2_f32;
+        middle_point[1] = prom_width as f32 / 2_f32;
 
         // Translate matrix to given point
         let model_matrix = Matrix4::from_translation(Vector3::new(
-            middle_point[0] as f32,
-            middle_point[1] as f32,
+            -middle_point[0] as f32,
+            -middle_point[1] as f32,
             middle_point[2] as f32,
         ));
 

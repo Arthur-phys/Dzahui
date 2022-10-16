@@ -453,7 +453,8 @@ impl DzahuiWindow {
                     mu,
                     b,
                 );
-                let solution = solver.solve().unwrap().map(|x| x.abs());
+                let solution = solver.solve().unwrap();
+                println!("{:?}", solution);
                 // updating colors. Only one time per vertex should it be updated (that is, every 6 steps).
                 self.mesh.update_gradient_1d(solution);
             }
@@ -576,7 +577,6 @@ impl DzahuiWindow {
                 self.geometry_shader.use_shader();
                 self.geometry_shader
                     .set_mat4("view", &self.camera.view_matrix);
-                self.geometry_shader.set_mat4("model", &Matrix4::identity());
 
                 self.mesh.bind_vao().unwrap();
                 self.mesh.draw(&self).unwrap();

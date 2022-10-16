@@ -42,11 +42,16 @@ impl ThomasSolver for DiffussionSolver {}
 impl DiffEquationSolver for DiffussionSolver {
     fn solve(&self) -> Result<Array1<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);
+        println!("a: {:?}\n\n b: {:?}", a, b);
 
         let mut res = Self::solve_by_thomas(&a, &b)?;
 
-        res[0] += b[0];
-        res[b.len() - 1] += b[b.len() - 1];
+        res[1] += b[0];
+        res[b.len()] += b[b.len() - 1];
+
+        // Adding boundary condition values
+        res[0] = self.boundary_conditions[0];
+        res[b.len() + 1] = self.boundary_conditions[1];
 
         Ok(res)
     }
