@@ -43,8 +43,9 @@ impl DiffEquationSolver for DiffussionSolver {
     fn solve(&self) -> Result<Array1<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);
 
+        println!("\n\n a is: {:?}\n\n b is: {:?}",a,b);
+
         let mut res = Self::solve_by_thomas(&a, &b)?;
-        println!("\n\n b is: {:?}\n\n",b);
 
         // res[1] += b[0];
         // res[b.len()] += b[b.len() - 1];

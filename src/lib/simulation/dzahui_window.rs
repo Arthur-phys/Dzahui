@@ -456,7 +456,7 @@ impl DzahuiWindow {
                 let solution = solver.solve().unwrap();
                 println!("{:?}", solution);
                 // updating colors. Only one time per vertex should it be updated (that is, every 6 steps).
-                self.mesh.update_gradient_1d(solution);
+                self.mesh.update_gradient_1d(solution.map(|x| x.abs()));
             }
 
             _ => {}
