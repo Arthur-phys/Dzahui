@@ -44,9 +44,10 @@ impl DiffEquationSolver for DiffussionSolver {
         let (a, b) = self.gauss_legendre_integration(150);
 
         let mut res = Self::solve_by_thomas(&a, &b)?;
+        println!("\n\n b is: {:?}\n\n",b);
 
-        res[1] += b[0];
-        res[b.len()] += b[b.len() - 1];
+        // res[1] += b[0];
+        // res[b.len()] += b[b.len() - 1];
 
         // Adding boundary condition values
         res[0] = self.boundary_conditions[0];
@@ -378,11 +379,7 @@ mod test {
         );
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        println!("a: {:?}\n\n b: {:?}", a, b);
-
         let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
-
-        println!("\n\nresult is: {:?}\n\n",res);
 
         assert!(res.len() == 5);
         assert!(res[1] <= -0.15 && res[1] >= -0.17);
@@ -399,7 +396,6 @@ mod test {
             1_f64,
         );
         let res = dif_solver.solve().unwrap();
-        println!("\n\nresult is: {:?}\n\n",res);
 
         assert!(res.len() == 5);
         assert!(res[1] <= -0.15 && res[1] >= -0.17);

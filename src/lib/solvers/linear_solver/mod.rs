@@ -69,7 +69,7 @@ pub trait ThomasSolver {
             solution[b.len()] = d[b.len() - 1];
 
             for i in (0..b.len() - 1).rev() {
-                solution[i + 1] = d[i] - c[i] * solution[i + 1];
+                solution[i + 1] = d[i] - c[i] * solution[i + 2];
             }
         }
         Ok(solution)
