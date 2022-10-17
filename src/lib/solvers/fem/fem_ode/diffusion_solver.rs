@@ -43,8 +43,6 @@ impl DiffEquationSolver for DiffussionSolver {
     fn solve(&self) -> Result<Array1<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);
 
-        println!("\n\n a is: {:?}\n\n b is: {:?}",a,b);
-
         let mut res = Self::solve_by_thomas(&a, &b)?;
 
         // res[1] += b[0];
@@ -282,8 +280,8 @@ impl GaussLegendreQuadrature for DiffussionSolver {
         }
 
         let mut b_vector = Array1::from_elem(long_basis - 2, 0_f64);
-        b_vector[[0]] += integral_zero_one_approximation * self.boundary_conditions[0];
-        b_vector[[long_basis - 3]] += integral_last_pen_approximation * self.boundary_conditions[1];
+        b_vector[[0]] += -integral_zero_one_approximation * self.boundary_conditions[0];
+        b_vector[[long_basis - 3]] += -integral_last_pen_approximation * self.boundary_conditions[1];
 
         (stiffness_matrix, b_vector)
     }
@@ -293,7 +291,7 @@ impl GaussLegendreQuadrature for DiffussionSolver {
 mod test {
 
     use crate::solvers::{
-        linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature, DiffEquationSolver,
+        linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature,
     };
 
     use super::DiffussionSolver;
@@ -305,7 +303,7 @@ mod test {
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
         assert!(a[[0, 0]] <= 4.1 && a[[0, 0]] >= 3.9);
-        assert!(b[0] >= -1.6 && b[0] <= -1.4);
+        assert!(b[0] <= 1.6 && b[0] >= 1.4);
     }
 
     #[test]
@@ -318,7 +316,7 @@ mod test {
         let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 3);
-        assert!(res[1] <= -0.2 && res[1] >= -0.4);
+        assert!(res[1] >= 0.2 && res[1] <= 0.4);
     }
 
     #[test]
@@ -333,7 +331,7 @@ mod test {
         assert!(a[[1, 1]] <= 6.1 && a[[1, 1]] >= 5.9);
 
         assert!(b[0] == 0_f64);
-        assert!(b[1] <= -2.4 && b[1] >= -2.6);
+        assert!(b[1] >= 2.4 && b[1] <= 2.6);
     }
 
     #[test]
@@ -345,8 +343,8 @@ mod test {
         let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 4);
-        assert!(res[1] <= -0.20 && res[1] >= -0.24);
-        assert!(res[2] <= -0.52 && res[2] >= -0.56);
+        assert!(res[1] >= 0.20 && res[1] <= 0.24);
+        assert!(res[2] >= 0.52 && res[2] <= 0.56);
     }
 
     #[test]
@@ -367,7 +365,7 @@ mod test {
         assert!(a[[2, 1]] <= -4.4 && a[[2, 1]] >= -4.6);
         assert!(a[[2, 2]] <= 8.1 && a[[2, 2]] >= 7.9);
 
-        assert!(b[b.len() - 1] <= -3.4 && b[b.len() - 1] >= -3.6);
+        assert!(b[b.len() - 1] >= 3.4 && b[b.len() - 1] <= 3.6);
     }
 
     #[test]
@@ -383,9 +381,9 @@ mod test {
         let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 5);
-        assert!(res[1] <= -0.15 && res[1] >= -0.17);
-        assert!(res[2] <= -0.36 && res[2] >= -0.38);
-        assert!(res[3] <= -0.63 && res[3] >= -0.655);
+        assert!(res[1] >= 0.15 && res[1] <= 0.17);
+        assert!(res[2] >= 0.36 && res[2] <= 0.38);
+        assert!(res[3] >= 0.63 && res[3] <= 0.655);
     }
 
     #[test]
@@ -396,11 +394,19 @@ mod test {
             1_f64,
             1_f64,
         );
-        let res = dif_solver.solve().unwrap();
+
+        let (a,b) = dif_solver.gauss_legendre_integration(150);
+        
+        
+        let mut res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
+        
+        let len = res.len();
+        res[0] = dif_solver.boundary_conditions[0];
+        res[len-1] = dif_solver.boundary_conditions[1];
 
         assert!(res.len() == 5);
-        assert!(res[1] <= -0.15 && res[1] >= -0.17);
-        assert!(res[2] <= -0.36 && res[2] >= -0.38);
-        assert!(res[3] <= -4.05 && res[3] >= -4.25);
+        assert!(res[1] >= 0.15 && res[1] <= 0.17);
+        assert!(res[2] >= 0.36 && res[2] <= 0.38);
+        assert!(res[3] >= 0.60 && res[3] <= 0.68);
     }
 }
