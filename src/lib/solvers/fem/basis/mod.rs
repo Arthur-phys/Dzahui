@@ -1,4 +1,6 @@
 pub mod linear_basis;
+pub mod single_variable;
+pub mod two_variables;
 
 /// A trait representing a function evaluation
 pub trait Function {

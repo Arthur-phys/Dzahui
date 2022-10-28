@@ -5893,7 +5893,7 @@ mod test {
 
     use super::GaussLegendreQuadrature;
     use super::PI;
-    use crate::solvers::fem::function::{Differentiable, Function, TransformationFactory};
+    use crate::solvers::fem::basis::{Differentiable, Function, TransformationFactory};
     use ndarray::{array, Array, Ix1, Ix2};
 
     struct MockSolver;

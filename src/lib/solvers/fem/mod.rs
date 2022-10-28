@@ -1,5 +1,5 @@
 pub mod fem_ode;
-pub mod function;
+pub mod basis;
 
 /// # General Information
 ///

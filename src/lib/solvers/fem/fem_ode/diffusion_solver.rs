@@ -1,5 +1,5 @@
-use crate::solvers::fem::function::TransformationFactory;
-use crate::solvers::fem::function::{linear_basis::LinearBasis, Differentiable, Function};
+use crate::solvers::fem::basis::TransformationFactory;
+use crate::solvers::fem::basis::{linear_basis::LinearBasis, Differentiable, Function};
 use crate::solvers::DiffEquationSolver;
 use crate::solvers::{linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature};
 use crate::Error;
