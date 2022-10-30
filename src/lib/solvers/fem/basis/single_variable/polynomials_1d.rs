@@ -71,6 +71,24 @@ impl FirstDegreePolynomial {
         }
 
     }
+
+    pub fn phi_1() -> FirstDegreePolynomial {
+
+        FirstDegreePolynomial {
+            coefficient: 1_f64,
+            independent_term: 0_f64
+        }
+
+    }
+
+    pub fn phi_2() -> FirstDegreePolynomial {
+
+        FirstDegreePolynomial {
+            coefficient: -1_f64,
+            independent_term: 1_f64
+        }
+
+    }
     
 }
 
@@ -121,7 +139,7 @@ impl SecondDegreePolynomial {
 impl Function1D for SecondDegreePolynomial {
 
     fn evaluate(&self, x: f64) -> f64 {
-        self.quadratic_coefficient * x * x + self.linear_coefficient * x + self.independent_term
+        self.quadratic_coefficient * x.powf(2_f64) + self.linear_coefficient * x + self.independent_term
     }
 
 }

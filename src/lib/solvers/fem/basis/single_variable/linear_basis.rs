@@ -34,12 +34,7 @@ impl LinearBasis {
 /// * `phi_2` - 1-x function.
 /// * `zero` - 0 function.
 ///
-pub(crate) struct LinearBasisFactory {
-    phi_1: FirstDegreePolynomial,
-    phi_2: FirstDegreePolynomial,
-    zero: FirstDegreePolynomial,
-}
-
+pub(crate) struct LinearBasisFactory ();
 impl LinearBasisFactory {
     /// # General information
     ///
