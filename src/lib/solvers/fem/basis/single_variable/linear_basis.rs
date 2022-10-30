@@ -1,7 +1,5 @@
-use super::{
-    Affine, FirstDegreePolynomial, IntervalStep, NumberOfArguments, PiecewiseFirstDegreePolynomial,
-    TransformationFactory,
-};
+use super::polynomials_1d::{FirstDegreePolynomial, Composable1D};
+use super::piecewise_polynomials_1d::{PiecewiseFirstDegreePolynomial};
 
 /// # General Information
 ///
@@ -12,11 +10,11 @@ use super::{
 ///
 /// * `basis` - A vector of `PieceWiseFirstDegreePolynomial`.
 ///
-pub(crate) struct LinearBasis<A: IntervalStep, B: NumberOfArguments> {
-    pub(crate) basis: Vec<PiecewiseFirstDegreePolynomial<A, B>>,
+pub(crate) struct LinearBasis {
+    pub(crate) basis: Vec<PiecewiseFirstDegreePolynomial>,
 }
 
-impl<A: IntervalStep, B: NumberOfArguments> LinearBasis<A, B> {
+impl LinearBasis {
     /// Returns a LinearBasisFactory, with only three functions representing the original [0,1] basis with cardinality 2 and a zero function.
     pub(crate) fn new() -> LinearBasisFactory {
         let phi_1 = FirstDegreePolynomial::new(1_f64, 0_f64);
@@ -55,11 +53,10 @@ impl LinearBasisFactory {
     /// * `self` - Consumes self to return a LinearBasis
     /// * `mesh` - A reference to the original mesh of points (may be filtered to omit RGB values).
     ///
-    pub(crate) fn with_mesh(self, mesh: &Vec<f64>) -> LinearBasis<[f64; 3], [f64; 4]> {
-        let transformation_factory = TransformationFactory {};
+    pub(crate) fn with_mesh(self, mesh: &Vec<f64>) -> LinearBasis {
 
         // Left-side function
-        let transformation = transformation_factory.build(mesh[0], mesh[1]);
+        let transformation = FirstDegreePolynomial::transformation_to_0_1(mesh[0], mesh[1]);
         let initial_transform_function = self.phi_2.compose(transformation);
 
         // First function is generated, note the extra point 'mesh[0]-1'
@@ -70,7 +67,7 @@ impl LinearBasisFactory {
                 &initial_transform_function,
                 &self.zero,
             ],
-            [mesh[0] - 1_f64, mesh[0], mesh[1]],
+            vec![mesh[0] - 1_f64, mesh[0], mesh[1]],
         )];
 
         // Every other function is generated. Observe a double zip that generates triads of values needed to generate a single function in every interval it is
@@ -79,20 +76,20 @@ impl LinearBasisFactory {
             .zip(mesh.iter().skip(1))
             .zip(mesh.iter().skip(2))
             .for_each(|((prev, cur), next)| {
-                let transformation = transformation_factory.build(*prev, *cur);
+                let transformation = FirstDegreePolynomial::transformation_to_0_1(*prev, *cur);
                 let basis_left = self.phi_1.compose(transformation);
-                let transformation = transformation_factory.build(*cur, *next);
+                let transformation = FirstDegreePolynomial::transformation_to_0_1(*cur, *next);
                 let basis_right = self.phi_2.compose(transformation);
 
                 basis_vec.push(PiecewiseFirstDegreePolynomial::from_polynomials(
                     [&self.zero, &basis_left, &basis_right, &self.zero],
-                    [*prev, *cur, *next],
+                    vec![*prev, *cur, *next],
                 ))
             });
 
         // Last function is generated. note the extra point 'mesh[mesh.len()-1] + 1.0'.
         let transformation =
-            transformation_factory.build(mesh[mesh.len() - 2], mesh[mesh.len() - 1]);
+        FirstDegreePolynomial::transformation_to_0_1(mesh[mesh.len() - 2], mesh[mesh.len() - 1]);
         let final_transform_function = self.phi_1.compose(transformation);
 
         basis_vec.push(PiecewiseFirstDegreePolynomial::from_polynomials(
@@ -102,7 +99,7 @@ impl LinearBasisFactory {
                 &self.zero,
                 &self.zero,
             ],
-            [
+            vec![
                 mesh[mesh.len() - 2],
                 mesh[mesh.len() - 1],
                 mesh[mesh.len() - 1] + 1_f64,

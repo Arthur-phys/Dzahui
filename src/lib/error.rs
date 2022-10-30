@@ -21,6 +21,7 @@ pub enum Error {
     Custom(String),
     ExtensionNotAllowed(String, String),
     Overflow,
+    PieceWiseDims,
     Unimplemented,
     Parse(String),
 }
@@ -38,6 +39,7 @@ impl std::fmt::Display for Error {
             }
             Error::Overflow => String::from("Overflow occurred"),
             Error::Parse(e) => format!("Error while parsing file: {}", e),
+            Error::PieceWiseDims => format!("Number of arguments must be one more than number of breakpoints for a piecewise function definition to make sense"),
             Error::Unimplemented => {
                 format!("este error no debería existir, favor de reportar con el desarrollador")
             }
