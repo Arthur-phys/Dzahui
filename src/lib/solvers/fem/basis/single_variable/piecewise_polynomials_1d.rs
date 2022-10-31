@@ -2,7 +2,7 @@ use crate::{Error, solvers::fem::basis::single_variable::polynomials_1d::FirstDe
 
 use super::{Function1D, Differentiable1D};
 
-#[derive(PartialEq)]
+#[derive(PartialEq,Debug)]
 pub struct PiecewiseFirstDegreePolynomial {
     polynomials: Vec<FirstDegreePolynomial>,
     interval_breakpoints: Vec<f64>

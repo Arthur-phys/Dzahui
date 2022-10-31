@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "type": "lldb",
             "request": "launch",
@@ -73,6 +74,25 @@
                 ],
                 "filter": {
                     "name": "euler",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug specific test: 'linear_basis' file",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--package=Dzahui",
+                    "transform_basis_three_nodes"
+                ],
+                "filter": {
+                    "name": "linear",
                     "kind": "test"
                 }
             },

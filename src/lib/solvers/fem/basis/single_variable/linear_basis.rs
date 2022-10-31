@@ -57,7 +57,7 @@ impl LinearBasis {
                 let transformation = FirstDegreePolynomial::transformation_to_0_1(*prev, *cur);
                 let basis_left = FirstDegreePolynomial::phi_1().compose(transformation);
                 let transformation = FirstDegreePolynomial::transformation_to_0_1(*cur, *next);
-                let basis_right = FirstDegreePolynomial::phi_1().compose(transformation);
+                let basis_right = FirstDegreePolynomial::phi_2().compose(transformation);
 
                 let piecewise_function = PiecewiseFirstDegreePolynomial::from_polynomials(
                     vec![FirstDegreePolynomial::zero(), basis_left, basis_right, FirstDegreePolynomial::zero()],
@@ -67,7 +67,7 @@ impl LinearBasis {
                 basis_vec.push(piecewise_function);
 
                 Ok(())
-            });
+            }).collect::<Result<(),Error>>()?;
 
         // Last function is generated.
         let transformation =
@@ -108,9 +108,9 @@ mod test {
         assert!(transformed.basis.len() == 3);
 
         let first_pol = PiecewiseFirstDegreePolynomial::from_values(
-            vec![0_f64, 0_f64, -1_f64, 0_f64],
-            vec![0_f64, 0_f64, 1_f64, 0_f64],
-            vec![-1_f64, 0_f64, 1_f64],
+            vec![0_f64, -1_f64, 0_f64],
+            vec![0_f64, 1_f64, 0_f64],
+            vec![0_f64, 1_f64],
         ).unwrap();
         let second_pol = PiecewiseFirstDegreePolynomial::from_values(
             vec![0_f64, 1_f64, -1_f64, 0_f64],
@@ -118,9 +118,9 @@ mod test {
             vec![0_f64, 1_f64, 2_f64],
         ).unwrap();
         let third_pol = PiecewiseFirstDegreePolynomial::from_values(
-            vec![0_f64, 1_f64, 0_f64, 0_f64],
-            vec![0_f64, -1_f64, 0_f64, 0_f64],
-            vec![1_f64, 2_f64, 3_f64],
+            vec![0_f64, 1_f64, 0_f64],
+            vec![0_f64, -1_f64, 0_f64],
+            vec![1_f64, 2_f64],
         ).unwrap();
 
         assert!(transformed.basis[0] == first_pol);

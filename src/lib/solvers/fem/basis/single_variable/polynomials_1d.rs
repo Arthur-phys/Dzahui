@@ -1,6 +1,6 @@
 use super::{Function1D, Composable1D, Differentiable1D};
 
-#[derive(PartialEq)]
+#[derive(PartialEq,Debug)]
 pub struct FirstDegreePolynomial {
     pub(crate) coefficient: f64,
     pub(crate) independent_term: f64
