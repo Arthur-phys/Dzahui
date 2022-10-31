@@ -1,5 +1,4 @@
-use crate::solvers::fem::basis::TransformationFactory;
-use crate::solvers::fem::basis::{linear_basis::LinearBasis, Differentiable, Function};
+use crate::solvers::fem::basis::single_variable::{linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Function1D, Differentiable1D};
 use crate::solvers::DiffEquationSolver;
 use crate::solvers::{linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature};
 use crate::Error;
@@ -40,6 +39,7 @@ impl DiffussionSolver {
 impl ThomasSolver for DiffussionSolver {}
 
 impl DiffEquationSolver for DiffussionSolver {
+
     fn solve(&self) -> Result<Array1<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);
 
@@ -54,22 +54,25 @@ impl DiffEquationSolver for DiffussionSolver {
 
         Ok(res)
     }
+
 }
 
 impl GaussLegendreQuadrature for DiffussionSolver {
+    
     fn gauss_legendre_integration(&self, gauss_step: usize) -> (Array<f64, Ix2>, Array<f64, Ix1>) {
-        let transformation_factory = TransformationFactory {};
-        let basis = LinearBasis::<[f64; 3], [f64; 4]>::new().with_mesh(&self.mesh);
+
+        let basis = LinearBasis::new(&self.mesh).unwrap();
         let long_basis = basis.basis.len();
 
         let mut stiffness_matrix =
             ndarray::Array::from_elem((long_basis - 2, long_basis - 2), 0_f64);
 
         if long_basis - 2 == 1 {
+
             let derivative_phi = basis.basis[1].differentiate();
-            let transform_function =
-                transformation_factory.build_to_m1_p1(self.mesh[0], self.mesh[2]);
+            let transform_function = FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[0], self.mesh[2]);
             let derivative_t = transform_function.differentiate();
+            // initial value
             let mut integral_square_approximation = 0_f64;
 
             for j in 1..gauss_step {
@@ -91,6 +94,7 @@ impl GaussLegendreQuadrature for DiffussionSolver {
             }
 
             stiffness_matrix[[0, 0]] = integral_square_approximation;
+
         } else {
             if long_basis - 2 == 2 {
             } else {

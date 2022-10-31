@@ -1,22 +1,12 @@
-pub trait Function1D {
-    fn evaluate(&self, x: f64) -> f64;
-}
+use super::{Function1D, Composable1D, Differentiable1D};
 
-pub trait Differentiable1D<T> 
-    where T: Function1D {
-    fn differentiate(&self) -> T;
-}
-
-pub trait Composable1D<T, U> 
-    where T: Function1D, U: Function1D {
-    fn compose(&self, other: T) -> U;
-}
-
+#[derive(PartialEq)]
 pub struct FirstDegreePolynomial {
     pub(crate) coefficient: f64,
     pub(crate) independent_term: f64
 }
 
+#[derive(PartialEq)]
 pub struct SecondDegreePolynomial {
     quadratic_coefficient: f64,
     linear_coefficient: f64,
@@ -103,7 +93,7 @@ impl Function1D for FirstDegreePolynomial {
 // self(other(x))
 impl Composable1D<FirstDegreePolynomial, FirstDegreePolynomial> for FirstDegreePolynomial {
 
-    fn compose(&self, other: FirstDegreePolynomial) -> FirstDegreePolynomial {
+    fn compose(self, other: FirstDegreePolynomial) -> FirstDegreePolynomial {
 
         FirstDegreePolynomial {
             coefficient: self.coefficient * other.coefficient,
@@ -158,7 +148,7 @@ impl Differentiable1D<FirstDegreePolynomial> for SecondDegreePolynomial {
 // self(other(x))
 impl Composable1D<FirstDegreePolynomial,SecondDegreePolynomial> for SecondDegreePolynomial {
 
-    fn compose(&self, other: FirstDegreePolynomial) -> SecondDegreePolynomial {
+    fn compose(self, other: FirstDegreePolynomial) -> SecondDegreePolynomial {
 
         SecondDegreePolynomial {
             quadratic_coefficient: self.quadratic_coefficient * other.coefficient.powf(2_f64),

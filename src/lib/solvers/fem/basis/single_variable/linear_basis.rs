@@ -1,5 +1,8 @@
-use super::polynomials_1d::{FirstDegreePolynomial, Composable1D};
-use super::piecewise_polynomials_1d::{PiecewiseFirstDegreePolynomial};
+use crate::Error;
+
+use super::polynomials_1d::FirstDegreePolynomial;
+use super::piecewise_polynomials_1d::PiecewiseFirstDegreePolynomial;
+use super::Composable1D;
 
 /// # General Information
 ///
@@ -15,27 +18,6 @@ pub(crate) struct LinearBasis {
 }
 
 impl LinearBasis {
-    /// Returns a LinearBasisFactory, with only three functions representing the original [0,1] basis with cardinality 2 and a zero function.
-    pub(crate) fn new() -> LinearBasisFactory {
-        let phi_1 = FirstDegreePolynomial::new(1_f64, 0_f64);
-        let phi_2 = FirstDegreePolynomial::new(-1_f64, 1_f64);
-        let zero = FirstDegreePolynomial::zero();
-        LinearBasisFactory { phi_1, phi_2, zero }
-    }
-}
-
-/// # General Information
-///
-/// A LinearBasisFactory abstraacts completely the creation of a basis from the three original functions via transformations. May change in the future.
-///
-/// # Fields
-///
-/// * `phi_1` - identity function.
-/// * `phi_2` - 1-x function.
-/// * `zero` - 0 function.
-///
-pub(crate) struct LinearBasisFactory ();
-impl LinearBasisFactory {
     /// # General information
     ///
     /// Creation of a LinearBasis from a 1D mesh. may change to also provide 2D functionality.
@@ -48,99 +30,98 @@ impl LinearBasisFactory {
     /// * `self` - Consumes self to return a LinearBasis
     /// * `mesh` - A reference to the original mesh of points (may be filtered to omit RGB values).
     ///
-    pub(crate) fn with_mesh(self, mesh: &Vec<f64>) -> LinearBasis {
+    pub(crate) fn new(mesh: &Vec<f64>) -> Result<LinearBasis,Error> {
 
         // Left-side function
         let transformation = FirstDegreePolynomial::transformation_to_0_1(mesh[0], mesh[1]);
-        let initial_transform_function = self.phi_2.compose(transformation);
+        let initial_transform_function = FirstDegreePolynomial::phi_2().compose(transformation);
 
-        // First function is generated, note the extra point 'mesh[0]-1'
-        let mut basis_vec = vec![PiecewiseFirstDegreePolynomial::from_polynomials(
-            [
-                &self.zero,
-                &self.zero,
-                &initial_transform_function,
-                &self.zero,
+        // First function is generated.
+        let first_function = PiecewiseFirstDegreePolynomial::from_polynomials(
+            vec![
+                FirstDegreePolynomial::zero(),
+                initial_transform_function,
+                FirstDegreePolynomial::zero()
             ],
-            vec![mesh[0] - 1_f64, mesh[0], mesh[1]],
-        )];
+            vec![mesh[0], mesh[1]],
+        )?;
 
-        // Every other function is generated. Observe a double zip that generates triads of values needed to generate a single function in every interval it is
-        // not zero
+        let mut basis_vec = vec![first_function];
+
+        // Every other function is generated. Observe a double zip that generates triads of values needed to generate a single function in every interval.
         mesh.iter()
             .zip(mesh.iter().skip(1))
             .zip(mesh.iter().skip(2))
-            .for_each(|((prev, cur), next)| {
-                let transformation = FirstDegreePolynomial::transformation_to_0_1(*prev, *cur);
-                let basis_left = self.phi_1.compose(transformation);
-                let transformation = FirstDegreePolynomial::transformation_to_0_1(*cur, *next);
-                let basis_right = self.phi_2.compose(transformation);
+            .map(|((prev, cur), next)| -> Result<(),Error> {
 
-                basis_vec.push(PiecewiseFirstDegreePolynomial::from_polynomials(
-                    [&self.zero, &basis_left, &basis_right, &self.zero],
+                let transformation = FirstDegreePolynomial::transformation_to_0_1(*prev, *cur);
+                let basis_left = FirstDegreePolynomial::phi_1().compose(transformation);
+                let transformation = FirstDegreePolynomial::transformation_to_0_1(*cur, *next);
+                let basis_right = FirstDegreePolynomial::phi_1().compose(transformation);
+
+                let piecewise_function = PiecewiseFirstDegreePolynomial::from_polynomials(
+                    vec![FirstDegreePolynomial::zero(), basis_left, basis_right, FirstDegreePolynomial::zero()],
                     vec![*prev, *cur, *next],
-                ))
+                )?;
+
+                basis_vec.push(piecewise_function);
+
+                Ok(())
             });
 
-        // Last function is generated. note the extra point 'mesh[mesh.len()-1] + 1.0'.
+        // Last function is generated.
         let transformation =
         FirstDegreePolynomial::transformation_to_0_1(mesh[mesh.len() - 2], mesh[mesh.len() - 1]);
-        let final_transform_function = self.phi_1.compose(transformation);
-
-        basis_vec.push(PiecewiseFirstDegreePolynomial::from_polynomials(
-            [
-                &self.zero,
-                &final_transform_function,
-                &self.zero,
-                &self.zero,
+        let final_transform_function = FirstDegreePolynomial::phi_1().compose(transformation);
+        
+        let final_function = PiecewiseFirstDegreePolynomial::from_polynomials(
+            vec![
+                FirstDegreePolynomial::zero(),
+                final_transform_function,
+                FirstDegreePolynomial::zero(),
             ],
             vec![
                 mesh[mesh.len() - 2],
                 mesh[mesh.len() - 1],
-                mesh[mesh.len() - 1] + 1_f64,
             ],
-        ));
+        )?;
 
-        LinearBasis { basis: basis_vec }
+        basis_vec.push(final_function);
+
+        Ok(
+            LinearBasis { basis: basis_vec }
+        )
     }
 }
 
 #[cfg(test)]
 mod test {
 
-    use super::super::{FirstDegreePolynomial, PiecewiseFirstDegreePolynomial};
+    use super::PiecewiseFirstDegreePolynomial;
     use super::LinearBasis;
 
     #[test]
-    fn create_unit_basis() {
-        let unit_base = LinearBasis::<[f64; 3], [f64; 4]>::new();
-        assert!(unit_base.phi_1 == FirstDegreePolynomial::new(1_f64, 0_f64));
-        assert!(unit_base.phi_2 == FirstDegreePolynomial::new(-1_f64, 1_f64));
-    }
-
-    #[test]
     fn transform_basis_three_nodes() {
-        let unit_base = LinearBasis::<[f64; 3], [f64; 4]>::new();
         let mesh = vec![0_f64, 1_f64, 2_f64];
-        let transformed = unit_base.with_mesh(&mesh);
+        let transformed = LinearBasis::new(&mesh).unwrap();
 
         assert!(transformed.basis.len() == 3);
 
-        let first_pol = PiecewiseFirstDegreePolynomial::new(
-            [0_f64, 0_f64, -1_f64, 0_f64],
-            [0_f64, 0_f64, 1_f64, 0_f64],
-            [-1_f64, 0_f64, 1_f64],
-        );
-        let second_pol = PiecewiseFirstDegreePolynomial::new(
-            [0_f64, 1_f64, -1_f64, 0_f64],
-            [0_f64, 0_f64, 2_f64, 0_f64],
-            [0_f64, 1_f64, 2_f64],
-        );
-        let third_pol = PiecewiseFirstDegreePolynomial::new(
-            [0_f64, 1_f64, 0_f64, 0_f64],
-            [0_f64, -1_f64, 0_f64, 0_f64],
-            [1_f64, 2_f64, 3_f64],
-        );
+        let first_pol = PiecewiseFirstDegreePolynomial::from_values(
+            vec![0_f64, 0_f64, -1_f64, 0_f64],
+            vec![0_f64, 0_f64, 1_f64, 0_f64],
+            vec![-1_f64, 0_f64, 1_f64],
+        ).unwrap();
+        let second_pol = PiecewiseFirstDegreePolynomial::from_values(
+            vec![0_f64, 1_f64, -1_f64, 0_f64],
+            vec![0_f64, 0_f64, 2_f64, 0_f64],
+            vec![0_f64, 1_f64, 2_f64],
+        ).unwrap();
+        let third_pol = PiecewiseFirstDegreePolynomial::from_values(
+            vec![0_f64, 1_f64, 0_f64, 0_f64],
+            vec![0_f64, -1_f64, 0_f64, 0_f64],
+            vec![1_f64, 2_f64, 3_f64],
+        ).unwrap();
 
         assert!(transformed.basis[0] == first_pol);
         assert!(transformed.basis[1] == second_pol);
