@@ -1,4 +1,6 @@
-use crate::solvers::fem::basis::single_variable::{linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Function1D, Differentiable1D};
+use crate::solvers::fem::basis::single_variable::{
+    linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
+};
 use crate::solvers::DiffEquationSolver;
 use crate::solvers::{linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature};
 use crate::Error;
@@ -8,7 +10,7 @@ use ndarray::{Array, Array1, Ix1, Ix2};
 #[derive(Debug)]
 /// # General Information
 ///
-/// A diffusion solver abstracts the equation to solve: "μu'' + bu' = 0" and contains boundary conditions along with mesh, "b" and "μ"
+/// A diffusion solver with time-independence abstracts the equation: "- μu_xx + bu_x = 0" and contains boundary conditions along with mesh, "b" and "μ"
 ///
 /// # Fields
 ///
@@ -17,14 +19,14 @@ use ndarray::{Array, Array1, Ix1, Ix2};
 /// * `mu` - First ot two needed constants.
 /// * `b` - Second of two needed constants.
 ///
-pub struct DiffussionSolver {
+pub struct DiffussionSolverTimeIndependent {
     boundary_conditions: [f64; 2],
     mesh: Vec<f64>,
     mu: f64,
     b: f64,
 }
 
-impl DiffussionSolver {
+impl DiffussionSolverTimeIndependent {
     /// Creates new instance
     pub fn new(boundary_conditions: [f64; 2], mesh: Vec<f64>, mu: f64, b: f64) -> Self {
         Self {
@@ -36,10 +38,9 @@ impl DiffussionSolver {
     }
 }
 
-impl ThomasSolver for DiffussionSolver {}
+impl ThomasSolver for DiffussionSolverTimeIndependent {}
 
-impl DiffEquationSolver for DiffussionSolver {
-
+impl DiffEquationSolver for DiffussionSolverTimeIndependent {
     fn solve(&self) -> Result<Array1<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);
 
@@ -54,13 +55,10 @@ impl DiffEquationSolver for DiffussionSolver {
 
         Ok(res)
     }
-
 }
 
-impl GaussLegendreQuadrature for DiffussionSolver {
-    
+impl GaussLegendreQuadrature for DiffussionSolverTimeIndependent {
     fn gauss_legendre_integration(&self, gauss_step: usize) -> (Array<f64, Ix2>, Array<f64, Ix1>) {
-
         let basis = LinearBasis::new(&self.mesh).unwrap();
         let long_basis = basis.basis.len();
 
@@ -68,9 +66,9 @@ impl GaussLegendreQuadrature for DiffussionSolver {
             ndarray::Array::from_elem((long_basis - 2, long_basis - 2), 0_f64);
 
         if long_basis - 2 == 1 {
-
             let derivative_phi = basis.basis[1].differentiate();
-            let transform_function = FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[0], self.mesh[2]);
+            let transform_function =
+                FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[0], self.mesh[2]);
             let derivative_t = transform_function.differentiate();
             // initial value for integral
             let mut integral_square_approximation = 0_f64;
@@ -94,22 +92,25 @@ impl GaussLegendreQuadrature for DiffussionSolver {
             }
 
             stiffness_matrix[[0, 0]] = integral_square_approximation;
-
         } else {
-
             if long_basis - 2 == 2 {
-
             } else {
-
                 for i in 2..long_basis - 2 {
                     let derivative_phi = basis.basis[i].differentiate();
 
-                    let transform_function_prev =
-                        FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[i - 1], self.mesh[i]);
-                    let transform_function_next =
-                        FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[i], self.mesh[i + 1]);
+                    let transform_function_prev = FirstDegreePolynomial::transformation_from_m1_p1(
+                        self.mesh[i - 1],
+                        self.mesh[i],
+                    );
+                    let transform_function_next = FirstDegreePolynomial::transformation_from_m1_p1(
+                        self.mesh[i],
+                        self.mesh[i + 1],
+                    );
                     let transform_function_square =
-                        FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[i - 1], self.mesh[i + 1]);
+                        FirstDegreePolynomial::transformation_from_m1_p1(
+                            self.mesh[i - 1],
+                            self.mesh[i + 1],
+                        );
 
                     let derivative_t_prev = transform_function_prev.differentiate();
                     let derivative_t_next = transform_function_next.differentiate();
@@ -171,10 +172,14 @@ impl GaussLegendreQuadrature for DiffussionSolver {
                 FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[1], self.mesh[2]);
             let transform_function_zero_square =
                 FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[0], self.mesh[2]);
-            let transform_function_last_internal = 
-                FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[long_basis - 3], self.mesh[long_basis - 2]);
-            let transform_function_last_square = 
-                FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[long_basis - 3], self.mesh[long_basis - 1]);
+            let transform_function_last_internal = FirstDegreePolynomial::transformation_from_m1_p1(
+                self.mesh[long_basis - 3],
+                self.mesh[long_basis - 2],
+            );
+            let transform_function_last_square = FirstDegreePolynomial::transformation_from_m1_p1(
+                self.mesh[long_basis - 3],
+                self.mesh[long_basis - 1],
+            );
 
             let derivative_t_zero = transform_function_zero_internal.differentiate();
             let derivative_t_last = transform_function_last_internal.differentiate();
@@ -248,8 +253,10 @@ impl GaussLegendreQuadrature for DiffussionSolver {
 
         let transform_function_zero =
             FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[0], self.mesh[1]);
-        let transform_function_last = 
-            FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[long_basis - 2], self.mesh[long_basis - 1]);
+        let transform_function_last = FirstDegreePolynomial::transformation_from_m1_p1(
+            self.mesh[long_basis - 2],
+            self.mesh[long_basis - 1],
+        );
 
         let derivative_t_zero = transform_function_zero.differentiate();
         let derivative_t_last = transform_function_last.differentiate();
@@ -289,7 +296,8 @@ impl GaussLegendreQuadrature for DiffussionSolver {
 
         let mut b_vector = Array1::from_elem(long_basis - 2, 0_f64);
         b_vector[[0]] += -integral_zero_one_approximation * self.boundary_conditions[0];
-        b_vector[[long_basis - 3]] += -integral_last_pen_approximation * self.boundary_conditions[1];
+        b_vector[[long_basis - 3]] +=
+            -integral_last_pen_approximation * self.boundary_conditions[1];
 
         (stiffness_matrix, b_vector)
     }
@@ -298,19 +306,17 @@ impl GaussLegendreQuadrature for DiffussionSolver {
 #[cfg(test)]
 mod test {
 
-    use crate::solvers::{
-        linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature,
-    };
+    use crate::solvers::{linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature};
 
-    use super::DiffussionSolver;
+    use super::DiffussionSolverTimeIndependent;
 
     #[test]
     fn regular_mesh_matrix_3p() {
         let dif_solver =
-            DiffussionSolver::new([0_f64, 1_f64], vec![0_f64, 0.5, 1_f64], 1_f64, 1_f64);
+            DiffussionSolverTimeIndependent::new([0_f64, 1_f64], vec![0_f64, 0.5, 1_f64], 1_f64, 1_f64);
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        println!("A: {:?}\n b: {:?}",a,b);
+        println!("A: {:?}\n b: {:?}", a, b);
 
         assert!(a[[0, 0]] <= 4.1 && a[[0, 0]] >= 3.9);
         assert!(b[0] <= 1.6 && b[0] >= 1.4);
@@ -319,11 +325,11 @@ mod test {
     #[test]
     fn solve_system_3p() {
         let dif_solver =
-            DiffussionSolver::new([0_f64, 1_f64], vec![0_f64, 0.5, 1_f64], 1_f64, 1_f64);
+            DiffussionSolverTimeIndependent::new([0_f64, 1_f64], vec![0_f64, 0.5, 1_f64], 1_f64, 1_f64);
 
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
+        let res = DiffussionSolverTimeIndependent::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 3);
         assert!(res[1] >= 0.2 && res[1] <= 0.4);
@@ -332,7 +338,7 @@ mod test {
     #[test]
     fn regular_mesh_matrix_4p() {
         let dif_solver =
-            DiffussionSolver::new([0_f64, 1_f64], vec![0_f64, 0.33, 0.66, 1_f64], 1_f64, 1_f64);
+            DiffussionSolverTimeIndependent::new([0_f64, 1_f64], vec![0_f64, 0.33, 0.66, 1_f64], 1_f64, 1_f64);
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
         assert!(a[[0, 0]] <= 6.1 && a[[0, 0]] >= 5.9);
@@ -347,10 +353,10 @@ mod test {
     #[test]
     fn solve_system_4p() {
         let dif_solver =
-            DiffussionSolver::new([0_f64, 1_f64], vec![0_f64, 0.33, 0.66, 1_f64], 1_f64, 1_f64);
+            DiffussionSolverTimeIndependent::new([0_f64, 1_f64], vec![0_f64, 0.33, 0.66, 1_f64], 1_f64, 1_f64);
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
+        let res = DiffussionSolverTimeIndependent::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 4);
         assert!(res[1] >= 0.20 && res[1] <= 0.24);
@@ -359,7 +365,7 @@ mod test {
 
     #[test]
     fn regular_mesh_bigger_matrix() {
-        let dif_solver = DiffussionSolver::new(
+        let dif_solver = DiffussionSolverTimeIndependent::new(
             [0_f64, 1_f64],
             vec![0_f64, 0.25, 0.5, 0.75, 1_f64],
             1_f64,
@@ -380,7 +386,7 @@ mod test {
 
     #[test]
     fn solve_bigger_system() {
-        let dif_solver = DiffussionSolver::new(
+        let dif_solver = DiffussionSolverTimeIndependent::new(
             [0_f64, 1_f64],
             vec![0_f64, 0.25, 0.5, 0.75, 1_f64],
             1_f64,
@@ -388,7 +394,7 @@ mod test {
         );
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
+        let res = DiffussionSolverTimeIndependent::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 5);
         assert!(res[1] >= 0.15 && res[1] <= 0.17);
@@ -398,21 +404,20 @@ mod test {
 
     #[test]
     fn obtain_non_homogeneous_solution() {
-        let dif_solver = DiffussionSolver::new(
+        let dif_solver = DiffussionSolverTimeIndependent::new(
             [0_f64, 1_f64],
             vec![0_f64, 0.25, 0.5, 0.75, 1_f64],
             1_f64,
             1_f64,
         );
 
-        let (a,b) = dif_solver.gauss_legendre_integration(150);
-        
-        
-        let mut res = DiffussionSolver::solve_by_thomas(&a, &b).unwrap();
-        
+        let (a, b) = dif_solver.gauss_legendre_integration(150);
+
+        let mut res = DiffussionSolverTimeIndependent::solve_by_thomas(&a, &b).unwrap();
+
         let len = res.len();
         res[0] = dif_solver.boundary_conditions[0];
-        res[len-1] = dif_solver.boundary_conditions[1];
+        res[len - 1] = dif_solver.boundary_conditions[1];
 
         assert!(res.len() == 5);
         assert!(res[1] >= 0.15 && res[1] <= 0.17);

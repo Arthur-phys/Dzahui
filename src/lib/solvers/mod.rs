@@ -5,7 +5,7 @@ pub mod quadrature;
 
 use std::fmt::Debug;
 
-pub use fem::fem_ode::*;
+pub use fem::*;
 pub use fem::Solver;
 use ndarray::Array1;
 

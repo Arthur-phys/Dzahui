@@ -15,7 +15,7 @@ use super::shader::Shader;
 use crate::mesh::{mesh_builder::MeshBuilder, Mesh};
 use crate::{
     mesh::mesh_builder::MeshDimension,
-    solvers::{diffusion_solver::DiffussionSolver, DiffEquationSolver, Solver},
+    solvers::{diffusion_solver::time_independent::DiffussionSolverTimeIndependent, DiffEquationSolver, Solver},
 };
 
 /// # General Information
@@ -199,7 +199,7 @@ impl DzahuiWindowBuilder {
     /// Makes diffusion solver simulation
     pub fn solve_1d_diffussion(self, boundary_conditions: [f64; 2], mu: f64, b: f64) -> Self {
         Self {
-            solver: Solver::DiffussionSolver(boundary_conditions, mu, b),
+            solver: Solver::DiffussionSolverTimeIndependent(boundary_conditions, mu, b),
             mesh_dimension: MeshDimension::One,
             ..self
         }
@@ -446,8 +446,8 @@ impl DzahuiWindow {
 
         // Generating soultion. For static solutions it's ok, but for any other this has to go inside loop to update it
         match self.solver {
-            Solver::DiffussionSolver(boundary_conditions, mu, b) => {
-                let solver = DiffussionSolver::new(
+            Solver::DiffussionSolverTimeIndependent(boundary_conditions, mu, b) => {
+                let solver = DiffussionSolverTimeIndependent::new(
                     boundary_conditions,
                     self.mesh.filter_for_solving_1d().to_vec(),
                     mu,

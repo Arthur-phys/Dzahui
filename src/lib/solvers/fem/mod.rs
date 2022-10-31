@@ -1,5 +1,5 @@
-pub mod fem_ode;
 pub mod basis;
+pub mod diffusion_solver;
 
 /// # General Information
 ///
@@ -16,7 +16,8 @@ pub mod basis;
 ///
 #[derive(Debug)]
 pub enum Solver {
-    DiffussionSolver([f64; 2], f64, f64),
+    DiffussionSolverTimeIndependent([f64; 2], f64, f64),
+    DiffussionSolverTimeDependent([f64; 2], f64, f64),
     NavierStokes1DSolver,
     NavierStokes2DSolver,
     None,

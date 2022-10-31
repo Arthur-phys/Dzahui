@@ -5893,7 +5893,9 @@ mod test {
 
     use super::GaussLegendreQuadrature;
     use super::PI;
-    use crate::solvers::fem::basis::single_variable::{Differentiable1D,Function1D,polynomials_1d::FirstDegreePolynomial};
+    use crate::solvers::fem::basis::single_variable::{
+        polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
+    };
     use ndarray::{array, Array, Ix1, Ix2};
 
     struct MockSolver;
