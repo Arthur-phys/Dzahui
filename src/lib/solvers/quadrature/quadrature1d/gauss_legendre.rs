@@ -5893,7 +5893,7 @@ mod test {
 
     use super::GaussLegendreQuadrature;
     use super::PI;
-    use crate::solvers::fem::basis::{Differentiable, Function, TransformationFactory};
+    use crate::solvers::fem::basis::single_variable::{Differentiable1D,Function1D,polynomials_1d::FirstDegreePolynomial};
     use ndarray::{array, Array, Ix1, Ix2};
 
     struct MockSolver;
@@ -5968,8 +5968,7 @@ mod test {
 
     #[test]
     fn integrate_cosine_0_pi() {
-        let t_factory = TransformationFactory();
-        let transform = t_factory.build_to_m1_p1(0_f64, PI);
+        let transform = FirstDegreePolynomial::transformation_from_m1_p1(0_f64, PI);
         let deriv_t = transform.differentiate();
 
         let mut sum = 0_f64;

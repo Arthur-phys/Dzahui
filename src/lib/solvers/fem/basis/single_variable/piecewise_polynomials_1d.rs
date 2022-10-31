@@ -88,7 +88,7 @@ impl Differentiable1D<PiecewiseFirstDegreePolynomial> for PiecewiseFirstDegreePo
             pol.differentiate()
         }).collect();
 
-        match PiecewiseFirstDegreePolynomial::from_polynomials(diff_polynomials, self.interval_breakpoints) {
+        match PiecewiseFirstDegreePolynomial::from_polynomials(diff_polynomials, self.interval_breakpoints.clone()) {
             Ok(diff) => diff,
             Err(e) => panic!("{}",e)
         }

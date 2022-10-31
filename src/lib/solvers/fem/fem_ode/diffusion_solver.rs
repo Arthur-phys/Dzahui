@@ -72,7 +72,7 @@ impl GaussLegendreQuadrature for DiffussionSolver {
             let derivative_phi = basis.basis[1].differentiate();
             let transform_function = FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[0], self.mesh[2]);
             let derivative_t = transform_function.differentiate();
-            // initial value
+            // initial value for integral
             let mut integral_square_approximation = 0_f64;
 
             for j in 1..gauss_step {
@@ -96,17 +96,21 @@ impl GaussLegendreQuadrature for DiffussionSolver {
             stiffness_matrix[[0, 0]] = integral_square_approximation;
 
         } else {
+
             if long_basis - 2 == 2 {
+
             } else {
+
                 for i in 2..long_basis - 2 {
                     let derivative_phi = basis.basis[i].differentiate();
 
                     let transform_function_prev =
-                        transformation_factory.build_to_m1_p1(self.mesh[i - 1], self.mesh[i]);
+                        FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[i - 1], self.mesh[i]);
                     let transform_function_next =
-                        transformation_factory.build_to_m1_p1(self.mesh[i], self.mesh[i + 1]);
+                        FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[i], self.mesh[i + 1]);
                     let transform_function_square =
-                        transformation_factory.build_to_m1_p1(self.mesh[i - 1], self.mesh[i + 1]);
+                        FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[i - 1], self.mesh[i + 1]);
+
                     let derivative_t_prev = transform_function_prev.differentiate();
                     let derivative_t_next = transform_function_next.differentiate();
                     let derivative_t_square = transform_function_square.differentiate();
@@ -164,13 +168,13 @@ impl GaussLegendreQuadrature for DiffussionSolver {
             let derivative_phi_last_internal = basis.basis[long_basis - 2].differentiate();
 
             let transform_function_zero_internal =
-                transformation_factory.build_to_m1_p1(self.mesh[1], self.mesh[2]);
+                FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[1], self.mesh[2]);
             let transform_function_zero_square =
-                transformation_factory.build_to_m1_p1(self.mesh[0], self.mesh[2]);
-            let transform_function_last_internal = transformation_factory
-                .build_to_m1_p1(self.mesh[long_basis - 3], self.mesh[long_basis - 2]);
-            let transform_function_last_square = transformation_factory
-                .build_to_m1_p1(self.mesh[long_basis - 3], self.mesh[long_basis - 1]);
+                FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[0], self.mesh[2]);
+            let transform_function_last_internal = 
+                FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[long_basis - 3], self.mesh[long_basis - 2]);
+            let transform_function_last_square = 
+                FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[long_basis - 3], self.mesh[long_basis - 1]);
 
             let derivative_t_zero = transform_function_zero_internal.differentiate();
             let derivative_t_last = transform_function_last_internal.differentiate();
@@ -243,9 +247,9 @@ impl GaussLegendreQuadrature for DiffussionSolver {
         let derivative_phi_last = basis.basis[long_basis - 1].differentiate();
 
         let transform_function_zero =
-            transformation_factory.build_to_m1_p1(self.mesh[0], self.mesh[1]);
-        let transform_function_last = transformation_factory
-            .build_to_m1_p1(self.mesh[long_basis - 2], self.mesh[long_basis - 1]);
+            FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[0], self.mesh[1]);
+        let transform_function_last = 
+            FirstDegreePolynomial::transformation_from_m1_p1(self.mesh[long_basis - 2], self.mesh[long_basis - 1]);
 
         let derivative_t_zero = transform_function_zero.differentiate();
         let derivative_t_last = transform_function_last.differentiate();
@@ -305,6 +309,8 @@ mod test {
         let dif_solver =
             DiffussionSolver::new([0_f64, 1_f64], vec![0_f64, 0.5, 1_f64], 1_f64, 1_f64);
         let (a, b) = dif_solver.gauss_legendre_integration(150);
+
+        println!("A: {:?}\n b: {:?}",a,b);
 
         assert!(a[[0, 0]] <= 4.1 && a[[0, 0]] >= 3.9);
         assert!(b[0] <= 1.6 && b[0] >= 1.4);
