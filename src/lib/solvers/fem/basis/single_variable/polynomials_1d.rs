@@ -1,17 +1,16 @@
-
 // Internal dependencies.
 use super::{Composable1D, Differentiable1D, Function1D};
 
 #[derive(PartialEq, Debug)]
 /// # General Information
-/// 
+///
 /// A simple, first degree polynomial in one variable.
-/// 
+///
 /// # Fields
-/// 
+///
 /// * `coefficient` - constant that multiplies variable.
 /// * `independent_term` - constant that adds to variable.
-/// 
+///
 pub struct FirstDegreePolynomial {
     pub(crate) coefficient: f64,
     pub(crate) independent_term: f64,
@@ -19,15 +18,15 @@ pub struct FirstDegreePolynomial {
 
 #[derive(PartialEq, Debug)]
 /// # General Information
-/// 
+///
 /// A simple, second degree polynomial in one variablee
-/// 
+///
 /// # Fields
-/// 
+///
 /// * `quadratic_coefficient` - constant that multiplies quadratic term.
 /// * `linear_coefficient` - constant that multiplies linear term.
 /// * `independent_term` - constant that adds to varaible.
-/// 
+///
 pub struct SecondDegreePolynomial {
     quadratic_coefficient: f64,
     linear_coefficient: f64,
@@ -35,7 +34,6 @@ pub struct SecondDegreePolynomial {
 }
 
 impl FirstDegreePolynomial {
-
     /// Normal constructor.
     pub fn new(coefficient: f64, independent_term: f64) -> FirstDegreePolynomial {
         FirstDegreePolynomial {
@@ -99,9 +97,9 @@ impl FirstDegreePolynomial {
 
 impl Function1D for FirstDegreePolynomial {
     /// # Specific Implementation
-    /// 
+    ///
     /// Simple evaluation of a polynomial.
-    /// 
+    ///
     fn evaluate(&self, x: f64) -> f64 {
         self.coefficient * x + self.independent_term
     }
@@ -110,9 +108,9 @@ impl Function1D for FirstDegreePolynomial {
 // self(other(x))
 impl Composable1D<FirstDegreePolynomial, FirstDegreePolynomial> for FirstDegreePolynomial {
     /// # Specific Implementation
-    /// 
+    ///
     /// Composition of two first degree polynomials results in another polynomial.
-    /// 
+    ///
     fn compose(self, other: FirstDegreePolynomial) -> FirstDegreePolynomial {
         FirstDegreePolynomial {
             coefficient: self.coefficient * other.coefficient,
@@ -123,9 +121,9 @@ impl Composable1D<FirstDegreePolynomial, FirstDegreePolynomial> for FirstDegreeP
 
 impl Differentiable1D<FirstDegreePolynomial> for FirstDegreePolynomial {
     /// # Specific Implementation
-    /// 
+    ///
     /// Differentiation of a first degree polynomial results in a constant.
-    /// 
+    ///
     fn differentiate(&self) -> FirstDegreePolynomial {
         FirstDegreePolynomial {
             coefficient: 0_f64,
@@ -135,7 +133,6 @@ impl Differentiable1D<FirstDegreePolynomial> for FirstDegreePolynomial {
 }
 
 impl SecondDegreePolynomial {
-
     /// Simple constructor for second degree polynomial.
     pub fn new(
         quadratic_coefficient: f64,
@@ -152,9 +149,9 @@ impl SecondDegreePolynomial {
 
 impl Function1D for SecondDegreePolynomial {
     /// # Specific Implementation
-    /// 
+    ///
     /// Simple evaluation of a second degree polynomial.
-    /// 
+    ///
     fn evaluate(&self, x: f64) -> f64 {
         self.quadratic_coefficient * x.powf(2_f64)
             + self.linear_coefficient * x
@@ -164,9 +161,9 @@ impl Function1D for SecondDegreePolynomial {
 
 impl Differentiable1D<FirstDegreePolynomial> for SecondDegreePolynomial {
     /// # Specific Implementation
-    /// 
+    ///
     /// Differentiation of a second degree polynomial results on a first degree polynomial.
-    /// 
+    ///
     fn differentiate(&self) -> FirstDegreePolynomial {
         FirstDegreePolynomial {
             coefficient: 2_f64 * self.quadratic_coefficient,
@@ -178,9 +175,9 @@ impl Differentiable1D<FirstDegreePolynomial> for SecondDegreePolynomial {
 // self(other(x))
 impl Composable1D<FirstDegreePolynomial, SecondDegreePolynomial> for SecondDegreePolynomial {
     /// # Specific implementation
-    /// 
+    ///
     /// Composing a second degree polynomial with a first degree polynomial gives another second degree polynomial.
-    /// 
+    ///
     fn compose(self, other: FirstDegreePolynomial) -> SecondDegreePolynomial {
         SecondDegreePolynomial {
             quadratic_coefficient: self.quadratic_coefficient * other.coefficient.powf(2_f64),

@@ -2,7 +2,7 @@
 use crate::Error;
 
 // External dependencies
-use ndarray::{Array2, Array1};
+use ndarray::{Array1, Array2};
 
 /// # General Information
 ///
@@ -10,10 +10,10 @@ use ndarray::{Array2, Array1};
 ///
 /// # Parameters
 ///
-/// * `matrix` - A square matrix represented by an Array2. 
-/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1. 
+/// * `matrix` - A square matrix represented by an Array2.
+/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1.
 ///
-pub fn solve_by_cholesky(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f64>,Error> {
+pub fn solve_by_cholesky(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f64>, Error> {
     todo!();
 }
 /// # General Information
@@ -23,12 +23,11 @@ pub fn solve_by_cholesky(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<
 ///
 /// # Parameters
 ///
-/// * `matrix` - A square matrix represented by an Array2. 
-/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1. 
+/// * `matrix` - A square matrix represented by an Array2.
+/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1.
 ///
 pub fn solve_by_thomas(matrix: &Array2<f64>, b: &Array1<f64>) -> Result<Vec<f64>, Error> {
-
-    let mut solution = vec![0_f64; b.len() + 2];//Array1::from_elem(b.len() + 2, 0_f64);
+    let mut solution = vec![0_f64; b.len() + 2]; //Array1::from_elem(b.len() + 2, 0_f64);
 
     // Solution for 1x1 Matrix is trivial
     if b.len() == 1 {
@@ -72,10 +71,10 @@ pub fn solve_by_thomas(matrix: &Array2<f64>, b: &Array1<f64>) -> Result<Vec<f64>
 ///
 /// # Parameters
 ///
-/// * `matrix` - A square matrix represented by an Array2. 
-/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1. 
+/// * `matrix` - A square matrix represented by an Array2.
+/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1.
 ///
-pub fn solve_by_jacobi(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f64>,Error> {
+pub fn solve_by_jacobi(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f64>, Error> {
     todo!();
 }
 
@@ -85,9 +84,9 @@ pub fn solve_by_jacobi(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f6
 ///
 /// # Parameters
 ///
-/// * `matrix` - A square matrix represented by an Array2. 
-/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1. 
+/// * `matrix` - A square matrix represented by an Array2.
+/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1.
 ///
-pub fn solve_by_gauss_seidel(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f64>,Error> {
+pub fn solve_by_gauss_seidel(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f64>, Error> {
     todo!();
 }
