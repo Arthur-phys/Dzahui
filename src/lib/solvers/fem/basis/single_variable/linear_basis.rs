@@ -7,7 +7,7 @@ use super::Composable1D;
 /// # General Information
 ///
 /// A Linear Basis is a set composed entirely of linearly independent functions that also generate the space in which they are contained.
-/// In this case, functions are piecewise first-degree polynomials
+/// In this case, functions are piecewise first degree polynomials
 ///
 /// # Fields
 ///
@@ -20,15 +20,13 @@ pub(crate) struct LinearBasis {
 impl LinearBasis {
     /// # General information
     ///
-    /// Creation of a LinearBasis from a 1D mesh. may change to also provide 2D functionality.
-    /// Obtains every function from the original two and a series of transformations.
-    /// First and last functions are defined in four intervals even though they're needed only in three. This is done so that the vector `basis` contains always
-    /// the same implementation of PieceWiseFirstDegreePolynomial.
+    /// Creation of a LinearBasis from a 1D mesh.
+    /// Obtains every function from the reference interval [0,1] and a series of transformations.
+    /// First and last functions are generated apart since they're only defined in three intervals instead of four.
     ///
     /// # Parameters
     ///
-    /// * `self` - Consumes self to return a LinearBasis
-    /// * `mesh` - A reference to the original mesh of points (may be filtered to omit RGB values).
+    /// * `mesh` - A reference to the original mesh of points (filtered to omit RGB values).
     ///
     pub(crate) fn new(mesh: &Vec<f64>) -> Result<LinearBasis, Error> {
         // Left-side function

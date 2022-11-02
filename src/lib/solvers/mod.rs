@@ -1,14 +1,19 @@
+// Module definition
+pub mod matrix_solver;
+pub mod quadrature;
 pub mod euler;
 pub mod fem;
-pub mod linear_solver;
-pub mod quadrature;
 
-use std::fmt::Debug;
+// Re-exports
+pub use fem::Solver;
+pub use fem::*;
 
+// Local dependencies
 use crate::Error;
 
-pub use fem::*;
-pub use fem::Solver;
+// External dependencies
+use std::fmt::Debug;
+
 
 
 /// # General Information

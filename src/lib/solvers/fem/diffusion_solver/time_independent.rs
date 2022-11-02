@@ -2,11 +2,11 @@ use crate::solvers::fem::basis::single_variable::{
     linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D
 };
 use crate::solvers::DiffEquationSolver;
-use crate::solvers::linear_solver;
+use crate::solvers::matrix_solver;
 use crate::solvers::quadrature::gauss_legendre;
 use crate::Error;
 
-use ndarray::{Array, Array1, Ix1, Ix2};
+use ndarray::{Array1, Array2};
 
 #[derive(Debug)]
 /// # General Information
@@ -28,6 +28,7 @@ pub struct DiffussionSolverTimeIndependent {
 }
 
 impl DiffussionSolverTimeIndependent {
+
     /// Creates new instance
     pub fn new(boundary_conditions: [f64; 2], mesh: Vec<f64>, mu: f64, b: f64) -> Self {
         Self {
@@ -38,7 +39,24 @@ impl DiffussionSolverTimeIndependent {
         }
     }
 
-    fn gauss_legendre_integration(&self, gauss_step: usize) -> (Array<f64, Ix2>, Array<f64, Ix1>) {
+    /// # General Information
+    /// 
+    /// First, it generates the basis for a solver from the linear basis constructor.
+    /// Then the stiffnes matrix and vector b are generated based on linear basis integration via Gauss-Legendre.
+    /// The matrix and vector b generated are only for internal nodes of a given mesh because boundary nodes are fixed and given as boundary conditions.
+    /// The previous statement means that both of them are alwas `basis.len() - 2` long on their respective dimensions. 
+    /// Basis length 3 or 4 cases are treated differently, since the only integral to be made are the ones that include first and last basis elements.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&self` - An instance of `DiffussionSolverTimeIndependent`.
+    /// * `gauss_step` - how many nodes will be calculated for a given integration.
+    /// 
+    /// # Returns
+    /// 
+    /// A tuple with both the stiffness matrix and the vector b.
+    /// 
+    pub fn gauss_legendre_integration(&self, gauss_step: usize) -> (Array2<f64>, Array1<f64>) {
 
         let basis = LinearBasis::new(&self.mesh).unwrap();
         let long_basis = basis.basis.len();
@@ -286,10 +304,17 @@ impl DiffussionSolverTimeIndependent {
 
 impl DiffEquationSolver for DiffussionSolverTimeIndependent {
     
+    /// # Specific implementation
+    /// 
+    /// Solving starts by obtaining stiffness matrix and vector b (Ax=b).
+    /// Then both are used inside function `solve_by_thomas` to obtain the result vector.
+    /// Result vector has 2 extra entries: one at the beggining and one at the end. They correspond to boundary value conditions, which are set at the very
+    /// end since they do not change.
+    /// 
     fn solve(&self) -> Result<Vec<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);
 
-        let mut res = linear_solver::solve_by_thomas(&a, &b)?;
+        let mut res = matrix_solver::solve_by_thomas(&a, &b)?;
 
         // res[1] += b[0];
         // res[b.len()] += b[b.len() - 1];
@@ -306,7 +331,7 @@ impl DiffEquationSolver for DiffussionSolverTimeIndependent {
 #[cfg(test)]
 mod test {
 
-    use crate::solvers::linear_solver;
+    use crate::solvers::matrix_solver;
 
     use super::DiffussionSolverTimeIndependent;
 
@@ -329,7 +354,7 @@ mod test {
 
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = linear_solver::solve_by_thomas(&a, &b).unwrap();
+        let res = matrix_solver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 3);
         assert!(res[1] >= 0.2 && res[1] <= 0.4);
@@ -356,7 +381,7 @@ mod test {
             DiffussionSolverTimeIndependent::new([0_f64, 1_f64], vec![0_f64, 0.33, 0.66, 1_f64], 1_f64, 1_f64);
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = linear_solver::solve_by_thomas(&a, &b).unwrap();
+        let res = matrix_solver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 4);
         assert!(res[1] >= 0.20 && res[1] <= 0.24);
@@ -394,7 +419,7 @@ mod test {
         );
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = linear_solver::solve_by_thomas(&a, &b).unwrap();
+        let res = matrix_solver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 5);
         assert!(res[1] >= 0.15 && res[1] <= 0.17);
@@ -413,7 +438,7 @@ mod test {
 
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let mut res = linear_solver::solve_by_thomas(&a, &b).unwrap();
+        let mut res = matrix_solver::solve_by_thomas(&a, &b).unwrap();
 
         let len = res.len();
         res[0] = dif_solver.boundary_conditions[0];

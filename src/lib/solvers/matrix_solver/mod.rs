@@ -1,5 +1,7 @@
+// local dependencies
 use crate::Error;
 
+// External dependencies
 use ndarray::{Array2, Array1};
 
 /// # General Information
