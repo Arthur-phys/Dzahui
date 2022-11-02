@@ -3,7 +3,7 @@ use crate::solvers::fem::basis::single_variable::{
 };
 use crate::solvers::DiffEquationSolver;
 use crate::solvers::linear_solver;
-use crate::solvers::quadrature::GaussLegendreQuadrature;
+use crate::solvers::quadrature::gauss_legendre;
 use crate::Error;
 
 use ndarray::{Array, Array1, Ix1, Ix2};
@@ -37,27 +37,9 @@ impl DiffussionSolverTimeIndependent {
             b,
         }
     }
-}
 
-impl DiffEquationSolver for DiffussionSolverTimeIndependent {
-    fn solve(&self) -> Result<Vec<f64>, Error> {
-        let (a, b) = self.gauss_legendre_integration(150);
-
-        let mut res = linear_solver::solve_by_thomas(&a, &b)?;
-
-        // res[1] += b[0];
-        // res[b.len()] += b[b.len() - 1];
-
-        // Adding boundary condition values
-        res[0] = self.boundary_conditions[0];
-        res[b.len() + 1] = self.boundary_conditions[1];
-
-        Ok(res)
-    }
-}
-
-impl GaussLegendreQuadrature for DiffussionSolverTimeIndependent {
     fn gauss_legendre_integration(&self, gauss_step: usize) -> (Array<f64, Ix2>, Array<f64, Ix1>) {
+
         let basis = LinearBasis::new(&self.mesh).unwrap();
         let long_basis = basis.basis.len();
 
@@ -74,7 +56,7 @@ impl GaussLegendreQuadrature for DiffussionSolverTimeIndependent {
 
             for j in 1..gauss_step {
                 // Obtaining arccos(node) and weight
-                let (theta, w) = Self::quad_pair(gauss_step, j);
+                let (theta, w) = gauss_legendre::quad_pair(gauss_step, j);
                 let x = theta.cos();
 
                 // translated to -1,1
@@ -124,7 +106,7 @@ impl GaussLegendreQuadrature for DiffussionSolverTimeIndependent {
 
                     for j in 1..gauss_step {
                         // Obtaining arccos(node) and weight
-                        let (theta, w) = Self::quad_pair(gauss_step, j);
+                        let (theta, w) = gauss_legendre::quad_pair(gauss_step, j);
                         let x = theta.cos();
 
                         // translated to -1,1
@@ -195,7 +177,7 @@ impl GaussLegendreQuadrature for DiffussionSolverTimeIndependent {
 
             for i in 1..gauss_step {
                 // Obtaining arccos(node) and weight
-                let (theta, w) = Self::quad_pair(gauss_step, i);
+                let (theta, w) = gauss_legendre::quad_pair(gauss_step, i);
                 let x = theta.cos();
 
                 // translated to original interval
@@ -268,7 +250,7 @@ impl GaussLegendreQuadrature for DiffussionSolverTimeIndependent {
 
         for i in 1..gauss_step {
             // Obtaining arccos(node) and weight
-            let (theta, w) = Self::quad_pair(gauss_step, i);
+            let (theta, w) = gauss_legendre::quad_pair(gauss_step, i);
             let x = theta.cos();
 
             // translated to original interval
@@ -302,10 +284,29 @@ impl GaussLegendreQuadrature for DiffussionSolverTimeIndependent {
     }
 }
 
+impl DiffEquationSolver for DiffussionSolverTimeIndependent {
+    
+    fn solve(&self) -> Result<Vec<f64>, Error> {
+        let (a, b) = self.gauss_legendre_integration(150);
+
+        let mut res = linear_solver::solve_by_thomas(&a, &b)?;
+
+        // res[1] += b[0];
+        // res[b.len()] += b[b.len() - 1];
+
+        // Adding boundary condition values
+        res[0] = self.boundary_conditions[0];
+        res[b.len() + 1] = self.boundary_conditions[1];
+
+        Ok(res)
+    }
+
+}
+
 #[cfg(test)]
 mod test {
 
-    use crate::solvers::{quadrature::GaussLegendreQuadrature, linear_solver};
+    use crate::solvers::linear_solver;
 
     use super::DiffussionSolverTimeIndependent;
 

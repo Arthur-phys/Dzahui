@@ -1,9 +1,22 @@
 #![allow(dead_code)]
-use ndarray::{Array, Ix1, Ix2};
+/// # Where it comes from
+///
 /// This algorithm was adapted from c++ to rust from:
 ///
 /// **Bogaert, I. (2014). Iteration-free computation of Gauss--Legendre quadrature nodes and weights. SIAM Journal on Scientific Computing, 36(3). https://doi.org/10.1137/140954969**
 ///
+/// Gauss Legendre Quadrature is an integration method that consists on moving the integration interval to -1,1 evaluating the integrand on a series of roots
+/// of the Gauss-Legendre polynomials multiplied by a series of weights given by the roots and derivatives of the polynomials.
+/// Since calculating the n-th Gauss-Legendre polynomal is computationally expensive, a series of approximations are made using asymptotic expansion
+/// and bessel functions to obtain the roots and weights directly. This makes the algorithm have O(n) complexity, which makes it feasible for real-time integration.
+///
+/// # General information
+///
+/// This trait has all the methods required to integrate a one-dimensional function on a given interval. Can be implemented on any solver
+/// to generate such functionalty.
+/// Only the function `gauss_legendre_integration(...)` needs to be implemented since every solver will have a different equation to integrate.
+///
+
 use std::f64::consts::PI;
 
 const JZ: [f64; 20] = [
@@ -5659,260 +5672,229 @@ const EVEN_WEIGHTS: [&[f64]; 50] = [
     &EVENW47, &EVENW48, &EVENW49, &EVENW50,
 ];
 
-/// # Where it comes from
-///
-/// This algorithm was adapted from c++ to rust from:
-///
-/// **Bogaert, I. (2014). Iteration-free computation of Gauss--Legendre quadrature nodes and weights. SIAM Journal on Scientific Computing, 36(3). https://doi.org/10.1137/140954969**
-///
-/// Gauss Legendre Quadrature is an integration method that consists on moving the integration interval to -1,1 evaluating the integrand on a series of roots
-/// of the Gauss-Legendre polynomials multiplied by a series of weights given by the roots and derivatives of the polynomials.
-/// Since calculating the n-th Gauss-Legendre polynomal is computationally expensive, a series of approximations are made using asymptotic expansion
-/// and bessel functions to obtain the roots and weights directly. This makes the algorithm have O(n) complexity, which makes it feasible for real-time integration.
-///
-/// # General information
-///
-/// This trait has all the methods required to integrate a one-dimensional function on a given interval. Can be implemented on any solver
-/// to generate such functionalty.
-/// Only the function `gauss_legendre_integration(...)` needs to be implemented since every solver will have a different equation to integrate.
-///  
-pub trait GaussLegendreQuadrature {
-    fn bessel_j_zero(k: usize) -> f64 {
-        if k < 20 {
-            JZ[k - 1]
+
+fn bessel_j_zero(k: usize) -> f64 {
+    if k < 20 {
+        JZ[k - 1]
+    } else {
+        let ak = PI * (k as f64 - 0.25);
+        let r = 1_f64 / ak;
+        let r2 = r * r;
+        ak + r
+            * (0.125
+                + r2 * (-0.807291666666666666666666666667e-1
+                    + r2 * (0.246028645833333333333333333333
+                        + r2 * (-1.82443876720610119047619047619
+                            + r2 * (25.3364147973439050099206349206
+                                + r2 * (-567.644412135183381139802038240
+                                    + r2 * (18690.4765282320653831636345064
+                                        + r2 * (-8.49353580299148769921876983660e5
+                                            + 5.09225462402226769498681286758e7 * r2))))))))
+    }
+}
+
+fn bessel_j1_squared(k: usize) -> f64 {
+    if k < 21 {
+        J1[k - 1]
+    } else {
+        let x = 1.0 / (k as f64 - 0.25);
+        let x2 = x * x;
+        x * (0.202642367284675542887758926420
+            + x2 * x2
+                * (-0.303380429711290253026202643516e-3
+                    + x2 * (0.198924364245969295201137972743e-3
+                        + x2 * (-0.228969902772111653038747229723e-3
+                            + x2 * (0.433710719130746277915572905025e-3
+                                + x2 * (-0.123632349727175414724737657367e-2
+                                    + x2 * (0.496101423268883102872271417616e-2
+                                        + x2 * (-0.266837393702323757700998557826e-1
+                                            + 0.185395398206345628711318848386 * x2))))))))
+    }
+}
+
+fn gauss_legendre_quad_pair_calculated(n: usize, k: usize) -> (f64, f64) {
+    // First get the Bessel zero
+    let w = 1.0 / (n as f64 + 0.5);
+    let nu = bessel_j_zero(k);
+    let mut theta = w * nu;
+    let x = theta * theta;
+
+    // Get the asymptotic BesselJ(1,nu) squared
+    let b = bessel_j1_squared(k);
+
+    // Get the Chebyshev interpolants for the nodes...
+    let sf1t = (((((-1.29052996274280508473467968379e-12 * x
+        + 2.40724685864330121825976175184e-10)
+        * x
+        - 3.13148654635992041468855740012e-8)
+        * x
+        + 0.275573168962061235623801563453e-5)
+        * x
+        - 0.148809523713909147898955880165e-3)
+        * x
+        + 0.416666666665193394525296923981e-2)
+        * x
+        - 0.416666666666662959639712457549e-1;
+    let sf2t = (((((2.20639421781871003734786884322e-9 * x
+        - 7.53036771373769326811030753538e-8)
+        * x
+        + 0.161969259453836261731700382098e-5)
+        * x
+        - 0.253300326008232025914059965302e-4)
+        * x
+        + 0.282116886057560434805998583817e-3)
+        * x
+        - 0.209022248387852902722635654229e-2)
+        * x
+        + 0.815972221772932265640401128517e-2;
+    let sf3t = (((((-2.97058225375526229899781956673e-8 * x
+        + 5.55845330223796209655886325712e-7)
+        * x
+        - 0.567797841356833081642185432056e-5)
+        * x
+        + 0.418498100329504574443885193835e-4)
+        * x
+        - 0.251395293283965914823026348764e-3)
+        * x
+        + 0.128654198542845137196151147483e-2)
+        * x
+        - 0.416012165620204364833694266818e-2;
+
+    // ...and for the weights
+    let wsf1t = ((((((((-2.20902861044616638398573427475e-14 * x
+        + 2.30365726860377376873232578871e-12)
+        * x
+        - 1.75257700735423807659851042318e-10)
+        * x
+        + 1.03756066927916795821098009353e-8)
+        * x
+        - 4.63968647553221331251529631098e-7)
+        * x
+        + 0.149644593625028648361395938176e-4)
+        * x
+        - 0.326278659594412170300449074873e-3)
+        * x
+        + 0.436507936507598105249726413120e-2)
+        * x
+        - 0.305555555555553028279487898503e-1)
+        * x
+        + 0.833333333333333302184063103900e-1;
+    let wsf2t = (((((((3.63117412152654783455929483029e-12 * x
+        + 7.67643545069893130779501844323e-11)
+        * x
+        - 7.12912857233642220650643150625e-9)
+        * x
+        + 2.11483880685947151466370130277e-7)
+        * x
+        - 0.381817918680045468483009307090e-5)
+        * x
+        + 0.465969530694968391417927388162e-4)
+        * x
+        - 0.407297185611335764191683161117e-3)
+        * x
+        + 0.268959435694729660779984493795e-2)
+        * x
+        - 0.111111111111214923138249347172e-1;
+    let wsf3t = (((((((2.01826791256703301806643264922e-9 * x
+        - 4.38647122520206649251063212545e-8)
+        * x
+        + 5.08898347288671653137451093208e-7)
+        * x
+        - 0.397933316519135275712977531366e-5)
+        * x
+        + 0.200559326396458326778521795392e-4)
+        * x
+        - 0.422888059282921161626339411388e-4)
+        * x
+        - 0.105646050254076140548678457002e-3)
+        * x
+        - 0.947969308958577323145923317955e-4)
+        * x
+        + 0.656966489926484797412985260842e-2;
+
+    // Then refine with the paper expansions
+    let nuosin = nu / theta.sin();
+    let bnuosin = b * nuosin;
+    let winvsinc = w * w * nuosin;
+    let wis2 = winvsinc * winvsinc;
+
+    // Finally compute the node and the weight
+    theta = w * (nu + theta * winvsinc * (sf1t + wis2 * (sf2t + wis2 * sf3t)));
+    let deno = bnuosin + bnuosin * wis2 * (wsf1t + wis2 * (wsf2t + wis2 * wsf3t));
+    let weight = (2.0 * w) / deno;
+
+    (theta, weight)
+}
+
+fn gauss_legendre_quad_pair_tabulated(l: usize, k: usize) -> (f64, f64) {
+    if l & 1 == 1 {
+        let l2 = (l - 1) / 2;
+
+        if k == l2 {
+            (PI / 2.0, 2.0 / (CL[l] * CL[l]))
+        } else if k < l2 {
+            (
+                ODD_THETA_ZEROS[l2 - 1][l2 - k - 1],
+                ODD_WEIGHTS[l2 - 1][l2 - k - 1],
+            )
         } else {
-            let ak = PI * (k as f64 - 0.25);
-            let r = 1_f64 / ak;
-            let r2 = r * r;
-            ak + r
-                * (0.125
-                    + r2 * (-0.807291666666666666666666666667e-1
-                        + r2 * (0.246028645833333333333333333333
-                            + r2 * (-1.82443876720610119047619047619
-                                + r2 * (25.3364147973439050099206349206
-                                    + r2 * (-567.644412135183381139802038240
-                                        + r2 * (18690.4765282320653831636345064
-                                            + r2 * (-8.49353580299148769921876983660e5
-                                                + 5.09225462402226769498681286758e7 * r2))))))))
+            (
+                PI - ODD_THETA_ZEROS[l2 - 1][k - l2 - 1],
+                ODD_WEIGHTS[l2 - 1][k - l2 - 1],
+            )
+        }
+    } else {
+        let l2 = l / 2;
+
+        if k < l2 {
+            (
+                EVEN_THETA_ZEROS[l2 - 1][l2 - k - 1],
+                EVEN_WEIGHTS[l2 - 1][l2 - k - 1],
+            )
+        } else {
+            (
+                PI - EVEN_THETA_ZEROS[l2 - 1][k - l2],
+                EVEN_WEIGHTS[l2 - 1][k - l2],
+            )
         }
     }
+}
 
-    fn bessel_j1_squared(k: usize) -> f64 {
-        if k < 21 {
-            J1[k - 1]
-        } else {
-            let x = 1.0 / (k as f64 - 0.25);
-            let x2 = x * x;
-            x * (0.202642367284675542887758926420
-                + x2 * x2
-                    * (-0.303380429711290253026202643516e-3
-                        + x2 * (0.198924364245969295201137972743e-3
-                            + x2 * (-0.228969902772111653038747229723e-3
-                                + x2 * (0.433710719130746277915572905025e-3
-                                    + x2 * (-0.123632349727175414724737657367e-2
-                                        + x2 * (0.496101423268883102872271417616e-2
-                                            + x2 * (-0.266837393702323757700998557826e-1
-                                                + 0.185395398206345628711318848386 * x2))))))))
-        }
-    }
-
-    fn gauss_legendre_quad_pair_calculated(n: usize, k: usize) -> (f64, f64) {
-        // First get the Bessel zero
-        let w = 1.0 / (n as f64 + 0.5);
-        let nu = Self::bessel_j_zero(k);
-        let mut theta = w * nu;
-        let x = theta * theta;
-
-        // Get the asymptotic BesselJ(1,nu) squared
-        let b = Self::bessel_j1_squared(k);
-
-        // Get the Chebyshev interpolants for the nodes...
-        let sf1t = (((((-1.29052996274280508473467968379e-12 * x
-            + 2.40724685864330121825976175184e-10)
-            * x
-            - 3.13148654635992041468855740012e-8)
-            * x
-            + 0.275573168962061235623801563453e-5)
-            * x
-            - 0.148809523713909147898955880165e-3)
-            * x
-            + 0.416666666665193394525296923981e-2)
-            * x
-            - 0.416666666666662959639712457549e-1;
-        let sf2t = (((((2.20639421781871003734786884322e-9 * x
-            - 7.53036771373769326811030753538e-8)
-            * x
-            + 0.161969259453836261731700382098e-5)
-            * x
-            - 0.253300326008232025914059965302e-4)
-            * x
-            + 0.282116886057560434805998583817e-3)
-            * x
-            - 0.209022248387852902722635654229e-2)
-            * x
-            + 0.815972221772932265640401128517e-2;
-        let sf3t = (((((-2.97058225375526229899781956673e-8 * x
-            + 5.55845330223796209655886325712e-7)
-            * x
-            - 0.567797841356833081642185432056e-5)
-            * x
-            + 0.418498100329504574443885193835e-4)
-            * x
-            - 0.251395293283965914823026348764e-3)
-            * x
-            + 0.128654198542845137196151147483e-2)
-            * x
-            - 0.416012165620204364833694266818e-2;
-
-        // ...and for the weights
-        let wsf1t = ((((((((-2.20902861044616638398573427475e-14 * x
-            + 2.30365726860377376873232578871e-12)
-            * x
-            - 1.75257700735423807659851042318e-10)
-            * x
-            + 1.03756066927916795821098009353e-8)
-            * x
-            - 4.63968647553221331251529631098e-7)
-            * x
-            + 0.149644593625028648361395938176e-4)
-            * x
-            - 0.326278659594412170300449074873e-3)
-            * x
-            + 0.436507936507598105249726413120e-2)
-            * x
-            - 0.305555555555553028279487898503e-1)
-            * x
-            + 0.833333333333333302184063103900e-1;
-        let wsf2t = (((((((3.63117412152654783455929483029e-12 * x
-            + 7.67643545069893130779501844323e-11)
-            * x
-            - 7.12912857233642220650643150625e-9)
-            * x
-            + 2.11483880685947151466370130277e-7)
-            * x
-            - 0.381817918680045468483009307090e-5)
-            * x
-            + 0.465969530694968391417927388162e-4)
-            * x
-            - 0.407297185611335764191683161117e-3)
-            * x
-            + 0.268959435694729660779984493795e-2)
-            * x
-            - 0.111111111111214923138249347172e-1;
-        let wsf3t = (((((((2.01826791256703301806643264922e-9 * x
-            - 4.38647122520206649251063212545e-8)
-            * x
-            + 5.08898347288671653137451093208e-7)
-            * x
-            - 0.397933316519135275712977531366e-5)
-            * x
-            + 0.200559326396458326778521795392e-4)
-            * x
-            - 0.422888059282921161626339411388e-4)
-            * x
-            - 0.105646050254076140548678457002e-3)
-            * x
-            - 0.947969308958577323145923317955e-4)
-            * x
-            + 0.656966489926484797412985260842e-2;
-
-        // Then refine with the paper expansions
-        let nuosin = nu / theta.sin();
-        let bnuosin = b * nuosin;
-        let winvsinc = w * w * nuosin;
-        let wis2 = winvsinc * winvsinc;
-
-        // Finally compute the node and the weight
-        theta = w * (nu + theta * winvsinc * (sf1t + wis2 * (sf2t + wis2 * sf3t)));
-        let deno = bnuosin + bnuosin * wis2 * (wsf1t + wis2 * (wsf2t + wis2 * wsf3t));
-        let weight = (2.0 * w) / deno;
-
-        (theta, weight)
-    }
-
-    fn gauss_legendre_quad_pair_tabulated(l: usize, k: usize) -> (f64, f64) {
-        if l & 1 == 1 {
-            let l2 = (l - 1) / 2;
-
-            if k == l2 {
-                (PI / 2.0, 2.0 / (CL[l] * CL[l]))
-            } else if k < l2 {
-                (
-                    ODD_THETA_ZEROS[l2 - 1][l2 - k - 1],
-                    ODD_WEIGHTS[l2 - 1][l2 - k - 1],
-                )
+pub fn quad_pair(n: usize, k: usize) -> (f64, f64) {
+    match k < n {
+        true => {
+            if n < 101 {
+                gauss_legendre_quad_pair_tabulated(n, k - 1)
             } else {
-                (
-                    PI - ODD_THETA_ZEROS[l2 - 1][k - l2 - 1],
-                    ODD_WEIGHTS[l2 - 1][k - l2 - 1],
-                )
-            }
-        } else {
-            let l2 = l / 2;
-
-            if k < l2 {
-                (
-                    EVEN_THETA_ZEROS[l2 - 1][l2 - k - 1],
-                    EVEN_WEIGHTS[l2 - 1][l2 - k - 1],
-                )
-            } else {
-                (
-                    PI - EVEN_THETA_ZEROS[l2 - 1][k - l2],
-                    EVEN_WEIGHTS[l2 - 1][k - l2],
-                )
-            }
-        }
-    }
-
-    fn quad_pair(n: usize, k: usize) -> (f64, f64) {
-        match k < n {
-            true => {
-                if n < 101 {
-                    Self::gauss_legendre_quad_pair_tabulated(n, k - 1)
+                if 2 * k - 1 > n {
+                    let mut pair = gauss_legendre_quad_pair_calculated(n, n - k + 1);
+                    pair.0 = PI - pair.0;
+                    pair
                 } else {
-                    if 2 * k - 1 > n {
-                        let mut pair = Self::gauss_legendre_quad_pair_calculated(n, n - k + 1);
-                        pair.0 = PI - pair.0;
-                        pair
-                    } else {
-                        Self::gauss_legendre_quad_pair_calculated(n, k)
-                    }
+                    gauss_legendre_quad_pair_calculated(n, k)
                 }
             }
-            false => {
-                panic!("k must be smaller than n")
-            }
+        }
+        false => {
+            panic!("k must be smaller than n")
         }
     }
-
-    fn gauss_legendre_integration(&self, gauss_step: usize) -> (Array<f64, Ix2>, Array<f64, Ix1>);
 }
 
 #[cfg(test)]
 mod test {
 
-    use super::GaussLegendreQuadrature;
+    use super::*;
     use super::PI;
     use crate::solvers::fem::basis::single_variable::{
         polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
     };
-    use ndarray::{array, Array, Ix1, Ix2};
-
-    struct MockSolver;
-    impl GaussLegendreQuadrature for MockSolver {
-        fn gauss_legendre_integration(
-            &self,
-            _gauss_step: usize,
-        ) -> (Array<f64, Ix2>, Array<f64, Ix1>) {
-            (array![[0_f64, 0_f64], [0_f64, 0_f64]], array![0_f64])
-        }
-    }
 
     #[test]
     fn integrate_exp_tabulate() {
         let mut sum = 0_f64;
         for i in 1..100 {
-            let (theta, w) = MockSolver::quad_pair(100, i);
+            let (theta, w) = quad_pair(100, i);
             let x = theta.cos();
             sum += w * x.exp();
         }
@@ -5927,7 +5909,7 @@ mod test {
     fn integrate_exp_without_tabulation() {
         let mut sum = 0_f64;
         for i in 1..600 {
-            let (theta, w) = MockSolver::quad_pair(600, i);
+            let (theta, w) = quad_pair(600, i);
             let x = theta.cos();
             sum += w * x.exp();
         }
@@ -5942,7 +5924,7 @@ mod test {
     fn integrate_cosine_tabulate() {
         let mut sum = 0_f64;
         for i in 1..50 {
-            let (theta, w) = MockSolver::quad_pair(50, i);
+            let (theta, w) = quad_pair(50, i);
             let x = theta.cos();
             sum += w * x.cos();
         }
@@ -5957,7 +5939,7 @@ mod test {
     fn integrate_cosine_without_tabulation() {
         let mut sum = 0_f64;
         for i in 1..510 {
-            let (theta, w) = MockSolver::quad_pair(510, i);
+            let (theta, w) = quad_pair(510, i);
             let x = theta.cos();
             sum += w * x.cos();
         }
@@ -5975,7 +5957,7 @@ mod test {
 
         let mut sum = 0_f64;
         for i in 1..510 {
-            let (theta, w) = MockSolver::quad_pair(510, i);
+            let (theta, w) = quad_pair(510, i);
             let x = transform.evaluate(theta.cos());
             sum += w * x.cos() * deriv_t.evaluate(0_f64);
         }
