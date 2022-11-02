@@ -2,7 +2,7 @@ use crate::solvers::fem::basis::single_variable::{
     linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
 };
 use crate::solvers::DiffEquationSolver;
-use crate::solvers::{linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature};
+use crate::solvers::quadrature::GaussLegendreQuadrature;
 use crate::Error;
 
 use ndarray::{Array, Array1, Ix1, Ix2};
@@ -37,5 +37,3 @@ impl DiffussionSolverTimeDependent {
         }
     }
 }
-
-impl ThomasSolver for DiffussionSolverTimeDependent {}

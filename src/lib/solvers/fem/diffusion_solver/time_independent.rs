@@ -1,8 +1,9 @@
 use crate::solvers::fem::basis::single_variable::{
-    linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
+    linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D
 };
 use crate::solvers::DiffEquationSolver;
-use crate::solvers::{linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature};
+use crate::solvers::linear_solver;
+use crate::solvers::quadrature::GaussLegendreQuadrature;
 use crate::Error;
 
 use ndarray::{Array, Array1, Ix1, Ix2};
@@ -38,13 +39,11 @@ impl DiffussionSolverTimeIndependent {
     }
 }
 
-impl ThomasSolver for DiffussionSolverTimeIndependent {}
-
 impl DiffEquationSolver for DiffussionSolverTimeIndependent {
-    fn solve(&self) -> Result<Array1<f64>, Error> {
+    fn solve(&self) -> Result<Vec<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(150);
 
-        let mut res = Self::solve_by_thomas(&a, &b)?;
+        let mut res = linear_solver::solve_by_thomas(&a, &b)?;
 
         // res[1] += b[0];
         // res[b.len()] += b[b.len() - 1];
@@ -306,7 +305,7 @@ impl GaussLegendreQuadrature for DiffussionSolverTimeIndependent {
 #[cfg(test)]
 mod test {
 
-    use crate::solvers::{linear_solver::ThomasSolver, quadrature::GaussLegendreQuadrature};
+    use crate::solvers::{quadrature::GaussLegendreQuadrature, linear_solver};
 
     use super::DiffussionSolverTimeIndependent;
 
@@ -329,7 +328,7 @@ mod test {
 
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = DiffussionSolverTimeIndependent::solve_by_thomas(&a, &b).unwrap();
+        let res = linear_solver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 3);
         assert!(res[1] >= 0.2 && res[1] <= 0.4);
@@ -356,7 +355,7 @@ mod test {
             DiffussionSolverTimeIndependent::new([0_f64, 1_f64], vec![0_f64, 0.33, 0.66, 1_f64], 1_f64, 1_f64);
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = DiffussionSolverTimeIndependent::solve_by_thomas(&a, &b).unwrap();
+        let res = linear_solver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 4);
         assert!(res[1] >= 0.20 && res[1] <= 0.24);
@@ -394,7 +393,7 @@ mod test {
         );
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = DiffussionSolverTimeIndependent::solve_by_thomas(&a, &b).unwrap();
+        let res = linear_solver::solve_by_thomas(&a, &b).unwrap();
 
         assert!(res.len() == 5);
         assert!(res[1] >= 0.15 && res[1] <= 0.17);
@@ -413,7 +412,7 @@ mod test {
 
         let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let mut res = DiffussionSolverTimeIndependent::solve_by_thomas(&a, &b).unwrap();
+        let mut res = linear_solver::solve_by_thomas(&a, &b).unwrap();
 
         let len = res.len();
         res[0] = dif_solver.boundary_conditions[0];

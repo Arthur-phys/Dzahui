@@ -5,11 +5,11 @@ pub mod quadrature;
 
 use std::fmt::Debug;
 
+use crate::Error;
+
 pub use fem::*;
 pub use fem::Solver;
-use ndarray::Array1;
 
-use crate::Error;
 
 /// # General Information
 ///
@@ -26,5 +26,5 @@ pub trait DiffEquationSolver: Debug {
     ///
     /// * &self - An instance of an ODE/PDE solver.
     ///
-    fn solve(&self) -> Result<Array1<f64>, Error>;
+    fn solve(&self) -> Result<Vec<f64>, Error>;
 }

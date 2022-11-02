@@ -77,7 +77,7 @@ impl Mesh {
     /// Temporary solution to move gradient updating out of dzahui window. Probably will be changed in the future.
     /// Obtains max and min of solution (normallly some sort of rate of change), divides every element by the difference and then multiplies them by
     /// pi/2 so that, when calculating their sine and cosine, there's a mapping between max velocity <-> red and min velocity <-> blue
-    pub(crate) fn update_gradient_1d(&mut self, velocity_norm: Array1<f64>) {
+    pub(crate) fn update_gradient_1d(&mut self, velocity_norm: Vec<f64>) {
         let sol_max = velocity_norm
             .iter()
             .copied()
