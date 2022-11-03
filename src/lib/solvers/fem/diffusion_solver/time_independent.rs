@@ -125,7 +125,7 @@ impl DiffussionSolverTimeIndependent {
                         let (theta, w) = gauss_legendre::quad_pair(gauss_step, j);
                         let x = theta.cos();
 
-                        // translated to -1,1
+                        // translated from -1,1
                         let translated_point_prev = transform_function_prev.evaluate(x);
                         let translated_point_next = transform_function_next.evaluate(x);
                         let translated_point_square = transform_function_square.evaluate(x);
