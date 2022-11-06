@@ -43,6 +43,7 @@ pub struct DzahuiWindow {
     event_loop: Option<EventLoop<()>>,
     mouse_coordinates: Point2<f32>,
     character_set: CharacterSet,
+    integration_iteration: usize,
     pub(crate) height: u32,
     pub(crate) width: u32,
     vertex_selector: Cone,
@@ -69,6 +70,7 @@ pub struct DzahuiWindowBuilder {
     geometry_fragment_shader: Option<String>,
     geometry_vertex_shader: Option<String>,
     text_fragment_shader: Option<String>,
+    integration_iteration: Option<usize>,
     opengl_version: Option<(u8, u8)>,
     character_set: Option<String>,
     text_vertex_shader: Option<String>,
@@ -91,6 +93,7 @@ impl DzahuiWindowBuilder {
             geometry_vertex_shader: None,
             geometry_fragment_shader: None,
             character_set: None,
+            integration_iteration: None,
             text_vertex_shader: None,
             text_fragment_shader: None,
             opengl_version: Some((3, 3)),
@@ -207,6 +210,13 @@ impl DzahuiWindowBuilder {
             ..self
         }
     }
+    /// Sets integration iteration
+    pub fn with_integration_iteration(self, integration_iteration: usize) -> Self {
+        Self {
+            integration_iteration: Some(integration_iteration),
+            ..self
+        }
+    } 
 
     /// # General Information
     ///
@@ -325,6 +335,13 @@ impl DzahuiWindowBuilder {
             angle,
         );
 
+        // set integration precision
+        let integration_iteration = if let Some(integration_iteration) = self.integration_iteration {
+            integration_iteration
+        } else {
+            150
+        };
+
         // Default character set
         let character_set_file = if let Some(set_file) = self.character_set {
             set_file
@@ -343,6 +360,7 @@ impl DzahuiWindowBuilder {
             text_shader,
             vertex_selector,
             character_set,
+            integration_iteration,
             mesh,
             camera,
             width: self.width.unwrap(),
@@ -456,8 +474,10 @@ impl DzahuiWindow {
                     mu,
                     b,
                 );
-                let solution = solver.solve().unwrap();
+                let solution = solver.solve(self.integration_iteration).unwrap();
+                
                 println!("{:?}", solution);
+                
                 // updating colors. Only one time per vertex should it be updated (that is, every 6 steps).
                 self.mesh
                     .update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
