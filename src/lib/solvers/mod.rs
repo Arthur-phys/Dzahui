@@ -29,5 +29,7 @@ pub trait DiffEquationSolver: Debug {
     ///
     /// * &self - An instance of an ODE/PDE solver.
     ///
-    fn solve(&self) -> Result<Vec<f64>, Error>;
+    fn solve(&self, integration_step: usize) -> Result<Vec<f64>, Error>;
+
+    fn solve_time_dependence(&self, integration_step: usize, time_step: f64) -> Result<Vec<f64>,Error>;
 }

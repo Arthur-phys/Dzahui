@@ -1,7 +1,7 @@
 use crate::solvers::fem::basis::single_variable::{
     linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
 };
-use crate::solvers::DiffEquationSolver;
+use crate::solvers::{DiffEquationSolver, matrix_solver};
 use crate::Error;
 use crate::solvers::quadrature::gauss_legendre;
 
@@ -17,6 +17,7 @@ use ndarray::{Array1, Array2};
 ///
 /// * `boundary_conditions` - Boundary conditions (Only dirichlet is supported for now, Neumann is being worked on).
 /// * `initial_conditions` - Every internal point needs an initial condition to advance the solution in time.
+/// * `internal_state` - The state of every internal point at time t. Struct has to be mutable.
 /// * `mesh` - A vector of floats representing a line.
 /// * `mu` - First ot two needed constants.
 /// * `b` - Second of two needed constants.
@@ -24,6 +25,7 @@ use ndarray::{Array1, Array2};
 pub struct DiffussionSolverTimeDependent {
     boundary_conditions: [f64; 2],
     initial_conditions: Vec<f64>,
+    internal_state: Vec<f64>,
     mesh: Vec<f64>,
     mu: f64,
     b: f64,
@@ -37,6 +39,7 @@ impl DiffussionSolverTimeDependent {
         }
         Ok(Self {
             boundary_conditions,
+            internal_state: initial_conditions.clone(),
             initial_conditions,
             mesh,
             mu,
@@ -44,127 +47,228 @@ impl DiffussionSolverTimeDependent {
         })
     }
 
+    /// # General Information
+    /// 
+    /// Compĺete integration of mass matrix and vector b to create system Mx = b.
+    /// Note that corners of the linear system of equations are treated differently since, normally, there's one less addition to make.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&self` - A reference to itself to use parameters b, mu and mesh.
+    /// * `gauss_step` - Amount of nodes to compute for integration.
+    /// * `time_step` - How much to advance the solution.
+    /// 
     pub fn gauss_legendre_integration(&self, gauss_step: usize, time_step: f64) -> (Array2<f64>,Array1<f64>) {
         
         // First generate the basis
         let linear_basis = LinearBasis::new(&self.mesh).unwrap();
         let basis_len = linear_basis.basis.len();
 
-        // initialize stiffness matrix (internal, no boundaries included)
+        // initialize mass matrix (internal, no boundaries included)
         let mut matrix = ndarray::Array::from_elem((basis_len - 2, basis_len - 2), 0_f64);
         // initialize vector b (internal, no boundaries included)
-        let mut b = ndarray::Array::from_elem((basis_len - 2), 0_f64);
+        let mut b = ndarray::Array::from_elem(basis_len - 2, 0_f64);
 
-        // Now we calculate every integral in the equation.
-        // One needs to be careful regarding the boundary of the matrix.
-        // Obtain row 0 for matrix (corresponds to phi_1 in basis) and element 0 for b.
-        let derivative_phi = linear_basis.basis[1].differentiate();
-        let derivative_phi_next = linear_basis.basis[2].differentiate();
-        //boundary condition in basis[0]
-        let derivative_phi_prev = linear_basis.basis[0].differentiate();
-
-        // Transform intervals from -1,1 to [ai,bi]
-        let transform_function_prev = FirstDegreePolynomial::transformation_from_m1_p1(
-            self.mesh[0],
-            self.mesh[1],
-        );
-        let transform_function_next = FirstDegreePolynomial::transformation_from_m1_p1(
-            self.mesh[1],
-            self.mesh[2],
-        );
-        let transform_function_square =
-            FirstDegreePolynomial::transformation_from_m1_p1(
-                self.mesh[0],
-                self.mesh[2],
-            );
-
-        // transform functions' derivatives
-        let derivative_t_prev = transform_function_prev.differentiate();
-        let derivative_t_next = transform_function_next.differentiate();
-        let derivative_t_square = transform_function_square.differentiate();
-
-        // initialize b integral approximations
-        // derivatives integral. Of the form <phi_j',phi_i'>
-        let mut integral_prev_approximation_prime = 0_f64;
-        let mut integral_next_approximation_prime = 0_f64;
-        let mut integral_square_approximation_prime = 0_f64;
-        // half derivative integral. Of the form <phi_j,phi_i'>
-        let mut integral_prev_approximation_half = 0_f64;
-        let mut integral_next_approximation_half = 0_f64;
-        let mut integral_square_approximation_half = 0_f64;
-        // initialize mass matrix
-        let mut integral_prev_approximation_mass = 0_f64;
-        let mut integral_next_approximation_mass = 0_f64;
-        let mut integral_square_approximation_mass = 0_f64;
-
-        //integrate:
-        for j in 1..gauss_step {
-
-            // Obtaining arccos(node) and weight
-            let (theta, w) = gauss_legendre::quad_pair(gauss_step, j);
-            let x = theta.cos();
-
-            // translated from -1,1
-            // x is evaluated inside phi_i function according to change of variable rule
-            let translated_point_prev = transform_function_prev.evaluate(x);
-            let translated_point_next = transform_function_next.evaluate(x);
-            let translated_point_square = transform_function_square.evaluate(x);
-
-            // Dot product integrals
-            // dot product <phi_1,phi_0>
-            integral_prev_approximation_mass += 
-                linear_basis.basis[1].evaluate(translated_point_prev) *
-                linear_basis.basis[0].evaluate(translated_point_prev) * derivative_t_prev.evaluate(x) * w;
-            // dot product <phi_1,phi_1>
-            integral_square_approximation_mass +=
-                linear_basis.basis[1].evaluate(translated_point_square).powf(2_f64) *
-                derivative_t_square.evaluate(x) * w;
-            // dot product <phi_1,phi_2>
-            integral_next_approximation_mass +=
-                linear_basis.basis[1].evaluate(translated_point_next) *
-                linear_basis.basis[2].evaluate(translated_point_next) * derivative_t_next.evaluate(x) * w;
-            
-            // Derivative integrals
-            // integral <phi_1',phi_0'>
-            integral_prev_approximation_prime +=
-            derivative_phi.evaluate(translated_point_prev) *
-            derivative_phi_prev.evaluate(translated_point_prev) * derivative_t_prev.evaluate(x) * w;
-            // integral <phi_1',phi_1'>
-            integral_square_approximation_prime +=
-            derivative_phi.evaluate(translated_point_square).powf(2_f64) *
-            derivative_t_square.evaluate(x) * w;
-            // integral <phi_1',phi_2'>
-            integral_next_approximation_prime +=
-            derivative_phi.evaluate(translated_point_next) *
-            derivative_phi_next.evaluate(translated_point_next) * derivative_t_next.evaluate(x) * w;
-            
-            // <---------------------------------- keep going from here ------------------------------------------>
-            // Half derivative integrals
-            // integral <phi_1,phi_0'>
-            // integral <phi_1,phi_1'>
-            // integral <phi_1,phi_2'>
-
-        }
-
-        // last two approximations to mass matrix are put inside final matrix
-        matrix[[0,0]] = integral_square_approximation_mass;
-        matrix[[0,1]] = integral_next_approximation_mass;
-        // left-side boundary condition is added to b
-        b[0] += -integral_prev_approximation_mass * self.boundary_conditions[0];
-
-        // Every non-boundary element (skip 0, basis_len - 3 from matrix an b, which correspond to phi_1 and phi_(basis_len-2))
-        for i in 2..(basis_len - 2) {
-
+        for i in 1..(basis_len - 1) {
+            // Now we calculate every integral in the equation.
+            // One needs to be careful regarding the boundary of the matrix.
+            // Obtain row 0 for matrix (corresponds to phi_1 in basis) and element 0 for b.
             let derivative_phi = linear_basis.basis[i].differentiate();
+            let derivative_phi_next = linear_basis.basis[i+1].differentiate();
+            //boundary condition in basis[0]
+            let derivative_phi_prev = linear_basis.basis[i-1].differentiate();
+
+            // Transform intervals from -1,1 to [ai,bi]
+            let transform_function_prev = FirstDegreePolynomial::transformation_from_m1_p1(
+                self.mesh[i-1],
+                self.mesh[i],
+            );
+            let transform_function_next = FirstDegreePolynomial::transformation_from_m1_p1(
+                self.mesh[i],
+                self.mesh[i+1],
+            );
+            let transform_function_square =
+                FirstDegreePolynomial::transformation_from_m1_p1(
+                    self.mesh[i-1],
+                    self.mesh[i+1],
+                );
+    
+            // transform functions' derivatives
+            let derivative_t_prev = transform_function_prev.differentiate();
+            let derivative_t_next = transform_function_next.differentiate();
+            let derivative_t_square = transform_function_square.differentiate();
+            
+            // initialize b integral approximations
+            // derivatives integral. Of the form <phi_j',phi_i'>
+            let mut integral_prev_approximation_prime = 0_f64;
+            let mut integral_next_approximation_prime = 0_f64;
+            let mut integral_square_approximation_prime = 0_f64;
+            // half derivative integral. Of the form <phi_j,phi_i'>
+            let mut integral_prev_approximation_half = 0_f64;
+            let mut integral_next_approximation_half = 0_f64;
+            let mut integral_square_approximation_half = 0_f64;
+            
+            // initialize mass matrix
+            let mut integral_prev_approximation_mass = 0_f64;
+            let mut integral_next_approximation_mass = 0_f64;
+            let mut integral_square_approximation_mass = 0_f64;
+            
+            //integrate:
+            for j in 1..gauss_step {
+                
+                // Obtaining arccos(node) and weight
+                let (theta, w) = gauss_legendre::quad_pair(gauss_step, j);
+                let x = theta.cos();
+    
+                // translated from -1,1
+                // x is evaluated inside phi_i function according to change of variable rule
+                let translated_point_prev = transform_function_prev.evaluate(x);
+                let translated_point_next = transform_function_next.evaluate(x);
+                let translated_point_square = transform_function_square.evaluate(x);
+    
+                // Dot product integrals
+                // dot product <phi_1,phi_0>
+                integral_prev_approximation_mass += 
+                    linear_basis.basis[i].evaluate(translated_point_prev) *
+                    linear_basis.basis[i-1].evaluate(translated_point_prev) * derivative_t_prev.evaluate(x) * w;
+                // dot product <phi_1,phi_1>
+                integral_square_approximation_mass +=
+                    linear_basis.basis[i].evaluate(translated_point_square).powf(2_f64) *
+                    derivative_t_square.evaluate(x) * w;
+                // dot product <phi_1,phi_2>
+                integral_next_approximation_mass +=
+                    linear_basis.basis[i].evaluate(translated_point_next) *
+                    linear_basis.basis[i+1].evaluate(translated_point_next) * derivative_t_next.evaluate(x) * w;
+                
+                // Derivative integrals
+                // integral <phi_1',phi_0'>
+                integral_prev_approximation_prime +=
+                derivative_phi.evaluate(translated_point_prev) *
+                derivative_phi_prev.evaluate(translated_point_prev) * derivative_t_prev.evaluate(x) * w;
+                // integral <phi_1',phi_1'>
+                integral_square_approximation_prime +=
+                derivative_phi.evaluate(translated_point_square).powf(2_f64) *
+                derivative_t_square.evaluate(x) * w;
+                // integral <phi_1',phi_2'>
+                integral_next_approximation_prime +=
+                derivative_phi.evaluate(translated_point_next) *
+                derivative_phi_next.evaluate(translated_point_next) * derivative_t_next.evaluate(x) * w;
+                
+                // Half derivative integrals
+                // integral <phi_1,phi_0'>
+                integral_prev_approximation_half += 
+                linear_basis.basis[i].evaluate(translated_point_prev) *
+                derivative_phi_prev.evaluate(translated_point_prev) * derivative_t_prev.evaluate(x) * w;
+                // integral <phi_1,phi_1'>
+                integral_square_approximation_half += 
+                linear_basis.basis[i].evaluate(translated_point_square) *
+                derivative_phi.evaluate(translated_point_square) * derivative_t_square.evaluate(x) * w;
+                // integral <phi_1,phi_2'>
+                integral_next_approximation_half += 
+                linear_basis.basis[i].evaluate(translated_point_next) *
+                derivative_phi_next.evaluate(translated_point_next) * derivative_t_next.evaluate(x) * w;
+            }
+
+            if i == 1 {
+
+                // matrix indices are one unit less than original unit because of initialization
+                // last two approximations to mass matrix are put inside final matrix
+                matrix[[i-1,0]] = integral_square_approximation_mass;
+                matrix[[i-1,1]] = integral_next_approximation_mass;
+
+                // b indices also have the same delay as the matrix
+                // left-side boundary condition is added to b
+                b[i-1] += -integral_prev_approximation_mass * self.boundary_conditions[0];
+
+                // add the rest of b[i-1] elements
+                b[i-1] +=
+                    // Add u_ni * <phi_i,phi_j>
+                    // supposes dirichlet boundary conditions ----------------
+                    self.boundary_conditions[0] * integral_prev_approximation_mass +
+                    // supposes dirichlet boundary conditions ------------
+                    self.internal_state[i-1] * integral_square_approximation_mass +
+                    self.internal_state[i] * integral_next_approximation_mass -
+                    // Add - t * mu * u_ni * <phi_i',phi_j'>
+                    (self.boundary_conditions[0] * integral_prev_approximation_prime +
+                    self.internal_state[i-1] * integral_square_approximation_prime +
+                    self.internal_state[i] * integral_next_approximation_prime) * time_step * self.mu - 
+                    // Add -t * b * u_ni * <phi_i',phi_j>
+                    (self.boundary_conditions[0] * integral_prev_approximation_half +
+                    self.internal_state[i-1] * integral_square_approximation_half +
+                    self.internal_state[i] * integral_next_approximation_half) * time_step * self.b;
+
+            } else if i == basis_len - 2 {
+
+                matrix[[i-1,basis_len-3]] = integral_prev_approximation_mass;
+                matrix[[i-1,basis_len-2]] = integral_square_approximation_mass;
+
+                //right-side boundary condition is addded to b
+                b[i-1] += - integral_next_approximation_mass * self.boundary_conditions[1];
+
+                // add the rest of b[i-1] elements
+                b[i-1] +=
+                    // Add u_ni * <phi_i,phi_j>
+                    // supposes dirichlet boundary conditions ----------------
+                    self.internal_state[i-2] * integral_prev_approximation_mass +
+                    // supposes dirichlet boundary conditions ------------
+                    self.internal_state[i-1] * integral_square_approximation_mass +
+                    self.boundary_conditions[1] * integral_next_approximation_mass -
+                    // Add - t * mu * u_ni * <phi_i',phi_j'>
+                    (self.internal_state[i-2] * integral_prev_approximation_prime +
+                    self.internal_state[i-1] * integral_square_approximation_prime +
+                    self.boundary_conditions[1] * integral_next_approximation_prime) * time_step * self.mu - 
+                    // Add -t * b * u_ni * <phi_i',phi_j>
+                    (self.internal_state[i-2] * integral_prev_approximation_half +
+                    self.internal_state[i-1] * integral_square_approximation_half +
+                    self.boundary_conditions[1] * integral_next_approximation_half) * time_step * self.b;
+
+            } else {
+
+                matrix[[i-1,i-2]] = integral_prev_approximation_mass;
+                matrix[[i-1,i-1]] = integral_square_approximation_mass;
+                matrix[[i-1,i]] = integral_next_approximation_mass;
+
+                // add the rest of b[i-1] elements
+                // the integrals of the same structure are added, since it works like matrix multiplication to obtain a vector
+                b[i-1] +=
+                    // Add u_ni * <phi_i,phi_j> 
+                    self.internal_state[i-2] * integral_prev_approximation_mass +
+                    self.internal_state[i-1] * integral_square_approximation_mass +
+                    self.internal_state[i] * integral_next_approximation_mass -
+                    // Add - t * mu * u_ni * <phi_i',phi_j'>
+                    (self.internal_state[i-2] * integral_prev_approximation_prime +
+                    self.internal_state[i-1] * integral_square_approximation_prime +
+                    self.internal_state[i] * integral_next_approximation_prime) * time_step * self.mu - 
+                    // Add -t * b * u_ni * <phi_i',phi_j>
+                    (self.internal_state[i-2] * integral_prev_approximation_half +
+                    self.internal_state[i-1] * integral_square_approximation_half +
+                    self.internal_state[i] * integral_next_approximation_half) * time_step * self.b;
+            
+            }
         }
-        
-        todo!();
+
+        (matrix,b)
+
     }
 }
 
 impl DiffEquationSolver for DiffussionSolverTimeDependent {
 
-    fn solve(&self) -> Result<Vec<f64>, Error> {
-        todo!();
+    fn solve_time_dependence(&self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
+        
+        let (a, b) = self.gauss_legendre_integration(integration_step, time_step);
+
+        let mut res = matrix_solver::solve_by_thomas(&a, &b)?;
+
+        // Adding boundary condition values
+        res[0] = self.boundary_conditions[0];
+        res[b.len() + 1] = self.boundary_conditions[1];
+
+        Ok(res)
+
+    }
+
+    fn solve(&self, integration_step: usize) -> Result<Vec<f64>, Error> {
+        panic!("Using time independent solver for time dependent equation. Use 'solve_time_dependence' instead");
     }
 }
