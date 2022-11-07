@@ -238,7 +238,7 @@ impl DiffEquationSolver for DiffussionSolverTimeIndependent {
     /// Result vector has 2 extra entries: one at the beggining and one at the end. They correspond to boundary value conditions, which are set at the very
     /// end since they do not change.
     ///
-    fn solve(&self, integration_step: usize) -> Result<Vec<f64>, Error> {
+    fn solve(&self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(integration_step);
 
         let mut res = matrix_solver::solve_by_thomas(&a, &b)?;
@@ -251,10 +251,6 @@ impl DiffEquationSolver for DiffussionSolverTimeIndependent {
         res[b.len() + 1] = self.boundary_conditions[1];
 
         Ok(res)
-    }
-
-    fn solve_time_dependence(&self, integration_step: usize, time_step: f64) -> Result<Vec<f64>,Error> {
-        panic!("Using time dependent solver for time independent equation. Use 'solve' instead.");
     }
 }
 

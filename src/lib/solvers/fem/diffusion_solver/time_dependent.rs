@@ -254,7 +254,7 @@ impl DiffussionSolverTimeDependent {
 
 impl DiffEquationSolver for DiffussionSolverTimeDependent {
 
-    fn solve_time_dependence(&self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
+    fn solve(&self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
         
         let (a, b) = self.gauss_legendre_integration(integration_step, time_step);
 
@@ -266,9 +266,5 @@ impl DiffEquationSolver for DiffussionSolverTimeDependent {
 
         Ok(res)
 
-    }
-
-    fn solve(&self, integration_step: usize) -> Result<Vec<f64>, Error> {
-        panic!("Using time independent solver for time dependent equation. Use 'solve_time_dependence' instead");
     }
 }
