@@ -474,7 +474,7 @@ impl DzahuiWindow {
                     mu,
                     b,
                 );
-                let solution = solver.solve(self.integration_iteration).unwrap();
+                let solution = solver.solve(self.integration_iteration, 0_f64).unwrap();
                 
                 println!("{:?}", solution);
                 
