@@ -238,7 +238,7 @@ impl DiffEquationSolver for DiffussionSolverTimeIndependent {
     /// Result vector has 2 extra entries: one at the beggining and one at the end. They correspond to boundary value conditions, which are set at the very
     /// end since they do not change.
     ///
-    fn solve(&self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
+    fn solve(&mut self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
         let (a, b) = self.gauss_legendre_integration(integration_step);
 
         let mut res = matrix_solver::solve_by_thomas(&a, &b)?;

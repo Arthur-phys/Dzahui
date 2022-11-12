@@ -72,10 +72,11 @@ impl DiffussionSolverTimeDependent {
         for i in 1..(basis_len - 1) {
             // Now we calculate every integral in the equation.
             // One needs to be careful regarding the boundary of the matrix.
-            // Obtain row 0 for matrix (corresponds to phi_1 in basis) and element 0 for b.
+            // Obtain every integral. Later on integrals are assigned to the corresponding matrx or vector element.
             let derivative_phi = linear_basis.basis[i].differentiate();
+            // replaced by boundary condition for basis[n-1] in vector
             let derivative_phi_next = linear_basis.basis[i+1].differentiate();
-            //boundary condition in basis[0]
+            // replaced by boundary condition for basis[0] in vector
             let derivative_phi_prev = linear_basis.basis[i-1].differentiate();
 
             // Transform intervals from -1,1 to [ai,bi]
@@ -98,7 +99,7 @@ impl DiffussionSolverTimeDependent {
             let derivative_t_next = transform_function_next.differentiate();
             let derivative_t_square = transform_function_square.differentiate();
             
-            // initialize b integral approximations
+            // initialize all integral approximations
             // derivatives integral. Of the form <phi_j',phi_i'>
             let mut integral_prev_approximation_prime = 0_f64;
             let mut integral_next_approximation_prime = 0_f64;
@@ -107,8 +108,7 @@ impl DiffussionSolverTimeDependent {
             let mut integral_prev_approximation_half = 0_f64;
             let mut integral_next_approximation_half = 0_f64;
             let mut integral_square_approximation_half = 0_f64;
-            
-            // initialize mass matrix
+            // normal integrals. Of the form <phi_j,phi_i>
             let mut integral_prev_approximation_mass = 0_f64;
             let mut integral_next_approximation_mass = 0_f64;
             let mut integral_square_approximation_mass = 0_f64;
@@ -199,8 +199,8 @@ impl DiffussionSolverTimeDependent {
 
             } else if i == basis_len - 2 {
 
-                matrix[[i-1,basis_len-3]] = integral_prev_approximation_mass;
-                matrix[[i-1,basis_len-2]] = integral_square_approximation_mass;
+                matrix[[i-1,basis_len-4]] = integral_prev_approximation_mass;
+                matrix[[i-1,basis_len-3]] = integral_square_approximation_mass;
 
                 //right-side boundary condition is addded to b
                 b[i-1] += - integral_next_approximation_mass * self.boundary_conditions[1];
@@ -254,17 +254,30 @@ impl DiffussionSolverTimeDependent {
 
 impl DiffEquationSolver for DiffussionSolverTimeDependent {
 
-    fn solve(&self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
+    fn solve(&mut self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
         
         let (a, b) = self.gauss_legendre_integration(integration_step, time_step);
 
+        println!("A: {:?} and b: {:?}",a,b);
+
         let mut res = matrix_solver::solve_by_thomas(&a, &b)?;
+        
+        self.internal_state = res[1..=b.len()].to_vec();
 
         // Adding boundary condition values
         res[0] = self.boundary_conditions[0];
         res[b.len() + 1] = self.boundary_conditions[1];
 
+
         Ok(res)
+
+    }
+}
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_matrix_and_vector_values_4p() {
 
     }
 }

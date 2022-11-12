@@ -19,8 +19,6 @@ pub mod diffusion_solver;
 #[derive(Debug)]
 pub enum Solver {
     DiffussionSolverTimeIndependent([f64; 2], f64, f64),
-    DiffussionSolverTimeDependent([f64; 2], f64, f64),
-    NavierStokes1DSolver,
-    NavierStokes2DSolver,
-    None,
+    DiffussionSolverTimeDependent([f64; 2], Vec<f64>, f64, f64),
+    None
 }

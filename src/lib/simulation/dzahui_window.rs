@@ -12,7 +12,7 @@ use std::time::Instant;
 use super::camera::{cone::Cone, Camera, CameraBuilder};
 use super::drawable::{text::CharacterSet, Bindable, Drawable};
 use super::shader::Shader;
-use crate::mesh::{mesh_builder::MeshBuilder, Mesh};
+use crate::{mesh::{mesh_builder::MeshBuilder, Mesh}, solvers::diffusion_solver::time_dependent::DiffussionSolverTimeDependent};
 use crate::{
     mesh::mesh_builder::MeshDimension,
     solvers::{
@@ -206,6 +206,14 @@ impl DzahuiWindowBuilder {
     pub fn solve_1d_diffussion(self, boundary_conditions: [f64; 2], mu: f64, b: f64) -> Self {
         Self {
             solver: Solver::DiffussionSolverTimeIndependent(boundary_conditions, mu, b),
+            mesh_dimension: MeshDimension::One,
+            ..self
+        }
+    }
+    // Makes time-dependant diffusion solver simulation
+    pub fn solve_1d_time_dependant_diffussion(self, boundary_conditions: [f64; 2], initial_conditions: Vec<f64>, mu: f64, b: f64) -> Self {
+        Self {
+            solver: Solver::DiffussionSolverTimeDependent(boundary_conditions, initial_conditions, mu, b),
             mesh_dimension: MeshDimension::One,
             ..self
         }
@@ -465,25 +473,28 @@ impl DzahuiWindow {
         // Obtaining Event Loop is necessary since `event_loop.run()` consumes it alongside window if let inside struct instance.
         let event_loop = Option::take(&mut self.event_loop).unwrap();
 
-        // Generating soultion. For static solutions it's ok, but for any other this has to go inside loop to update it
-        match self.solver {
+        // Generating differential equation solver.
+        let mut solver: Box<dyn DiffEquationSolver> = match self.solver {
             Solver::DiffussionSolverTimeIndependent(boundary_conditions, mu, b) => {
-                let solver = DiffussionSolverTimeIndependent::new(
+                Box::new(DiffussionSolverTimeIndependent::new(
                     boundary_conditions,
                     self.mesh.filter_for_solving_1d().to_vec(),
                     mu,
                     b,
-                );
-                let solution = solver.solve(self.integration_iteration, 0_f64).unwrap();
-                
-                println!("{:?}", solution);
-                
-                // updating colors. Only one time per vertex should it be updated (that is, every 6 steps).
-                self.mesh
-                    .update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
+                ))
             }
 
-            _ => {}
+            Solver::DiffussionSolverTimeDependent(boundary_conditions, ref initial_conditions, mu, b) => {
+                Box::new(DiffussionSolverTimeDependent::new(
+                    boundary_conditions,
+                    initial_conditions.clone(),
+                    self.mesh.filter_for_solving_1d().to_vec(),
+                    mu,
+                    b,
+                ).unwrap())
+            }
+
+            _ => {panic!()}
         };
 
         // Send mesh info: mesh structure and vertices to create body on each one.
@@ -586,25 +597,32 @@ impl DzahuiWindow {
                 gl::ClearColor(0.33, 0.33, 0.33, 0.8);
                 gl::Clear(gl::COLOR_BUFFER_BIT);
                 gl::Clear(gl::DEPTH_BUFFER_BIT);
-
-                // Text shader to draw text
-                self.text_shader.use_shader();
-
-                self.character_set.bind_all().unwrap();
-                self.character_set.draw_text(format!(
-                    "x: {}, y: {}, FPS: {}",
-                    self.mouse_coordinates.x, self.mouse_coordinates.y, fps
-                ));
-                self.character_set.unbind_texture().unwrap();
-
-                // Geometry shader to draw mesh
-                self.geometry_shader.use_shader();
-                self.geometry_shader
-                    .set_mat4("view", &self.camera.view_matrix);
-
-                self.mesh.bind_vao().unwrap();
-                self.mesh.draw(&self).unwrap();
             }
+
+            let solution = solver.solve(self.integration_iteration, 0.01).unwrap();
+                
+            println!("{:?}", solution);
+            // updating colors. Only one time per vertex should it be updated (that is, every 6 steps).
+            self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
+                
+
+            // Text shader to draw text
+            self.text_shader.use_shader();
+
+            self.character_set.bind_all().unwrap();
+            self.character_set.draw_text(format!(
+                "x: {}, y: {}, FPS: {}",
+                self.mouse_coordinates.x, self.mouse_coordinates.y, fps
+            ));
+            self.character_set.unbind_texture().unwrap();
+
+            // Geometry shader to draw mesh
+            self.geometry_shader.use_shader();
+            self.geometry_shader
+                .set_mat4("view", &self.camera.view_matrix);
+
+            self.mesh.bind_vao().unwrap();
+            self.mesh.draw(&self).unwrap();
             // Need to change old and new buffer to redraw
             self.context.swap_buffers().unwrap();
             counter += 1;
