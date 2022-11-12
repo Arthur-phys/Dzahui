@@ -21,17 +21,26 @@ use ndarray::{Array1, Array2};
 /// * `b` - Second of two needed constants.
 ///
 pub struct DiffussionSolverTimeIndependent {
-    boundary_conditions: [f64; 2],
+    pub boundary_conditions: [f64; 2],
+    pub(crate) stiffness_matrix: Array2<f64>,
+    pub(crate) b_vector: Array1<f64>,
+    pub gauss_step: usize,
     mesh: Vec<f64>,
-    mu: f64,
-    b: f64,
+    pub mu: f64,
+    pub b: f64,
 }
 
 impl DiffussionSolverTimeIndependent {
     /// Creates new instance
-    pub fn new(boundary_conditions: [f64; 2], mesh: Vec<f64>, mu: f64, b: f64) -> Self {
+    pub fn new(boundary_conditions: [f64; 2], mesh: Vec<f64>, mu: f64, b: f64, gauss_step: usize) -> Self {
+
+        let (stiffness_matrix, b_vector) = Self::gauss_legendre_integration(boundary_conditions, mu, b, &mesh, gauss_step);
+
         Self {
             boundary_conditions,
+            stiffness_matrix,
+            gauss_step,
+            b_vector,
             mesh,
             mu,
             b,
@@ -55,9 +64,9 @@ impl DiffussionSolverTimeIndependent {
     ///
     /// A tuple with both the stiffness matrix and the vector b.
     ///
-    pub fn gauss_legendre_integration(&self, gauss_step: usize) -> (Array2<f64>, Array1<f64>) {
+    pub fn gauss_legendre_integration(boundary_conditions: [f64;2], mu: f64, b: f64, mesh: &Vec<f64>, gauss_step: usize) -> (Array2<f64>, Array1<f64>) {
         
-        let basis = LinearBasis::new(&self.mesh).unwrap();
+        let basis = LinearBasis::new(mesh).unwrap();
         let basis_len = basis.basis.len();
 
         let mut stiffness_matrix =
@@ -70,16 +79,16 @@ impl DiffussionSolverTimeIndependent {
             let derivative_phi = basis.basis[1].differentiate();
     
             let transform_function_prev = FirstDegreePolynomial::transformation_from_m1_p1(
-                self.mesh[0],
-                self.mesh[1],
+                mesh[0],
+                mesh[1],
             );
             let transform_function_next = FirstDegreePolynomial::transformation_from_m1_p1(
-                self.mesh[1],
-                self.mesh[2],
+                mesh[1],
+                mesh[2],
             );
             let transform_function_square = FirstDegreePolynomial::transformation_from_m1_p1(
-                    self.mesh[0],
-                    self.mesh[2],
+                    mesh[0],
+                    mesh[2],
             );
 
             let derivative_t_prev = transform_function_prev.differentiate();
@@ -103,26 +112,26 @@ impl DiffussionSolverTimeIndependent {
                 let translated_point_next = transform_function_next.evaluate(x);
                 let translated_point_square = transform_function_square.evaluate(x);
 
-                integral_prev_approximation += (self.mu
+                integral_prev_approximation += (mu
                     * derivative_phi.evaluate(translated_point_prev)
                     * derivative_prev.evaluate(translated_point_prev)
-                    + self.b
+                    + b
                         * derivative_prev.evaluate(translated_point_prev)
                         * basis.basis[1].evaluate(translated_point_prev))
                     * derivative_t_prev.evaluate(x)
                     * w;
-                integral_next_approximation += (self.mu
+                integral_next_approximation += (mu
                     * derivative_phi.evaluate(translated_point_next)
                     * derivative_next.evaluate(translated_point_next)
-                    + self.b
+                    + b
                         * derivative_next.evaluate(translated_point_next)
                         * basis.basis[1].evaluate(translated_point_next))
                     * derivative_t_next.evaluate(x)
                     * w;
-                integral_square_approximation += (self.mu
+                integral_square_approximation += (mu
                     * derivative_phi.evaluate(translated_point_square)
                     * derivative_phi.evaluate(translated_point_square)
-                    + self.b
+                    + b
                         * derivative_phi.evaluate(translated_point_square)
                         * basis.basis[1].evaluate(translated_point_square))
                     * derivative_t_square.evaluate(x)
@@ -131,8 +140,8 @@ impl DiffussionSolverTimeIndependent {
 
             stiffness_matrix[[0, 0]] = integral_square_approximation;
 
-            b_vector[[0]] += - integral_prev_approximation * self.boundary_conditions[0] -
-                integral_next_approximation * self.boundary_conditions[1];
+            b_vector[[0]] += - integral_prev_approximation * boundary_conditions[0] -
+                integral_next_approximation * boundary_conditions[1];
 
         } else {
 
@@ -141,17 +150,17 @@ impl DiffussionSolverTimeIndependent {
                 let derivative_phi = basis.basis[i].differentiate();
     
                 let transform_function_prev = FirstDegreePolynomial::transformation_from_m1_p1(
-                    self.mesh[i - 1],
-                    self.mesh[i],
+                    mesh[i - 1],
+                    mesh[i],
                 );
                 let transform_function_next = FirstDegreePolynomial::transformation_from_m1_p1(
-                    self.mesh[i],
-                    self.mesh[i + 1],
+                    mesh[i],
+                    mesh[i + 1],
                 );
                 let transform_function_square =
                     FirstDegreePolynomial::transformation_from_m1_p1(
-                        self.mesh[i - 1],
-                        self.mesh[i + 1],
+                        mesh[i - 1],
+                        mesh[i + 1],
                     );
     
                 let derivative_t_prev = transform_function_prev.differentiate();
@@ -176,26 +185,26 @@ impl DiffussionSolverTimeIndependent {
                     let translated_point_next = transform_function_next.evaluate(x);
                     let translated_point_square = transform_function_square.evaluate(x);
     
-                    integral_prev_approximation += (self.mu
+                    integral_prev_approximation += (mu
                         * derivative_phi.evaluate(translated_point_prev)
                         * derivative_prev.evaluate(translated_point_prev)
-                        + self.b
+                        + b
                             * derivative_prev.evaluate(translated_point_prev)
                             * basis.basis[i].evaluate(translated_point_prev))
                         * derivative_t_prev.evaluate(x)
                         * w;
-                    integral_next_approximation += (self.mu
+                    integral_next_approximation += (mu
                         * derivative_phi.evaluate(translated_point_next)
                         * derivative_next.evaluate(translated_point_next)
-                        + self.b
+                        + b
                             * derivative_next.evaluate(translated_point_next)
                             * basis.basis[i].evaluate(translated_point_next))
                         * derivative_t_next.evaluate(x)
                         * w;
-                    integral_square_approximation += (self.mu
+                    integral_square_approximation += (mu
                         * derivative_phi.evaluate(translated_point_square)
                         * derivative_phi.evaluate(translated_point_square)
-                        + self.b
+                        + b
                             * derivative_phi.evaluate(translated_point_square)
                             * basis.basis[i].evaluate(translated_point_square))
                         * derivative_t_square.evaluate(x)
@@ -207,14 +216,14 @@ impl DiffussionSolverTimeIndependent {
                     stiffness_matrix[[i - 1, i - 1]] = integral_square_approximation;
                     stiffness_matrix[[i - 1, i]] = integral_next_approximation;
 
-                    b_vector[[i-1]] += - integral_prev_approximation * self.boundary_conditions[0];
+                    b_vector[[i-1]] += - integral_prev_approximation * boundary_conditions[0];
 
                 } else if i == basis_len - 2 {
 
                     stiffness_matrix[[i - 1, i - 2]] = integral_prev_approximation;
                     stiffness_matrix[[i - 1, i - 1]] = integral_square_approximation;
 
-                    b_vector[[i-1]] += - integral_next_approximation * self.boundary_conditions[1];
+                    b_vector[[i-1]] += - integral_next_approximation * boundary_conditions[1];
 
                 } else {
 
@@ -239,16 +248,15 @@ impl DiffEquationSolver for DiffussionSolverTimeIndependent {
     /// end since they do not change.
     ///
     fn solve(&mut self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
-        let (a, b) = self.gauss_legendre_integration(integration_step);
 
-        let mut res = matrix_solver::solve_by_thomas(&a, &b)?;
+        let mut res = matrix_solver::solve_by_thomas(&self.stiffness_matrix, &self.b_vector)?;
 
         // res[1] += b[0];
         // res[b.len()] += b[b.len() - 1];
 
         // Adding boundary condition values
         res[0] = self.boundary_conditions[0];
-        res[b.len() + 1] = self.boundary_conditions[1];
+        res[self.b_vector.len() + 1] = self.boundary_conditions[1];
 
         Ok(res)
     }
@@ -268,13 +276,13 @@ mod test {
             vec![0_f64, 0.5, 1_f64],
             1_f64,
             1_f64,
+            150
         );
-        let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        println!("A: {:?}\n b: {:?}", a, b);
+        println!("A: {:?}\n dif_solver.b_vector: {:?}", dif_solver.stiffness_matrix, dif_solver.b_vector);
 
-        assert!(a[[0, 0]] <= 4.1 && a[[0, 0]] >= 3.9);
-        assert!(b[0] <= 1.6 && b[0] >= 1.4);
+        assert!(dif_solver.stiffness_matrix[[0, 0]] <= 4.1 && dif_solver.stiffness_matrix[[0, 0]] >= 3.9);
+        assert!(dif_solver.b_vector[0] <= 1.6 && dif_solver.b_vector[0] >= 1.4);
     }
 
     #[test]
@@ -284,11 +292,10 @@ mod test {
             vec![0_f64, 0.5, 1_f64],
             1_f64,
             1_f64,
+            150,
         );
 
-        let (a, b) = dif_solver.gauss_legendre_integration(150);
-
-        let res = matrix_solver::solve_by_thomas(&a, &b).unwrap();
+        let res = matrix_solver::solve_by_thomas(&dif_solver.stiffness_matrix, &dif_solver.b_vector).unwrap();
 
         println!("{:?}",res);
 
@@ -303,16 +310,16 @@ mod test {
             vec![0_f64, 0.33, 0.66, 1_f64],
             1_f64,
             1_f64,
+            150
         );
-        let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        assert!(a[[0, 0]] <= 6.1 && a[[0, 0]] >= 5.9);
-        assert!(a[[1, 0]] <= -3.4 && a[[1, 0]] >= -3.6);
-        assert!(a[[0, 1]] <= -2.4 && a[[0, 1]] >= -2.6);
-        assert!(a[[1, 1]] <= 6.1 && a[[1, 1]] >= 5.9);
+        assert!(dif_solver.stiffness_matrix[[0, 0]] <= 6.1 && dif_solver.stiffness_matrix[[0, 0]] >= 5.9);
+        assert!(dif_solver.stiffness_matrix[[1, 0]] <= -3.4 && dif_solver.stiffness_matrix[[1, 0]] >= -3.6);
+        assert!(dif_solver.stiffness_matrix[[0, 1]] <= -2.4 && dif_solver.stiffness_matrix[[0, 1]] >= -2.6);
+        assert!(dif_solver.stiffness_matrix[[1, 1]] <= 6.1 && dif_solver.stiffness_matrix[[1, 1]] >= 5.9);
 
-        assert!(b[0] == 0_f64);
-        assert!(b[1] >= 2.4 && b[1] <= 2.6);
+        assert!(dif_solver.b_vector[0] == 0_f64);
+        assert!(dif_solver.b_vector[1] >= 2.4 && dif_solver.b_vector[1] <= 2.6);
     }
 
     #[test]
@@ -322,10 +329,10 @@ mod test {
             vec![0_f64, 0.33, 0.66, 1_f64],
             1_f64,
             1_f64,
+            150
         );
-        let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = matrix_solver::solve_by_thomas(&a, &b).unwrap();
+        let res = matrix_solver::solve_by_thomas(&dif_solver.stiffness_matrix, &dif_solver.b_vector).unwrap();
 
         assert!(res.len() == 4);
         assert!(res[1] >= 0.20 && res[1] <= 0.24);
@@ -339,18 +346,18 @@ mod test {
             vec![0_f64, 0.25, 0.5, 0.75, 1_f64],
             1_f64,
             1_f64,
+            150
         );
-        let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        assert!(a[[0, 0]] <= 8.1 && a[[0, 0]] >= 7.9);
-        assert!(a[[0, 1]] <= -3.4 && a[[0, 1]] >= -3.6);
-        assert!(a[[1, 0]] <= -4.4 && a[[1, 0]] >= -4.6);
-        assert!(a[[1, 1]] <= 8.1 && a[[1, 1]] >= 7.9);
-        assert!(a[[1, 2]] <= -3.4 && a[[1, 2]] >= -3.6);
-        assert!(a[[2, 1]] <= -4.4 && a[[2, 1]] >= -4.6);
-        assert!(a[[2, 2]] <= 8.1 && a[[2, 2]] >= 7.9);
+        assert!(dif_solver.stiffness_matrix[[0, 0]] <= 8.1 && dif_solver.stiffness_matrix[[0, 0]] >= 7.9);
+        assert!(dif_solver.stiffness_matrix[[0, 1]] <= -3.4 && dif_solver.stiffness_matrix[[0, 1]] >= -3.6);
+        assert!(dif_solver.stiffness_matrix[[1, 0]] <= -4.4 && dif_solver.stiffness_matrix[[1, 0]] >= -4.6);
+        assert!(dif_solver.stiffness_matrix[[1, 1]] <= 8.1 && dif_solver.stiffness_matrix[[1, 1]] >= 7.9);
+        assert!(dif_solver.stiffness_matrix[[1, 2]] <= -3.4 && dif_solver.stiffness_matrix[[1, 2]] >= -3.6);
+        assert!(dif_solver.stiffness_matrix[[2, 1]] <= -4.4 && dif_solver.stiffness_matrix[[2, 1]] >= -4.6);
+        assert!(dif_solver.stiffness_matrix[[2, 2]] <= 8.1 && dif_solver.stiffness_matrix[[2, 2]] >= 7.9);
 
-        assert!(b[b.len() - 1] >= 3.4 && b[b.len() - 1] <= 3.6);
+        assert!(dif_solver.b_vector[dif_solver.b_vector.len() - 1] >= 3.4 && dif_solver.b_vector[dif_solver.b_vector.len() - 1] <= 3.6);
     }
 
     #[test]
@@ -360,10 +367,10 @@ mod test {
             vec![0_f64, 0.25, 0.5, 0.75, 1_f64],
             1_f64,
             1_f64,
+            150
         );
-        let (a, b) = dif_solver.gauss_legendre_integration(150);
 
-        let res = matrix_solver::solve_by_thomas(&a, &b).unwrap();
+        let res = matrix_solver::solve_by_thomas(&dif_solver.stiffness_matrix, &dif_solver.b_vector).unwrap();
 
         assert!(res.len() == 5);
         assert!(res[1] >= 0.15 && res[1] <= 0.17);
@@ -378,11 +385,10 @@ mod test {
             vec![0_f64, 0.25, 0.5, 0.75, 1_f64],
             1_f64,
             1_f64,
+            150
         );
 
-        let (a, b) = dif_solver.gauss_legendre_integration(150);
-
-        let mut res = matrix_solver::solve_by_thomas(&a, &b).unwrap();
+        let mut res = matrix_solver::solve_by_thomas(&dif_solver.stiffness_matrix, &dif_solver.b_vector).unwrap();
 
         let len = res.len();
         res[0] = dif_solver.boundary_conditions[0];

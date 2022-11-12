@@ -488,6 +488,7 @@ impl DzahuiWindow {
                 Box::new(DiffussionSolverTimeDependent::new(
                     boundary_conditions,
                     initial_conditions.clone(),
+                    self.integration_iteration,
                     self.mesh.filter_for_solving_1d().to_vec(),
                     mu,
                     b,
