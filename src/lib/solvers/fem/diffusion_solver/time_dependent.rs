@@ -1,11 +1,12 @@
 use crate::solvers::fem::basis::single_variable::{
     linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
 };
+use crate::solvers::utils;
 use crate::solvers::{DiffEquationSolver, matrix_solver};
 use crate::Error;
 use crate::solvers::quadrature::gauss_legendre;
 
-use ndarray::{Array1, Array2, linalg};
+use ndarray::{Array1, Array2};
 
 #[derive(Debug)]
 /// # General Information
@@ -247,24 +248,27 @@ impl DiffussionSolverTimeDependent {
 
 impl DiffEquationSolver for DiffussionSolverTimeDependent {
 
-    fn solve(&mut self, integration_step: usize, time_step: f64) -> Result<Vec<f64>, Error> {
+    fn solve(&mut self, time_step: f64) -> Result<Vec<f64>, Error> {
         
         println!("Mass Matrix: {:?}\n\n and Stiffness Matrix: {:?}\n\n",self.mass_matrix,self.stiffness_matrix);
 
-        /* Continue from here */
-        /* Continue from here */
-        /* Continue from here */
-
         // let b = stiffness_matrix * self.state * time_step + mass_matrix * self.state;
-        
-        /* Continue from here */
-        /* Continue from here */
-        /* Continue from here */
+        let b_first_part = utils::tridiagonal_matrix_vector_multiplication(
+            &self.stiffness_matrix, &self.state, time_step)?;
 
+        let b_second_part = utils::tridiagonal_matrix_vector_multiplication(
+            &self.mass_matrix, &self.state, 1_f64)?;
+
+        let b = utils::add(
+            &b_first_part,
+            &b_second_part)?;
 
         let mut res = matrix_solver::solve_by_thomas(&self.mass_matrix, &b)?;
+
+        res[0] = self.boundary_conditions[0];
+        res[b.len()-1] = self.boundary_conditions[1];
         
-        self.state = res;
+        self.state = Array1::from_vec(res.clone());
 
         Ok(res)
 

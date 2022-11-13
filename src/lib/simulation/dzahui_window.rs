@@ -481,6 +481,7 @@ impl DzahuiWindow {
                     self.mesh.filter_for_solving_1d().to_vec(),
                     mu,
                     b,
+                    self.integration_iteration
                 ))
             }
 
@@ -600,7 +601,7 @@ impl DzahuiWindow {
                 gl::Clear(gl::DEPTH_BUFFER_BIT);
             }
 
-            let solution = solver.solve(self.integration_iteration, 0.01).unwrap();
+            let solution = solver.solve(0.01).unwrap();
                 
             println!("{:?}", solution);
             // updating colors. Only one time per vertex should it be updated (that is, every 6 steps).

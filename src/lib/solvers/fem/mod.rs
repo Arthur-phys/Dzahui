@@ -1,6 +1,7 @@
 // Module definition
 pub mod basis;
 pub mod diffusion_solver;
+pub mod utils;
 
 /// # General Information
 ///
