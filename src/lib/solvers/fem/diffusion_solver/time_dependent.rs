@@ -265,6 +265,7 @@ impl DiffEquationSolver for DiffussionSolverTimeDependent {
 
         let mut res = matrix_solver::solve_by_thomas(&self.mass_matrix, &b)?;
 
+        // reinsert boundary values
         res[0] = self.boundary_conditions[0];
         res[b.len()-1] = self.boundary_conditions[1];
         

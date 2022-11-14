@@ -602,11 +602,13 @@ impl DzahuiWindow {
             }
 
             let solution = solver.solve(0.01).unwrap();
-            
 
             // updating colors. Only one time per vertex should it be updated (that is, every 6 steps).
             self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
             
+            self.mesh.bind_all_no_texture().unwrap();
+            self.mesh.send_to_gpu().unwrap();
+
             
             // Text shader to draw text
             self.text_shader.use_shader();
