@@ -267,6 +267,7 @@ impl DzahuiWindowBuilder {
         // core GL profile
         // Future compatible functions. Not backwards compatible (no previous versions of openGL).
         with_gl_profile(GlProfile::Core).
+        with_vsync(true).
         build_windowed(window_builder, &event_loop).
         unwrap();
 
@@ -601,9 +602,9 @@ impl DzahuiWindow {
                 gl::Clear(gl::DEPTH_BUFFER_BIT);
             }
 
-            let solution = solver.solve(0.01).unwrap();
+            let solution = solver.solve(0.001).unwrap();
 
-            // updating colors. Only one time per vertex should it be updated (that is, every 6 steps).
+            // updating colors. One time per vertex should be updated (that is, every 6 steps).
             self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
             
             self.mesh.bind_all_no_texture().unwrap();

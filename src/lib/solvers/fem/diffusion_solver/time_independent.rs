@@ -191,8 +191,6 @@ mod test {
             150
         );
 
-        println!("A: {:?}\n dif_solver.b_vector: {:?}", dif_solver.stiffness_matrix, dif_solver.b_vector);
-
         assert!(dif_solver.stiffness_matrix[[0,0]] == 1_f64);
         assert!(dif_solver.stiffness_matrix[[1, 1]] <= 4.1 && dif_solver.stiffness_matrix[[1, 1]] >= 3.9);
         assert!(dif_solver.stiffness_matrix[[1, 2]] <= -1.4 && dif_solver.stiffness_matrix[[1, 1]] >= -1.6);
@@ -265,8 +263,6 @@ mod test {
             1_f64,
             150
         );
-
-        println!("\n{:?}\n{:?}",dif_solver.stiffness_matrix,dif_solver.b_vector);
 
         assert!(dif_solver.stiffness_matrix[[1, 0]] <= -4.4 && dif_solver.stiffness_matrix[[1, 2]] >= -4.6);
         assert!(dif_solver.stiffness_matrix[[1, 1]] <= 8.1 && dif_solver.stiffness_matrix[[1, 1]] >= 7.9);

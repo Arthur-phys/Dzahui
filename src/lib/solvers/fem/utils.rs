@@ -11,7 +11,7 @@ pub fn add(b: &Array1<f64>, v: &Array1<f64>) -> Result<Array1<f64>,Error> {
     let len = b.len();
     let mut result_vec = Array1::from_vec(vec![0_f64;len]);
 
-    for i in 0..(len-1) {
+    for i in 0..=(len-1) {
         result_vec[i] = b[i] + v[i];
     }
 
@@ -27,9 +27,9 @@ pub fn tridiagonal_matrix_vector_multiplication(a: &Array2<f64>, b: &Array1<f64>
     // get number of operations to perform
     let len = b.len();
     // initialize result vector
-    let mut result_vec = Array1::from_vec(vec![0_f64;len]);
+    let mut result_vec = Array1::from_elem(len,0_f64);
 
-    for i in 1..(len - 2) {
+    for i in 1..=(len - 2) {
         
         result_vec[i] = c * (a[[i,i-1]] * b[i-1] + a[[i,i]]* b[i] + a[[i,i+1]] * b[i+1])
 

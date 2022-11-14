@@ -53,7 +53,7 @@ impl DiffussionSolverTimeDependent {
         let state = Array1::from_vec(state);
 
         let (mass_matrix, stiffness_matrix) = Self::gauss_legendre_integration(
-                mu, b, boundary_conditions, &mesh, integration_step);
+                mu, b, &mesh, integration_step);
 
         // obtain matrices
 
@@ -81,15 +81,15 @@ impl DiffussionSolverTimeDependent {
     /// * `gauss_step` - Amount of nodes to compute for integration.
     /// * `time_step` - How much to advance the solution.
     /// 
-    fn gauss_legendre_integration(mu: f64, b: f64, boundary_conditions: [f64;2], mesh: &Vec<f64>, gauss_step: usize) -> (Array2<f64>,Array2<f64>) {
+    fn gauss_legendre_integration(mu: f64, b: f64, mesh: &Vec<f64>, gauss_step: usize) -> (Array2<f64>,Array2<f64>) {
         
         // First generate the basis
         let linear_basis = LinearBasis::new(mesh).unwrap();
         let basis_len = linear_basis.basis.len();
 
-        // initialize matrix mass_matrix (internal, no boundaries included)
+        // initialize matrix mass_matrix (boundaries included)
         let mut mass_matrix = ndarray::Array::from_elem((basis_len, basis_len), 0_f64);
-        // initialize matrix stiffness_matrix (internal, no boundaries included)
+        // initialize matrix stiffness_matrix (boundaries included)
         let mut stiffness_matrix = ndarray::Array::from_elem((basis_len, basis_len), 0_f64);
 
         for i in 1..(basis_len - 1) {
@@ -192,34 +192,9 @@ impl DiffussionSolverTimeDependent {
                 derivative_phi_next.evaluate(translated_point_next) * derivative_t_next.evaluate(x) * w;
             }
 
-            if i == 1 {
-
-                // last two approximations to mass mass_matrix are put inside final mass_matrix
-                mass_matrix[[i,i]] = integral_square_approximation_mass;
-                mass_matrix[[i,i+1]] = integral_next_approximation_mass;
-
-                // stiffness_matrix indices also have the same delay as the mass_matrix
-
-                // left-side boundary condition is added to value of boundary terms.
-                // Must be added to u[0] at the end
-                mass_matrix[[0,0]] += -integral_prev_approximation_mass * boundary_conditions[0];
-
-            } else if i == basis_len - 2 {
-
-                mass_matrix[[i,basis_len-3]] = integral_prev_approximation_mass;
-                mass_matrix[[i,basis_len-2]] = integral_square_approximation_mass;
-
-                //right-side boundary condition is addded to stiffness_matrix
-                mass_matrix[[basis_len - 1, basis_len - 1]] += - integral_next_approximation_mass * boundary_conditions[1];
-
-            } else {
-
-                mass_matrix[[i,i-1]] = integral_prev_approximation_mass;
-                mass_matrix[[i,i]] = integral_square_approximation_mass;
-                mass_matrix[[i,i+1]] = integral_next_approximation_mass;
-
-                
-            }
+            mass_matrix[[i,i-1]] = integral_prev_approximation_mass;
+            mass_matrix[[i,i]] = integral_square_approximation_mass;
+            mass_matrix[[i,i+1]] = integral_next_approximation_mass;
 
             // add the rest of stiffness_matrix[[i,i-1]] elements
             stiffness_matrix[[i,i-1]] = - mu * integral_prev_approximation_prime -
@@ -249,8 +224,6 @@ impl DiffussionSolverTimeDependent {
 impl DiffEquationSolver for DiffussionSolverTimeDependent {
 
     fn solve(&mut self, time_step: f64) -> Result<Vec<f64>, Error> {
-        
-        println!("Mass Matrix: {:?}\n\n and Stiffness Matrix: {:?}\n\n",self.mass_matrix,self.stiffness_matrix);
 
         // let b = stiffness_matrix * self.state * time_step + mass_matrix * self.state;
         let b_first_part = utils::tridiagonal_matrix_vector_multiplication(
@@ -270,6 +243,8 @@ impl DiffEquationSolver for DiffussionSolverTimeDependent {
         res[b.len()-1] = self.boundary_conditions[1];
         
         self.state = Array1::from_vec(res.clone());
+
+        print!("{:?}",res);
 
         Ok(res)
 
