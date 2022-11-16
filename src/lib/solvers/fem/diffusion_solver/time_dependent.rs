@@ -25,12 +25,11 @@ use ndarray::{Array1, Array2};
 ///
 pub struct DiffussionSolverTimeDependent {
     pub boundary_conditions: [f64; 2],
-    stiffness_matrix: Array2<f64>,
+    pub(crate) stiffness_matrix: Array2<f64>,
     pub initial_conditions: Vec<f64>,
-    mass_matrix: Array2<f64>,
+    pub(crate) mass_matrix: Array2<f64>,
     pub integration_step: usize,
-    state: Array1<f64>,
-    mesh: Vec<f64>,
+    pub(crate) state: Array1<f64>,
     pub mu: f64,
     pub b: f64,
 }
@@ -64,7 +63,6 @@ impl DiffussionSolverTimeDependent {
             integration_step,
             mass_matrix,
             state,
-            mesh,
             mu,
             b,
         })
@@ -244,7 +242,7 @@ impl DiffEquationSolver for DiffussionSolverTimeDependent {
         
         self.state = Array1::from_vec(res.clone());
 
-        print!("{:?}",res);
+        // print!("{:?}",res);
 
         Ok(res)
 
@@ -252,9 +250,26 @@ impl DiffEquationSolver for DiffussionSolverTimeDependent {
 }
 #[cfg(test)]
 mod tests {
+    use super::DiffussionSolverTimeDependent;
+
 
     #[test]
-    fn test_matrix_and_vector_values_4p() {
+    fn test_matrix_and_vector_values_3p() {
+        let dif_solver = DiffussionSolverTimeDependent::new([0_f64,1_f64],
+            vec![0_f64;1],150,vec![0_f64,0.5,1_f64],1_f64,1_f64).unwrap();
 
+            println!("{:?}",dif_solver.stiffness_matrix);
+
+            assert!(dif_solver.mass_matrix[[0,0]] == 1_f64);
+            assert!(dif_solver.mass_matrix[[1,0]] >= 0.08 && dif_solver.mass_matrix[[1,0]] <= 0.09);
+            assert!(dif_solver.mass_matrix[[1,1]] >= 0.3 && dif_solver.mass_matrix[[1,1]] <= 0.35);
+            assert!(dif_solver.mass_matrix[[1,2]] >= 0.08 && dif_solver.mass_matrix[[1,2]] <= 0.09);
+            assert!(dif_solver.mass_matrix[[2,2]] == 1_f64);
+
+            assert!(dif_solver.stiffness_matrix[[0,0]] == 1_f64);
+            assert!(dif_solver.stiffness_matrix[[1,0]] >= 2.4 && dif_solver.stiffness_matrix[[1,0]] <= 2.6);
+            assert!(dif_solver.stiffness_matrix[[1,1]] >= -4.1 && dif_solver.stiffness_matrix[[1,1]] <= -3.9);
+            assert!(dif_solver.stiffness_matrix[[1,2]] >= 1.4 && dif_solver.stiffness_matrix[[1,2]] <= 1.6);
+            assert!(dif_solver.stiffness_matrix[[2,2]] == 1_f64);
     }
 }

@@ -25,7 +25,6 @@ pub struct DiffussionSolverTimeIndependent {
     pub(crate) stiffness_matrix: Array2<f64>,
     pub(crate) b_vector: Array1<f64>,
     pub gauss_step: usize,
-    mesh: Vec<f64>,
     pub mu: f64,
     pub b: f64,
 }
@@ -41,7 +40,6 @@ impl DiffussionSolverTimeIndependent {
             stiffness_matrix,
             gauss_step,
             b_vector,
-            mesh,
             mu,
             b,
         }

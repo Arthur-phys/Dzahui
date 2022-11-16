@@ -5895,9 +5895,7 @@ mod test {
             sum += w * x.exp();
         }
 
-        println!("Approximation is: {}", sum);
         let error = (sum - (1_f64.exp() - (-1 as f64).exp())).abs();
-        println!("Error is: {}", error);
         assert!(error <= 0.001);
     }
 
@@ -5910,9 +5908,7 @@ mod test {
             sum += w * x.exp();
         }
 
-        println!("Approximation is: {}", sum);
         let error = (sum - (1_f64.exp() - (-1 as f64).exp())).abs();
-        println!("Error is: {}", error);
         assert!(error <= 0.00001);
     }
 
@@ -5925,9 +5921,7 @@ mod test {
             sum += w * x.cos();
         }
 
-        println!("Approximation is: {}", sum);
         let error = (sum - (1_f64.sin() - (-1 as f64).sin())).abs();
-        println!("Error is: {}", error);
         assert!(error <= 0.01);
     }
 
@@ -5940,9 +5934,7 @@ mod test {
             sum += w * x.cos();
         }
 
-        println!("Approximation is: {}", sum);
         let error = (sum - (1_f64.sin() - (-1 as f64).sin())).abs();
-        println!("Error is: {}", error);
         assert!(error <= 0.0001);
     }
 
@@ -5958,9 +5950,7 @@ mod test {
             sum += w * x.cos() * deriv_t.evaluate(0_f64);
         }
 
-        println!("Approximation is: {}", sum);
         let error = sum.abs();
-        println!("Error is: {}", error);
         assert!(error <= 0.0001);
     }
 }

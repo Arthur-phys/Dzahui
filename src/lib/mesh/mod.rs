@@ -82,8 +82,10 @@ impl Mesh {
             .iter()
             .copied()
             .fold(f64::NEG_INFINITY, f64::max);
+
         let sol_min = velocity_norm.iter().copied().fold(f64::INFINITY, f64::min);
         let vertices_len = self.vertices.len();
+        
         for i in 0..(vertices_len / 12) {
             let norm_sol =
                 (velocity_norm[i] - sol_min) / (sol_max - sol_min) * (std::f64::consts::PI / 2.);
@@ -142,7 +144,6 @@ mod test {
         let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj")
             .build_mesh_3d()
             .unwrap();
-        println!("{:?}", new_mesh.vertices);
         assert!(
             new_mesh.vertices
                 == Array1::from_vec(vec![
@@ -158,7 +159,6 @@ mod test {
         let new_mesh = Mesh::builder("/home/Arthur/Tesis/Dzahui/assets/test.obj")
             .build_mesh_2d()
             .unwrap();
-        println!("{}", new_mesh.max_length);
         assert!(new_mesh.max_length >= 1.90);
         assert!(new_mesh.max_length <= 2.10);
     }
