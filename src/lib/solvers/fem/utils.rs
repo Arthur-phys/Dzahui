@@ -35,8 +35,8 @@ pub fn tridiagonal_matrix_vector_multiplication(a: &Array2<f64>, b: &Array1<f64>
 
     }
 
-    result_vec[0] = a[[0,0]]* b[0] + a[[0,1]] * b[1];
-    result_vec[len-1] = a[[len-1,len-2]]* b[len-2] + a[[len-1,len-1]] * b[len-1];
+    result_vec[0] = c * ( a[[0,0]]* b[0] + a[[0,1]] * b[1] );
+    result_vec[len-1] = c * ( a[[len-1,len-2]]* b[len-2] + a[[len-1,len-1]] * b[len-1] );
 
     Ok(result_vec)
 }

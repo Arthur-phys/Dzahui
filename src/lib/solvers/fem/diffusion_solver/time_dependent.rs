@@ -250,6 +250,8 @@ impl DiffEquationSolver for DiffussionSolverTimeDependent {
 }
 #[cfg(test)]
 mod tests {
+    use crate::solvers::DiffEquationSolver;
+
     use super::DiffussionSolverTimeDependent;
 
 
@@ -271,5 +273,21 @@ mod tests {
             assert!(dif_solver.stiffness_matrix[[1,1]] >= -4.1 && dif_solver.stiffness_matrix[[1,1]] <= -3.9);
             assert!(dif_solver.stiffness_matrix[[1,2]] >= 1.4 && dif_solver.stiffness_matrix[[1,2]] <= 1.6);
             assert!(dif_solver.stiffness_matrix[[2,2]] == 1_f64);
+    }
+
+    #[test]
+    fn test_matrix_solved_3p() {
+        let mut dif_solver = DiffussionSolverTimeDependent::new([1_f64,0_f64],
+            vec![15_f64;1],150,vec![0_f64,0.5,1_f64],1_f64,1_f64).unwrap();
+
+    for _i in 0..1000 {
+        dif_solver.solve(0.01).unwrap();
+    }
+
+    assert!(dif_solver.state[0] == 1_f64);
+    assert!(dif_solver.state[2] == 0_f64);
+    assert!(dif_solver.state[1] <= 0.65 && dif_solver.state[1] >= 0.55);
+
+
     }
 }

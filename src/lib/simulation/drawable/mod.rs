@@ -97,7 +97,7 @@ pub(crate) trait Drawable: Bindable {
                 (vertices.len() * mem::size_of::<GLfloat>()) as GLsizeiptr,
                 &vertices[0] as *const f32 as *const c_void,
                 // Double casting to raw pointer. Equivalent to C's void type when used as pointer.
-                gl::STATIC_DRAW,
+                gl::DYNAMIC_DRAW,
             );
 
             // Point to data, specify data length and how it should be drawn
@@ -105,7 +105,7 @@ pub(crate) trait Drawable: Bindable {
                 gl::ELEMENT_ARRAY_BUFFER,
                 (triangles.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
                 &triangles[0] as *const u32 as *const c_void,
-                gl::STATIC_DRAW,
+                gl::DYNAMIC_DRAW,
             );
 
             // How should coordinates be read.
