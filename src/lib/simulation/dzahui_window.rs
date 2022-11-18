@@ -8,6 +8,7 @@ use glutin::{
     Api, ContextBuilder, ContextWrapper, GlProfile, GlRequest, PossiblyCurrent,
 };
 use std::time::Instant;
+use colored::Colorize;
 
 use super::camera::{cone::Cone, Camera, CameraBuilder};
 use super::drawable::{text::CharacterSet, Bindable, Drawable};
@@ -42,6 +43,7 @@ pub struct DzahuiWindow {
     pub(crate) geometry_shader: Shader,
     event_loop: Option<EventLoop<()>>,
     mouse_coordinates: Point2<f32>,
+    initial_time_step: Option<f64>,
     character_set: CharacterSet,
     integration_iteration: usize,
     pub(crate) height: u32,
@@ -51,6 +53,7 @@ pub struct DzahuiWindow {
     pub timer: Instant,
     camera: Camera,
     solver: Solver,
+    time_step: f64,
     mesh: Mesh,
 }
 
@@ -71,15 +74,17 @@ pub struct DzahuiWindowBuilder {
     geometry_vertex_shader: Option<String>,
     text_fragment_shader: Option<String>,
     integration_iteration: Option<usize>,
-    opengl_version: Option<(u8, u8)>,
-    character_set: Option<String>,
     text_vertex_shader: Option<String>,
-    vertex_selector: Option<f32>,
-    mesh: MeshBuilder,
+    opengl_version: Option<(u8, u8)>,
+    initial_time_step: Option<f64>,
     mesh_dimension: MeshDimension,
+    character_set: Option<String>,
+    vertex_selector: Option<f32>,
+    time_step: Option<f64>,
     camera: CameraBuilder,
     height: Option<u32>,
     width: Option<u32>,
+    mesh: MeshBuilder,
     solver: Solver,
 }
 
@@ -90,20 +95,22 @@ impl DzahuiWindowBuilder {
         F: AsRef<str>,
     {
         Self {
-            geometry_vertex_shader: None,
-            geometry_fragment_shader: None,
-            character_set: None,
-            integration_iteration: None,
-            text_vertex_shader: None,
-            text_fragment_shader: None,
-            opengl_version: Some((3, 3)),
-            vertex_selector: None,
-            camera: Camera::builder(),
-            mesh: Mesh::builder(location),
             mesh_dimension: MeshDimension::Two,
+            geometry_fragment_shader: None,
+            mesh: Mesh::builder(location),
+            geometry_vertex_shader: None,
+            integration_iteration: None,
+            opengl_version: Some((3, 3)),
+            text_fragment_shader: None,
+            camera: Camera::builder(),
+            text_vertex_shader: None,
+            initial_time_step: None,
+            vertex_selector: None,
+            solver: Solver::None,
+            character_set: None,
             height: Some(600),
             width: Some(800),
-            solver: Solver::None,
+            time_step: None,
         }
     }
     /// Changes geometry shader.
@@ -224,7 +231,25 @@ impl DzahuiWindowBuilder {
             integration_iteration: Some(integration_iteration),
             ..self
         }
-    } 
+    }
+    /// Sets time step for time-dependant solutions
+    pub fn with_time_step(self, time_step: f64) -> Self {
+        Self {
+            time_step: Some(time_step),
+            ..self
+        }
+    }
+    /// Initial time step when simulation on real time
+    pub fn with_initial_time_step(self, initial_time_step: f64) -> Self {
+        if let Some(_) = self.time_step {
+            println!("{}","WARNING:\n time_step is set, therefore initial_time_step should not be set since simulation will not occur in real-time".yellow());
+        }
+        println!("{}","WARNING:\n This could result in a non-convergent solution".yellow());
+        Self {
+            initial_time_step: Some(initial_time_step),
+            ..self
+        }
+    }
 
     /// # General Information
     ///
@@ -351,6 +376,20 @@ impl DzahuiWindowBuilder {
             150
         };
 
+        // Set initial value for time step.
+        // When time step is provided, it's used. When time step is not provided but initial time step is (mainly because of real-time simulation purposes),
+        // It is used as initial value. When none are provided, 0.000001 is used by default
+        let time_step = if let Some(time_step) = self.time_step {
+            time_step
+        } else {
+            if let Some(initial_time_step) = self.initial_time_step {
+                initial_time_step
+            } else {
+                println!("{}","WARNING:\n Not setting a time step could result in a non-convergent solution".yellow());
+                0.000001
+            }
+        };
+
         // Default character set
         let character_set_file = if let Some(set_file) = self.character_set {
             set_file
@@ -371,12 +410,15 @@ impl DzahuiWindowBuilder {
             character_set,
             integration_iteration,
             mesh,
+            time_step,
             camera,
             width: self.width.unwrap(),
             height: self.height.unwrap(),
             event_loop: Some(event_loop),
             mouse_coordinates: Point2::new(0.0, 0.0),
             solver: self.solver,
+            initial_time_step: self.initial_time_step,
+
         }
     }
 }
@@ -465,11 +507,11 @@ impl DzahuiWindow {
     /// * `mesh` - A file to draw a mesh from.
     ///
     pub fn run(mut self) {
+
         self.restart_timer();
         let mut counter = 0;
         let mut fps = 0;
         let mut prev_time = 0;
-        let mut current_time = 0;
 
         // Obtaining Event Loop is necessary since `event_loop.run()` consumes it alongside window if let inside struct instance.
         let event_loop = Option::take(&mut self.event_loop).unwrap();
@@ -532,13 +574,6 @@ impl DzahuiWindow {
         self.text_shader.set_mat4("view", &Matrix4::identity());
 
         event_loop.run(move |event, _, control_flow| {
-            // Temporal FPS counter
-            current_time = self.timer.elapsed().as_millis();
-            if current_time - prev_time >= 1000 {
-                prev_time = current_time;
-                fps = counter;
-                counter = 0;
-            }
 
             match event {
                 Event::LoopDestroyed => (), // subscribing to events occurs here
@@ -589,6 +624,19 @@ impl DzahuiWindow {
                 },
 
                 Event::MainEventsCleared => {
+
+                    let current_time = self.timer.elapsed().as_millis();
+                    if current_time - prev_time >= 100 {
+                        prev_time = current_time;
+                        fps = counter * 10;
+                        match self.initial_time_step {
+                            Some(_) => {
+                                self.time_step = 1_f64 / (fps as f64);
+                            },
+                            None => ()
+                        }
+                        counter = 0;
+                    }
                     
                     unsafe {
                         // Update to some color
@@ -598,7 +646,8 @@ impl DzahuiWindow {
                         gl::Clear(gl::DEPTH_BUFFER_BIT);
                     }
         
-                    let solution = solver.solve(0.001).unwrap();
+                    let solution = solver.solve(self.time_step).unwrap();
+                    // println!("{:?}",solution);
         
                     // updating colors. One time per vertex should be updated (that is, every 6 steps).
                     self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
