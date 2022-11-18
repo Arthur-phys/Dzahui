@@ -588,49 +588,49 @@ impl DzahuiWindow {
                     _ => {}
                 },
 
-                Event::RedrawRequested(_) => (),
+                Event::MainEventsCleared => {
+                    
+                    unsafe {
+                        // Update to some color
+                        // Clear Screen
+                        gl::ClearColor(0.33, 0.33, 0.33, 0.8);
+                        gl::Clear(gl::COLOR_BUFFER_BIT);
+                        gl::Clear(gl::DEPTH_BUFFER_BIT);
+                    }
+        
+                    let solution = solver.solve(0.001).unwrap();
+        
+                    // updating colors. One time per vertex should be updated (that is, every 6 steps).
+                    self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
+                    
+                    self.mesh.bind_all_no_texture().unwrap();
+                    self.mesh.send_to_gpu().unwrap();
+        
+                    
+                    // Text shader to draw text
+                    self.text_shader.use_shader();
+        
+                    self.character_set.bind_all().unwrap();
+                    self.character_set.draw_text(format!(
+                        "x: {}, y: {}, FPS: {}",
+                        self.mouse_coordinates.x, self.mouse_coordinates.y, fps
+                    ));
+                    self.character_set.unbind_texture().unwrap();
+        
+                    // Geometry shader to draw mesh
+                    self.geometry_shader.use_shader();
+                    self.geometry_shader
+                        .set_mat4("view", &self.camera.view_matrix);
+        
+                    self.mesh.bind_vao().unwrap();
+                    self.mesh.draw(&self).unwrap();
+                    // Need to change old and new buffer to redraw
+                    self.context.swap_buffers().unwrap();
+                    counter += 1;
+                },
 
                 _ => (),
             }
-
-            // Render
-            unsafe {
-                // Update to some color
-                // Clear Screen
-                gl::ClearColor(0.33, 0.33, 0.33, 0.8);
-                gl::Clear(gl::COLOR_BUFFER_BIT);
-                gl::Clear(gl::DEPTH_BUFFER_BIT);
-            }
-
-            let solution = solver.solve(0.001).unwrap();
-
-            // updating colors. One time per vertex should be updated (that is, every 6 steps).
-            self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
-            
-            self.mesh.bind_all_no_texture().unwrap();
-            self.mesh.send_to_gpu().unwrap();
-
-            
-            // Text shader to draw text
-            self.text_shader.use_shader();
-
-            self.character_set.bind_all().unwrap();
-            self.character_set.draw_text(format!(
-                "x: {}, y: {}, FPS: {}",
-                self.mouse_coordinates.x, self.mouse_coordinates.y, fps
-            ));
-            self.character_set.unbind_texture().unwrap();
-
-            // Geometry shader to draw mesh
-            self.geometry_shader.use_shader();
-            self.geometry_shader
-                .set_mat4("view", &self.camera.view_matrix);
-
-            self.mesh.bind_vao().unwrap();
-            self.mesh.draw(&self).unwrap();
-            // Need to change old and new buffer to redraw
-            self.context.swap_buffers().unwrap();
-            counter += 1;
         })
     }
 }
