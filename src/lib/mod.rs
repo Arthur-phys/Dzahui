@@ -3,6 +3,7 @@ mod error;
 pub(crate) mod mesh;
 pub mod simulation;
 pub mod solvers;
+pub mod logger;
 
 // Re-exports
 pub use self::error::Error;

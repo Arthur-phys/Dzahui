@@ -218,9 +218,9 @@ impl DzahuiWindowBuilder {
         }
     }
     // Makes time-dependant diffusion solver simulation
-    pub fn solve_1d_time_dependant_diffussion(self, boundary_conditions: [f64; 2], initial_conditions: Vec<f64>, mu: f64, b: f64) -> Self {
+    pub fn solve_1d_time_dependant_diffussion<A: IntoIterator<Item = f64>>(self, boundary_conditions: [f64; 2], initial_conditions: A, mu: f64, b: f64) -> Self {
         Self {
-            solver: Solver::DiffussionSolverTimeDependent(boundary_conditions, initial_conditions, mu, b),
+            solver: Solver::DiffussionSolverTimeDependent(boundary_conditions, initial_conditions.into_iter().collect(), mu, b),
             mesh_dimension: MeshDimension::One,
             ..self
         }
@@ -385,7 +385,7 @@ impl DzahuiWindowBuilder {
             if let Some(initial_time_step) = self.initial_time_step {
                 initial_time_step
             } else {
-                println!("{}","WARNING:\n Not setting a time step could result in a non-convergent solution".yellow());
+                log::warn!("\u{26a0} Not setting a time step could result in a non-convergent solution \u{26a0}");
                 0.000001
             }
         };
@@ -647,6 +647,7 @@ impl DzahuiWindow {
                     }
         
                     let solution = solver.solve(self.time_step).unwrap();
+                    println!("{:?}", solution);
                     // println!("{:?}",solution);
         
                     // updating colors. One time per vertex should be updated (that is, every 6 steps).
