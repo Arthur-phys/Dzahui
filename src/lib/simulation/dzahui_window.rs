@@ -13,7 +13,7 @@ use colored::Colorize;
 use super::camera::{cone::Cone, Camera, CameraBuilder};
 use super::drawable::{text::CharacterSet, Bindable, Drawable};
 use super::shader::Shader;
-use crate::{mesh::{mesh_builder::MeshBuilder, Mesh}, solvers::diffusion_solver::time_dependent::DiffussionSolverTimeDependent};
+use crate::{mesh::{mesh_builder::MeshBuilder, Mesh}, solvers::diffusion_solver::{time_dependent::DiffussionSolverTimeDependent, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent}};
 use crate::{
     mesh::mesh_builder::MeshDimension,
     solvers::{
@@ -210,17 +210,17 @@ impl DzahuiWindowBuilder {
         }
     }
     /// Makes diffusion solver simulation
-    pub fn solve_1d_diffussion(self, boundary_conditions: [f64; 2], mu: f64, b: f64) -> Self {
+    pub fn solve_1d_diffussion(self, params: DiffussionParamsTimeIndependent) -> Self {
         Self {
-            solver: Solver::DiffussionSolverTimeIndependent(boundary_conditions, mu, b),
+            solver: Solver::DiffussionSolverTimeIndependent(params),
             mesh_dimension: MeshDimension::One,
             ..self
         }
     }
     // Makes time-dependant diffusion solver simulation
-    pub fn solve_1d_time_dependant_diffussion<A: IntoIterator<Item = f64>>(self, boundary_conditions: [f64; 2], initial_conditions: A, mu: f64, b: f64) -> Self {
+    pub fn solve_1d_time_dependent_diffussion(self, params: DiffussionParamsTimeDependent) -> Self {
         Self {
-            solver: Solver::DiffussionSolverTimeDependent(boundary_conditions, initial_conditions.into_iter().collect(), mu, b),
+            solver: Solver::DiffussionSolverTimeDependent(params),
             mesh_dimension: MeshDimension::One,
             ..self
         }
@@ -518,24 +518,20 @@ impl DzahuiWindow {
 
         // Generating differential equation solver.
         let mut solver: Box<dyn DiffEquationSolver> = match self.solver {
-            Solver::DiffussionSolverTimeIndependent(boundary_conditions, mu, b) => {
-                Box::new(DiffussionSolverTimeIndependent::new(
-                    boundary_conditions,
-                    self.mesh.filter_for_solving_1d().to_vec(),
-                    mu,
-                    b,
-                    self.integration_iteration
-                ))
-            }
 
-            Solver::DiffussionSolverTimeDependent(boundary_conditions, ref initial_conditions, mu, b) => {
-                Box::new(DiffussionSolverTimeDependent::new(
-                    boundary_conditions,
-                    initial_conditions.clone(),
-                    self.integration_iteration,
+            Solver::DiffussionSolverTimeIndependent(ref params) => {
+                Box::new(DiffussionSolverTimeIndependent::new(
+                    &params,
                     self.mesh.filter_for_solving_1d().to_vec(),
-                    mu,
-                    b,
+                    self.integration_iteration,
+                ))
+            },
+
+            Solver::DiffussionSolverTimeDependent(ref params) => {
+                Box::new(DiffussionSolverTimeDependent::new(
+                    &params,
+                    self.mesh.filter_for_solving_1d().to_vec(),
+                    self.integration_iteration,
                 ).unwrap())
             }
 
@@ -647,7 +643,6 @@ impl DzahuiWindow {
                     }
         
                     let solution = solver.solve(self.time_step).unwrap();
-                    println!("{:?}", solution);
                     // println!("{:?}",solution);
         
                     // updating colors. One time per vertex should be updated (that is, every 6 steps).

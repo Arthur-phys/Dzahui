@@ -8,6 +8,8 @@ use crate::Error;
 
 use ndarray::{Array1, Array2};
 
+use super::DiffussionParamsTimeIndependent;
+
 #[derive(Debug)]
 /// # General Information
 ///
@@ -31,17 +33,18 @@ pub struct DiffussionSolverTimeIndependent {
 
 impl DiffussionSolverTimeIndependent {
     /// Creates new instance
-    pub fn new(boundary_conditions: [f64; 2], mesh: Vec<f64>, mu: f64, b: f64, gauss_step: usize) -> Self {
+    pub fn new(params: &DiffussionParamsTimeIndependent, mesh: Vec<f64>, gauss_step: usize) -> Self {
 
-        let (stiffness_matrix, b_vector) = Self::gauss_legendre_integration(boundary_conditions, mu, b, &mesh, gauss_step);
+        let (stiffness_matrix, b_vector) = Self::gauss_legendre_integration(params.boundary_conditions, 
+                params.mu, params.b, &mesh, gauss_step);
 
         Self {
-            boundary_conditions,
+            boundary_conditions: params.boundary_conditions,
             stiffness_matrix,
             gauss_step,
             b_vector,
-            mu,
-            b,
+            mu: params.mu,
+            b: params.b,
         }
     }
 
@@ -175,17 +178,18 @@ impl DiffEquationSolver for DiffussionSolverTimeIndependent {
 #[cfg(test)]
 mod test {
 
-    use crate::solvers::matrix_solver;
+    use crate::solvers::{matrix_solver, diffusion_solver::DiffussionParams};
 
     use super::DiffussionSolverTimeIndependent;
 
     #[test]
     fn regular_mesh_matrix_3p() {
+
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+
         let dif_solver = DiffussionSolverTimeIndependent::new(
-            [0_f64, 1_f64],
+            &params,
             vec![0_f64, 0.5, 1_f64],
-            1_f64,
-            1_f64,
             150
         );
 
@@ -198,12 +202,13 @@ mod test {
 
     #[test]
     fn solve_system_3p() {
+
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+
         let dif_solver = DiffussionSolverTimeIndependent::new(
-            [0_f64, 1_f64],
+            &params,
             vec![0_f64, 0.5, 1_f64],
-            1_f64,
-            1_f64,
-            150,
+            150
         );
 
         let res = matrix_solver::solve_by_thomas(&dif_solver.stiffness_matrix, &dif_solver.b_vector).unwrap();
@@ -214,11 +219,12 @@ mod test {
 
     #[test]
     fn regular_mesh_matrix_4p() {
+
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+
         let dif_solver = DiffussionSolverTimeIndependent::new(
-            [0_f64, 1_f64],
+            &params,
             vec![0_f64, 0.33, 0.66, 1_f64],
-            1_f64,
-            1_f64,
             150
         );
 
@@ -235,11 +241,12 @@ mod test {
 
     #[test]
     fn solve_system_4p() {
+
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+
         let dif_solver = DiffussionSolverTimeIndependent::new(
-            [0_f64, 1_f64],
+            &params,
             vec![0_f64, 0.33, 0.66, 1_f64],
-            1_f64,
-            1_f64,
             150
         );
 
@@ -254,11 +261,12 @@ mod test {
 
     #[test]
     fn regular_mesh_bigger_matrix() {
+
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+        
         let dif_solver = DiffussionSolverTimeIndependent::new(
-            [0_f64, 1_f64],
+            &params,
             vec![0_f64, 0.25, 0.5, 0.75, 1_f64],
-            1_f64,
-            1_f64,
             150
         );
 
@@ -280,11 +288,12 @@ mod test {
 
     #[test]
     fn solve_bigger_system() {
+
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+
         let dif_solver = DiffussionSolverTimeIndependent::new(
-            [0_f64, 1_f64],
+            &params,
             vec![0_f64, 0.25, 0.5, 0.75, 1_f64],
-            1_f64,
-            1_f64,
             150
         );
 

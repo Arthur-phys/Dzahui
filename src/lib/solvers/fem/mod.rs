@@ -3,6 +3,11 @@ pub mod basis;
 pub mod diffusion_solver;
 pub mod utils;
 
+
+use diffusion_solver::DiffussionParamsTimeDependent;
+
+use self::diffusion_solver::DiffussionParamsTimeIndependent;
+
 /// # General Information
 ///
 /// An enum representing every equation implemented by this library.
@@ -19,7 +24,7 @@ pub mod utils;
 ///
 #[derive(Debug)]
 pub enum Solver {
-    DiffussionSolverTimeIndependent([f64; 2], f64, f64),
-    DiffussionSolverTimeDependent([f64; 2], Vec<f64>, f64, f64),
+    DiffussionSolverTimeIndependent(DiffussionParamsTimeIndependent),
+    DiffussionSolverTimeDependent(DiffussionParamsTimeDependent),
     None
 }

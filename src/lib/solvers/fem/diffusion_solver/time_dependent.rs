@@ -8,6 +8,8 @@ use crate::solvers::quadrature::gauss_legendre;
 
 use ndarray::{Array1, Array2};
 
+use super::{DiffussionParamsTimeDependent, Conditions};
+
 #[derive(Debug)]
 /// # General Information
 ///
@@ -36,15 +38,25 @@ pub struct DiffussionSolverTimeDependent {
 
 impl DiffussionSolverTimeDependent {
     /// Creates new instance checking initial conditions are the size they should be.
-    pub fn new(boundary_conditions: [f64; 2], initial_conditions: Vec<f64>, integration_step: usize, mesh: Vec<f64>, mu: f64, b: f64) -> Result<Self,Error> {
+    pub fn new(params: &DiffussionParamsTimeDependent, mesh: Vec<f64>, integration_step: usize) -> Result<Self,Error> {
+        
+        let initial_conditions = match &params.initial_conditions {
+            Conditions::Uninitialized => {
+                vec![0_f64;mesh.len()]
+            },
+            Conditions::Are(vec) => {
+                vec.clone()
+            }
+        };
+        
         if initial_conditions.len() != mesh.len() - 2 {
             return Err(Error::WrongDims)
         }
 
         // obtain general initial state
         let mut state = vec![0_f64;mesh.len()];
-        state[0] = boundary_conditions[0];
-        state[mesh.len() - 1] = boundary_conditions[1]; 
+        state[0] = params.boundary_conditions[0];
+        state[mesh.len() - 1] = params.boundary_conditions[1]; 
         for i in 1..(mesh.len() - 1) {
             state[i] = initial_conditions[i-1];
         }
@@ -52,19 +64,19 @@ impl DiffussionSolverTimeDependent {
         let state = Array1::from_vec(state);
 
         let (mass_matrix, stiffness_matrix) = Self::gauss_legendre_integration(
-                mu, b, &mesh, integration_step);
+                params.mu, params.b, &mesh, integration_step);
 
         // obtain matrices
 
         Ok(Self {
-            boundary_conditions,
+            boundary_conditions: params.boundary_conditions,
             initial_conditions,
             stiffness_matrix,
             integration_step,
             mass_matrix,
             state,
-            mu,
-            b,
+            mu: params.mu,
+            b: params.b,
         })
     }
 
@@ -250,15 +262,25 @@ impl DiffEquationSolver for DiffussionSolverTimeDependent {
 }
 #[cfg(test)]
 mod tests {
-    use crate::solvers::DiffEquationSolver;
+    use crate::solvers::{DiffEquationSolver, diffusion_solver::DiffussionParams};
 
     use super::DiffussionSolverTimeDependent;
 
 
     #[test]
     fn test_matrix_and_vector_values_3p() {
-        let dif_solver = DiffussionSolverTimeDependent::new([0_f64,1_f64],
-            vec![0_f64;1],150,vec![0_f64,0.5,1_f64],1_f64,1_f64).unwrap();
+
+        let conditions = DiffussionParams::time_dependent()
+            .b(1_f64)
+            .mu(1_f64)
+            .boundary_conditions(0_f64, 1_f64)
+            .initial_conditions(vec![0_f64;1]);
+
+        let dif_solver = DiffussionSolverTimeDependent::new(
+            &conditions,
+            vec![0_f64,0.5,1_f64],
+            150)
+            .unwrap();
 
             println!("{:?}",dif_solver.stiffness_matrix);
 
@@ -277,16 +299,26 @@ mod tests {
 
     #[test]
     fn test_matrix_solved_3p() {
-        let mut dif_solver = DiffussionSolverTimeDependent::new([1_f64,0_f64],
-            vec![15_f64;1],150,vec![0_f64,0.5,1_f64],1_f64,1_f64).unwrap();
 
-    for _i in 0..1000 {
-        dif_solver.solve(0.01).unwrap();
-    }
+        let conditions = DiffussionParams::time_dependent()
+            .b(1_f64)
+            .mu(1_f64)
+            .boundary_conditions(1_f64, 0_f64)
+            .initial_conditions(vec![15_f64;1]);
 
-    assert!(dif_solver.state[0] == 1_f64);
-    assert!(dif_solver.state[2] == 0_f64);
-    assert!(dif_solver.state[1] <= 0.65 && dif_solver.state[1] >= 0.55);
+        let mut dif_solver = DiffussionSolverTimeDependent::new(
+            &conditions,
+            vec![0_f64,0.5,1_f64],
+            150)
+            .unwrap();
+
+        for _i in 0..1000 {
+            dif_solver.solve(0.01).unwrap();
+        }
+
+        assert!(dif_solver.state[0] == 1_f64);
+        assert!(dif_solver.state[2] == 0_f64);
+        assert!(dif_solver.state[1] <= 0.65 && dif_solver.state[1] >= 0.55);
 
 
     }
