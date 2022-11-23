@@ -1,14 +1,17 @@
-use cgmath::{Matrix4, Vector3};
-use ndarray::{arr1, Array1};
-use std::collections::{HashMap, HashSet};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-
+// Internal dependencies
 use super::{
     vertex_type::{Condition, VertexType},
     Mesh,
 };
 use crate::{simulation::drawable::binder::Binder, Error};
+
+// External dependencies
+use std::collections::{HashMap, HashSet};
+use std::io::{BufRead, BufReader};
+use cgmath::{Matrix4, Vector3};
+use ndarray::{arr1, Array1};
+use std::fs::File;
+
 
 /// # General Information
 ///

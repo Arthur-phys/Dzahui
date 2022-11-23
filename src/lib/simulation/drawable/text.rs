@@ -1,8 +1,6 @@
+// External dependencies
 use cgmath::{Matrix4, Transform, Vector3, Vector4};
-use gl::{
-    self,
-    types::{GLfloat, GLsizei, GLsizeiptr, GLuint},
-};
+use gl::{self, types::{GLfloat, GLsizei, GLsizeiptr, GLuint}};
 use image;
 use std::{
     collections::HashMap,
@@ -13,10 +11,10 @@ use std::{
     ptr,
 };
 
+// Internal dependencies
 use crate::Error;
+use super::binder::{Binder, Bindable};
 
-use super::super::camera::Camera;
-use super::{binder::Binder, Bindable};
 
 /// # General Information
 ///
@@ -516,7 +514,7 @@ impl CharacterSet {
     pub(crate) fn matrix_for_screen(
         viewport_x: f32,
         viewport_y: f32,
-        camera: &Camera,
+        projection_matrix: &Matrix4<f32>,
         window_height: u32,
         window_width: u32,
     ) -> Matrix4<f32> {
@@ -527,8 +525,7 @@ impl CharacterSet {
             1.0,
         );
 
-        let inverse_projection_matrix: Matrix4<f32> = camera
-            .projection_matrix
+        let inverse_projection_matrix: Matrix4<f32> = projection_matrix
             .inverse_transform()
             .expect("No inverse transform exists for this matrix");
         let view_coordinates = inverse_projection_matrix * ndc_coordinates;

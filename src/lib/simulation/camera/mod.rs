@@ -1,6 +1,9 @@
+// Module declaration
+pub mod cone;
+
+// External dependencies
 use cgmath::{self, Deg, Matrix4, Point3, Vector3};
 
-pub mod cone;
 
 /// # General Information
 ///

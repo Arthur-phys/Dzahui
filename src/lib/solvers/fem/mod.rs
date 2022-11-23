@@ -1,12 +1,10 @@
-// Module definition
+// Module declarations
 pub mod basis;
 pub mod diffusion_solver;
 pub mod utils;
 
-
-use diffusion_solver::DiffussionParamsTimeDependent;
-
-use self::diffusion_solver::DiffussionParamsTimeIndependent;
+// Internal dependencies + re-exports
+pub use diffusion_solver::{DiffussionParamsTimeDependent, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent, DiffussionParamsTimeIndependent};
 
 /// # General Information
 ///

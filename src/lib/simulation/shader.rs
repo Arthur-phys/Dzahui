@@ -1,10 +1,13 @@
+// Internal dependencies
+use crate::Error;
+
+// External dependencies
+use std::{ffi::CString, fs::File, ptr};
 use cgmath::{Matrix, Matrix4};
-use gl;
 use gl::types::GLint;
 use std::io::Read;
-use std::{ffi::CString, fs::File, ptr};
+use gl;
 
-use crate::Error;
 
 /// # General information
 ///

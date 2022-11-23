@@ -12,9 +12,8 @@
 ///
 /// # General information
 ///
-/// This trait has all the methods required to integrate a one-dimensional function on a given interval. Can be implemented on any solver
-/// to generate such functionalty.
-/// Only the function `gauss_legendre_integration(...)` needs to be implemented since every solver will have a different equation to integrate.
+/// This module has all the methods required to integrate a function on a given interval. Can be used on any solver to generate such functionality.
+/// Only a function to integrate every element of an equation needs to be implemented on a solver since each one will have a different problem.
 ///
 use std::f64::consts::PI;
 

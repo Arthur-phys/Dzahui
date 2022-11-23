@@ -1,6 +1,9 @@
+// Internal dependencies
 use crate::Error;
 
+// External dependencies
 use ndarray::{Array1, Array2, Axis};
+
 
 pub fn add(b: &Array1<f64>, v: &Array1<f64>) -> Result<Array1<f64>,Error> {
 

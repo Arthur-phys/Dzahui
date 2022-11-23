@@ -1,12 +1,15 @@
+// Module declaration
 pub(crate) mod mesh_builder;
 pub(crate) mod vertex_type;
 
+// External dependencies
 use cgmath::Matrix4;
 use ndarray::Array1;
 use num::ToPrimitive;
 
+// Internal dependencies
 use crate::{
-    simulation::drawable::{binder::Binder, Bindable, Drawable},
+    simulation::drawable::binder::{Binder, Bindable, Drawable},
     Error,
 };
 use mesh_builder::MeshBuilder;

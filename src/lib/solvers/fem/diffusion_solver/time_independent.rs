@@ -1,14 +1,43 @@
+// Internal dependencies
 use crate::solvers::fem::basis::single_variable::{
     linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
 };
-use crate::solvers::matrix_solver;
-use crate::solvers::quadrature::gauss_legendre;
-use crate::solvers::DiffEquationSolver;
+use crate::solvers::{quadrature::gauss_legendre, matrix_solver, solver_trait::DiffEquationSolver};
 use crate::Error;
 
+// External dependencies
 use ndarray::{Array1, Array2};
 
-use super::DiffussionParamsTimeIndependent;
+
+#[derive(Default, Debug)]
+pub struct DiffussionParamsTimeIndependent {
+    pub mu: f64,
+    pub b: f64,
+    pub boundary_conditions: [f64;2],
+}
+
+impl DiffussionParamsTimeIndependent {
+    pub fn mu(self, mu: f64) -> Self {
+        Self {
+            mu,
+            ..self
+        }
+    }
+
+    pub fn b(self, b: f64) -> Self {
+        Self {
+            b,
+            ..self
+        }
+    }
+
+    pub fn boundary_conditions(self, left: f64, right: f64) -> Self {
+        Self {
+            boundary_conditions: [left, right],
+            ..self
+        }
+    }
+}
 
 #[derive(Debug)]
 /// # General Information

@@ -1,5 +1,13 @@
-use cgmath::{Matrix4, Point2, Point3, SquareMatrix, Vector3};
-use gl;
+// Internal dependencies
+use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
+    solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
+        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent
+    }
+};
+use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
+
+
+// External dependencies
 use glutin::{
     dpi::PhysicalSize,
     event::{DeviceEvent, ElementState, Event, WindowEvent},
@@ -7,20 +15,11 @@ use glutin::{
     window::{Window, WindowBuilder},
     Api, ContextBuilder, ContextWrapper, GlProfile, GlRequest, PossiblyCurrent,
 };
+use cgmath::{Matrix4, Point2, Point3, SquareMatrix, Vector3};
 use std::time::Instant;
 use colored::Colorize;
+use gl;
 
-use super::camera::{cone::Cone, Camera, CameraBuilder};
-use super::drawable::{text::CharacterSet, Bindable, Drawable};
-use super::shader::Shader;
-use crate::{mesh::{mesh_builder::MeshBuilder, Mesh}, solvers::diffusion_solver::{time_dependent::DiffussionSolverTimeDependent, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent}};
-use crate::{
-    mesh::mesh_builder::MeshDimension,
-    solvers::{
-        diffusion_solver::time_independent::DiffussionSolverTimeIndependent, DiffEquationSolver,
-        Solver,
-    },
-};
 
 /// # General Information
 ///
@@ -562,7 +561,7 @@ impl DzahuiWindow {
         self.text_shader.use_shader();
 
         let model_mat =
-            CharacterSet::matrix_for_screen(0.0, 0.0, &self.camera, self.height, self.width);
+            CharacterSet::matrix_for_screen(0.0, 0.0, &self.camera.projection_matrix, self.height, self.width);
 
         self.text_shader.set_mat4("model", &model_mat);
         self.text_shader
@@ -668,7 +667,7 @@ impl DzahuiWindow {
                         .set_mat4("view", &self.camera.view_matrix);
         
                     self.mesh.bind_vao().unwrap();
-                    self.mesh.draw(&self).unwrap();
+                    self.mesh.draw().unwrap();
                     // Need to change old and new buffer to redraw
                     self.context.swap_buffers().unwrap();
                     counter += 1;

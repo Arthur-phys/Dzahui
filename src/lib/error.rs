@@ -1,20 +1,4 @@
 #[derive(Debug)]
-#[allow(dead_code)]
-enum ErrorKind {
-    Io(std::io::Error),
-    WrongDims,
-    Custom(String),
-    Unimplemented,
-}
-
-#[derive(Debug)]
-#[allow(dead_code)]
-struct RealError {
-    internal: ErrorKind,
-    helper_message: Option<String>,
-}
-
-#[derive(Debug)]
 pub enum Error {
     Io(std::io::Error),
     WrongDims,

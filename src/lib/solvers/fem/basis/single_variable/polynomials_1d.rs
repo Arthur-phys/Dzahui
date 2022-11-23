@@ -1,5 +1,5 @@
 // Internal dependencies.
-use super::{Composable1D, Differentiable1D, Function1D};
+use super::functions::{Composable1D, Differentiable1D, Function1D};
 
 #[derive(PartialEq, Debug)]
 /// # General Information

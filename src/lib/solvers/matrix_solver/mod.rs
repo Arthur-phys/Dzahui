@@ -6,18 +6,6 @@ use ndarray::{Array1, Array2};
 
 /// # General Information
 ///
-/// A function that solves a system of equations using the Cholesky method.
-///
-/// # Parameters
-///
-/// * `matrix` - A square matrix represented by an Array2.
-/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1.
-///
-pub fn solve_by_cholesky(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f64>, Error> {
-    todo!();
-}
-/// # General Information
-///
 /// A function that solves a linear problem of the form **Ax=b** via Thomas (tridiagonal) method in which **A** is a square matrix, **b**
 /// is a known vector and **x** is to be found.
 ///
@@ -53,30 +41,4 @@ pub fn solve_by_thomas(matrix: &Array2<f64>, b: &Array1<f64>) -> Result<Vec<f64>
     }
     
     Ok(solution)
-}
-
-/// # General Information
-///
-/// A function that solves a system of equations using the Jacobi method.
-///
-/// # Parameters
-///
-/// * `matrix` - A square matrix represented by an Array2.
-/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1.
-///
-pub fn solve_by_jacobi(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f64>, Error> {
-    todo!();
-}
-
-/// # General Information
-///
-/// A function that solves a system of equations via the Gauss-Seidel method.
-///
-/// # Parameters
-///
-/// * `matrix` - A square matrix represented by an Array2.
-/// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1.
-///
-pub fn solve_by_gauss_seidel(_matrix: &Array2<f64>, _b: &Array1<f64>) -> Result<Vec<f64>, Error> {
-    todo!();
 }
