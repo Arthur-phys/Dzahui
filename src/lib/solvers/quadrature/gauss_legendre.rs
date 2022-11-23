@@ -17,6 +17,8 @@
 ///
 use std::f64::consts::PI;
 
+use crate::Error;
+
 const JZ: [f64; 20] = [
     2.40482555769577276862163187933,
     5.52007811028631064959660411281,
@@ -5855,23 +5857,23 @@ fn gauss_legendre_quad_pair_tabulated(l: usize, k: usize) -> (f64, f64) {
     }
 }
 
-pub fn quad_pair(n: usize, k: usize) -> (f64, f64) {
+pub fn quad_pair(n: usize, k: usize) -> Result<(f64, f64),Error> {
     match k < n {
         true => {
             if n < 101 {
-                gauss_legendre_quad_pair_tabulated(n, k - 1)
+                Ok(gauss_legendre_quad_pair_tabulated(n, k - 1))
             } else {
                 if 2 * k - 1 > n {
                     let mut pair = gauss_legendre_quad_pair_calculated(n, n - k + 1);
                     pair.0 = PI - pair.0;
-                    pair
+                    Ok(pair)
                 } else {
-                    gauss_legendre_quad_pair_calculated(n, k)
+                    Ok(gauss_legendre_quad_pair_calculated(n, k))
                 }
             }
         }
         false => {
-            panic!("k must be smaller than n")
+            Err(Error::Integration(String::from("Misuse of quad_pair function, k should be smaller than n")))
         }
     }
 }
@@ -5889,7 +5891,7 @@ mod test {
     fn integrate_exp_tabulate() {
         let mut sum = 0_f64;
         for i in 1..100 {
-            let (theta, w) = quad_pair(100, i);
+            let (theta, w) = quad_pair(100, i).unwrap();
             let x = theta.cos();
             sum += w * x.exp();
         }
@@ -5902,7 +5904,7 @@ mod test {
     fn integrate_exp_without_tabulation() {
         let mut sum = 0_f64;
         for i in 1..600 {
-            let (theta, w) = quad_pair(600, i);
+            let (theta, w) = quad_pair(600, i).unwrap();
             let x = theta.cos();
             sum += w * x.exp();
         }
@@ -5915,7 +5917,7 @@ mod test {
     fn integrate_cosine_tabulate() {
         let mut sum = 0_f64;
         for i in 1..50 {
-            let (theta, w) = quad_pair(50, i);
+            let (theta, w) = quad_pair(50, i).unwrap();
             let x = theta.cos();
             sum += w * x.cos();
         }
@@ -5928,7 +5930,7 @@ mod test {
     fn integrate_cosine_without_tabulation() {
         let mut sum = 0_f64;
         for i in 1..510 {
-            let (theta, w) = quad_pair(510, i);
+            let (theta, w) = quad_pair(510, i).unwrap();
             let x = theta.cos();
             sum += w * x.cos();
         }
@@ -5940,11 +5942,11 @@ mod test {
     #[test]
     fn integrate_cosine_0_pi() {
         let transform = FirstDegreePolynomial::transformation_from_m1_p1(0_f64, PI);
-        let deriv_t = transform.differentiate();
+        let deriv_t = transform.differentiate().unwrap();
 
         let mut sum = 0_f64;
         for i in 1..510 {
-            let (theta, w) = quad_pair(510, i);
+            let (theta, w) = quad_pair(510, i).unwrap();
             let x = transform.evaluate(theta.cos());
             sum += w * x.cos() * deriv_t.evaluate(0_f64);
         }

@@ -8,6 +8,7 @@ pub enum Error {
     PieceWiseDims,
     Unimplemented,
     Parse(String),
+    Integration(String),
 }
 
 impl std::fmt::Display for Error {
@@ -25,8 +26,9 @@ impl std::fmt::Display for Error {
             Error::Parse(e) => format!("Error while parsing file: {}", e),
             Error::PieceWiseDims => format!("Number of arguments must be one more than number of breakpoints for a piecewise function definition to make sense"),
             Error::Unimplemented => {
-                format!("este error no debería existir, favor de reportar con el desarrollador")
-            }
+                format!("This error should not exist. Report it to the developer")
+            },
+            Error::Integration(e) => format!("Error on integration method occurred: {}",e)
         };
         write!(formatter, "{}", content)
     }

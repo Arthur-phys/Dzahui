@@ -1,3 +1,5 @@
+use crate::Error;
+
 /// # General Information
 ///
 /// Every struct defined to behave like a function must have a way to be evaluated. In one dimension, all it takes is to obtain a value x
@@ -26,7 +28,7 @@ where
     T: Function1D,
 {
     /// Results in a function product of differentiation.
-    fn differentiate(&self) -> T;
+    fn differentiate(&self) -> Result<T,Error>;
 }
 
 /// # General Information
@@ -45,5 +47,5 @@ where
     U: Function1D,
 {
     /// Returns a function from the composition of the two functions involved. Consumes functions
-    fn compose(self, other: T) -> U;
+    fn compose(self, other: T) -> Result<U,Error>;
 }

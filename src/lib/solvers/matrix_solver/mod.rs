@@ -2,7 +2,7 @@
 use crate::Error;
 
 // External dependencies
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, Array2, Axis};
 
 /// # General Information
 ///
@@ -15,6 +15,10 @@ use ndarray::{Array1, Array2};
 /// * `b` - A vector result from matrix multiplication Ax = b represented by an Array1.
 ///
 pub fn solve_by_thomas(matrix: &Array2<f64>, b: &Array1<f64>) -> Result<Vec<f64>, Error> {
+
+    if !matrix.is_square() || matrix.len_of(Axis(0)) != b.len() {
+        return Err(Error::WrongDims)
+    }
 
     let mut solution = vec![0_f64; b.len()];
 

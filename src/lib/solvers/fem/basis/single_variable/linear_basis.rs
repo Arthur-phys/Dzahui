@@ -31,7 +31,7 @@ impl LinearBasis {
     pub(crate) fn new(mesh: &Vec<f64>) -> Result<LinearBasis, Error> {
         // Left-side function
         let transformation = FirstDegreePolynomial::transformation_to_0_1(mesh[0], mesh[1]);
-        let initial_transform_function = FirstDegreePolynomial::phi_2().compose(transformation);
+        let initial_transform_function = FirstDegreePolynomial::phi_2().compose(transformation)?;
 
         // First function is generated.
         let first_function = PiecewiseFirstDegreePolynomial::from_polynomials(
@@ -51,9 +51,9 @@ impl LinearBasis {
             .zip(mesh.iter().skip(2))
             .map(|((prev, cur), next)| -> Result<(), Error> {
                 let transformation = FirstDegreePolynomial::transformation_to_0_1(*prev, *cur);
-                let basis_left = FirstDegreePolynomial::phi_1().compose(transformation);
+                let basis_left = FirstDegreePolynomial::phi_1().compose(transformation)?;
                 let transformation = FirstDegreePolynomial::transformation_to_0_1(*cur, *next);
-                let basis_right = FirstDegreePolynomial::phi_2().compose(transformation);
+                let basis_right = FirstDegreePolynomial::phi_2().compose(transformation)?;
 
                 let piecewise_function = PiecewiseFirstDegreePolynomial::from_polynomials(
                     vec![
@@ -76,7 +76,7 @@ impl LinearBasis {
             mesh[mesh.len() - 2],
             mesh[mesh.len() - 1],
         );
-        let final_transform_function = FirstDegreePolynomial::phi_1().compose(transformation);
+        let final_transform_function = FirstDegreePolynomial::phi_1().compose(transformation)?;
 
         let final_function = PiecewiseFirstDegreePolynomial::from_polynomials(
             vec![
@@ -107,21 +107,21 @@ mod test {
         assert!(transformed.basis.len() == 3);
 
         let first_pol = PiecewiseFirstDegreePolynomial::from_values(
-            vec![0_f64, -1_f64, 0_f64],
-            vec![0_f64, 1_f64, 0_f64],
-            vec![0_f64, 1_f64],
+            [0_f64, -1_f64, 0_f64],
+            [0_f64, 1_f64, 0_f64],
+            [0_f64, 1_f64],
         )
         .unwrap();
         let second_pol = PiecewiseFirstDegreePolynomial::from_values(
-            vec![0_f64, 1_f64, -1_f64, 0_f64],
-            vec![0_f64, 0_f64, 2_f64, 0_f64],
-            vec![0_f64, 1_f64, 2_f64],
+            [0_f64, 1_f64, -1_f64, 0_f64],
+            [0_f64, 0_f64, 2_f64, 0_f64],
+            [0_f64, 1_f64, 2_f64],
         )
         .unwrap();
         let third_pol = PiecewiseFirstDegreePolynomial::from_values(
-            vec![0_f64, 1_f64, 0_f64],
-            vec![0_f64, -1_f64, 0_f64],
-            vec![1_f64, 2_f64],
+            [0_f64, 1_f64, 0_f64],
+            [0_f64, -1_f64, 0_f64],
+            [1_f64, 2_f64],
         )
         .unwrap();
 

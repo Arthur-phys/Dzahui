@@ -112,7 +112,7 @@ impl DiffussionSolverTimeDependent {
         let state = Array1::from_vec(state);
 
         let (mass_matrix, stiffness_matrix) = Self::gauss_legendre_integration(
-                params.mu, params.b, &mesh, integration_step);
+                params.mu, params.b, &mesh, integration_step)?;
 
         // obtain matrices
 
@@ -139,7 +139,7 @@ impl DiffussionSolverTimeDependent {
     /// * `gauss_step` - Amount of nodes to compute for integration.
     /// * `time_step` - How much to advance the solution.
     /// 
-    fn gauss_legendre_integration(mu: f64, b: f64, mesh: &Vec<f64>, gauss_step: usize) -> (Array2<f64>,Array2<f64>) {
+    fn gauss_legendre_integration(mu: f64, b: f64, mesh: &Vec<f64>, gauss_step: usize) -> Result<(Array2<f64>,Array2<f64>),Error> {
         
         // First generate the basis
         let linear_basis = LinearBasis::new(mesh).unwrap();
@@ -154,11 +154,11 @@ impl DiffussionSolverTimeDependent {
             // Now we calculate every integral in the equation.
             // One needs to be careful regarding the boundary of the mass_matrix.
             // Obtain every integral. Later on integrals are assigned to the corresponding matrx or vector element.
-            let derivative_phi = linear_basis.basis[i].differentiate();
+            let derivative_phi = linear_basis.basis[i].differentiate()?;
             // replaced by boundary condition for basis[n-1] in vector
-            let derivative_phi_next = linear_basis.basis[i+1].differentiate();
+            let derivative_phi_next = linear_basis.basis[i+1].differentiate()?;
             // replaced by boundary condition for basis[0] in vector
-            let derivative_phi_prev = linear_basis.basis[i-1].differentiate();
+            let derivative_phi_prev = linear_basis.basis[i-1].differentiate()?;
 
             // Transform intervals from -1,1 to [ai,bi]
             let transform_function_prev = FirstDegreePolynomial::transformation_from_m1_p1(
@@ -176,9 +176,9 @@ impl DiffussionSolverTimeDependent {
                 );
     
             // transform functions' derivatives
-            let derivative_t_prev = transform_function_prev.differentiate();
-            let derivative_t_next = transform_function_next.differentiate();
-            let derivative_t_square = transform_function_square.differentiate();
+            let derivative_t_prev = transform_function_prev.differentiate()?;
+            let derivative_t_next = transform_function_next.differentiate()?;
+            let derivative_t_square = transform_function_square.differentiate()?;
             
             // initialize all integral approximations
             // derivatives integral. Of the form <phi_j',phi_i'>
@@ -198,7 +198,7 @@ impl DiffussionSolverTimeDependent {
             for j in 1..gauss_step {
                 
                 // Obtaining arccos(node) and weight
-                let (theta, w) = gauss_legendre::quad_pair(gauss_step, j);
+                let (theta, w) = gauss_legendre::quad_pair(gauss_step, j)?;
                 let x = theta.cos();
     
                 // translated from -1,1
@@ -274,7 +274,7 @@ impl DiffussionSolverTimeDependent {
         // this is the multiplication that has to be done
         // where M is mass matrix, S is stiffness matrix
 
-        (mass_matrix,stiffness_matrix)
+        Ok((mass_matrix,stiffness_matrix))
 
     }
 }

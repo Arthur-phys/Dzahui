@@ -1,3 +1,5 @@
+use crate::Error;
+
 // Internal dependencies.
 use super::functions::{Composable1D, Differentiable1D, Function1D};
 
@@ -51,7 +53,7 @@ impl FirstDegreePolynomial {
     }
 
     /// Constant function factory.
-    pub fn constant(independent_term: f64) -> Self {
+    pub fn constant(independent_term: f64) -> FirstDegreePolynomial {
         Self {
             coefficient: 0_f64,
             independent_term,
@@ -111,11 +113,11 @@ impl Composable1D<FirstDegreePolynomial, FirstDegreePolynomial> for FirstDegreeP
     ///
     /// Composition of two first degree polynomials results in another polynomial.
     ///
-    fn compose(self, other: FirstDegreePolynomial) -> FirstDegreePolynomial {
-        FirstDegreePolynomial {
+    fn compose(self, other: FirstDegreePolynomial) -> Result<FirstDegreePolynomial,Error> {
+        Ok(FirstDegreePolynomial {
             coefficient: self.coefficient * other.coefficient,
             independent_term: self.coefficient * other.independent_term + self.independent_term,
-        }
+        })
     }
 }
 
@@ -124,11 +126,11 @@ impl Differentiable1D<FirstDegreePolynomial> for FirstDegreePolynomial {
     ///
     /// Differentiation of a first degree polynomial results in a constant.
     ///
-    fn differentiate(&self) -> FirstDegreePolynomial {
-        FirstDegreePolynomial {
+    fn differentiate(&self) -> Result<FirstDegreePolynomial,Error> {
+        Ok(FirstDegreePolynomial {
             coefficient: 0_f64,
             independent_term: self.coefficient,
-        }
+        })
     }
 }
 
@@ -164,11 +166,11 @@ impl Differentiable1D<FirstDegreePolynomial> for SecondDegreePolynomial {
     ///
     /// Differentiation of a second degree polynomial results on a first degree polynomial.
     ///
-    fn differentiate(&self) -> FirstDegreePolynomial {
-        FirstDegreePolynomial {
+    fn differentiate(&self) -> Result<FirstDegreePolynomial,Error> {
+        Ok(FirstDegreePolynomial {
             coefficient: 2_f64 * self.quadratic_coefficient,
             independent_term: self.linear_coefficient,
-        }
+        })
     }
 }
 
@@ -178,8 +180,8 @@ impl Composable1D<FirstDegreePolynomial, SecondDegreePolynomial> for SecondDegre
     ///
     /// Composing a second degree polynomial with a first degree polynomial gives another second degree polynomial.
     ///
-    fn compose(self, other: FirstDegreePolynomial) -> SecondDegreePolynomial {
-        SecondDegreePolynomial {
+    fn compose(self, other: FirstDegreePolynomial) -> Result<SecondDegreePolynomial,Error> {
+        Ok(SecondDegreePolynomial {
             quadratic_coefficient: self.quadratic_coefficient * other.coefficient.powf(2_f64),
             linear_coefficient: 2_f64
                 * self.quadratic_coefficient
@@ -189,6 +191,6 @@ impl Composable1D<FirstDegreePolynomial, SecondDegreePolynomial> for SecondDegre
             independent_term: other.independent_term.powf(2_f64)
                 + other.independent_term * self.linear_coefficient
                 + self.independent_term,
-        }
+        })
     }
 }

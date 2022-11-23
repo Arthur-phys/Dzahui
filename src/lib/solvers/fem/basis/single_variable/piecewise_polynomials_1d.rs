@@ -29,11 +29,16 @@ impl PiecewiseFirstDegreePolynomial {
     /// * `independent_terms` - Values that are added to variable.
     /// * `interval_breakpoints` - Points in ascending order to know which function to evaluate.
     ///
-    pub fn from_values(
-        coefficients: Vec<f64>,
-        independent_terms: Vec<f64>,
-        interval_breakpoints: Vec<f64>,
+    pub fn from_values<A: IntoIterator<Item = f64>, B: IntoIterator<Item = f64>>(
+        coefficients: A,
+        independent_terms: A,
+        interval_breakpoints: B,
     ) -> Result<Self, Error> {
+
+        let independent_terms: Vec<f64> = independent_terms.into_iter().collect();
+        let coefficients: Vec<f64> = coefficients.into_iter().collect();
+        let interval_breakpoints: Vec<f64> = interval_breakpoints.into_iter().collect();
+
         if independent_terms.len() != interval_breakpoints.len() + 1
             || independent_terms.len() != coefficients.len()
         {
@@ -63,10 +68,14 @@ impl PiecewiseFirstDegreePolynomial {
     /// * `independent_terms` - Vector of constants to create function.
     /// * `interval_breakpoints` - Points in ascending order to know which constant to return.
     ///
-    pub fn from_constants(
-        independent_terms: Vec<f64>,
-        interval_breakpoints: Vec<f64>,
+    pub fn from_constants<A: IntoIterator<Item = f64>, B: IntoIterator<Item = f64>>(
+        independent_terms: A,
+        interval_breakpoints: B,
     ) -> Result<Self, Error> {
+
+        let independent_terms: Vec<f64> = independent_terms.into_iter().collect();
+        let interval_breakpoints: Vec<f64> = interval_breakpoints.into_iter().collect();
+
         if independent_terms.len() != interval_breakpoints.len() + 1 {
             return Err(Error::PieceWiseDims);
         }
@@ -91,10 +100,14 @@ impl PiecewiseFirstDegreePolynomial {
     /// * `polynomials` - A vector with all the polynomials to use for piecewise definition.
     /// * `interval_breakpoints` - Points in ascending order to know which function to evaluate.
     ///
-    pub fn from_polynomials(
-        polynomials: Vec<FirstDegreePolynomial>,
-        interval_breakpoints: Vec<f64>,
+    pub fn from_polynomials<A: IntoIterator<Item = FirstDegreePolynomial>, B: IntoIterator<Item = f64>>(
+        polynomials: A,
+        interval_breakpoints: B,
     ) -> Result<Self, Error> {
+
+        let polynomials: Vec<FirstDegreePolynomial> = polynomials.into_iter().collect();
+        let interval_breakpoints: Vec<f64> = interval_breakpoints.into_iter().collect();
+
         if polynomials.len() != interval_breakpoints.len() + 1 {
             return Err(Error::PieceWiseDims);
         }
@@ -110,7 +123,7 @@ impl Function1D for PiecewiseFirstDegreePolynomial {
     /// # Specific implementation
     ///
     /// **Remember that number of functions = number of breakpoints + 1**.
-    /// Evauluates the function supposing that `interval_breakpoints` is in ascending order.
+    /// Evaluates the function supposing that `interval_breakpoints` is in ascending order.
     /// Every breakpoint coincides with a function (except for the last one). That is, given the breakpoint vector index i,
     /// breakpoint i coincides with function i.
     /// Evaluation is made via checking if variable `x` is less than current breakpoint. If x is bigger than every breakpoint, then the last function is
@@ -141,19 +154,16 @@ impl Differentiable1D<PiecewiseFirstDegreePolynomial> for PiecewiseFirstDegreePo
     /// Resulting function is obtained via differentiation of every linear polynomial in instance.
     /// Panic should not be possible.
     ///
-    fn differentiate(&self) -> PiecewiseFirstDegreePolynomial {
-        let diff_polynomials = self
+    fn differentiate(&self) -> Result<PiecewiseFirstDegreePolynomial,Error> {
+        let diff_polynomials: Vec<FirstDegreePolynomial> = self
             .polynomials
             .iter()
-            .map(|pol| -> FirstDegreePolynomial { pol.differentiate() })
-            .collect();
+            .map(|pol| -> Result<FirstDegreePolynomial,Error> { pol.differentiate() })
+            .collect::<Result<Vec<FirstDegreePolynomial>,_>>()?;
 
-        match PiecewiseFirstDegreePolynomial::from_polynomials(
+        PiecewiseFirstDegreePolynomial::from_polynomials(
             diff_polynomials,
-            self.interval_breakpoints.clone(),
-        ) {
-            Ok(diff) => diff,
-            Err(e) => panic!("{}", e),
-        }
+            self.interval_breakpoints.clone()
+        )
     }
 }

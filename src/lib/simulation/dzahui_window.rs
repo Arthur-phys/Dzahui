@@ -1,7 +1,7 @@
 // Internal dependencies
 use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
     solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
-        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent
+        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, diffusion_solver
     }
 };
 use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
@@ -519,19 +519,31 @@ impl DzahuiWindow {
         let mut solver: Box<dyn DiffEquationSolver> = match self.solver {
 
             Solver::DiffussionSolverTimeIndependent(ref params) => {
-                Box::new(DiffussionSolverTimeIndependent::new(
+                
+                let diffussion_solver = DiffussionSolverTimeIndependent::new(
                     &params,
                     self.mesh.filter_for_solving_1d().to_vec(),
-                    self.integration_iteration,
-                ))
+                    self.integration_iteration);
+
+                match diffussion_solver {
+                    Ok(d) => Box::new(d),
+                    Err(error) => panic!("Error creating instance of DiffussionSolverTimeIndependent {}",error)
+                }
+
             },
 
             Solver::DiffussionSolverTimeDependent(ref params) => {
-                Box::new(DiffussionSolverTimeDependent::new(
+                
+                let diffussion_solver = DiffussionSolverTimeDependent::new(
                     &params,
                     self.mesh.filter_for_solving_1d().to_vec(),
                     self.integration_iteration,
-                ).unwrap())
+                );
+
+                match diffussion_solver {
+                    Ok(d) => Box::new(d),
+                    Err(error) => panic!("Error creating instance of DiffussionSolverTimeDependent: {}",error)
+                }
             }
 
             _ => {panic!()}
