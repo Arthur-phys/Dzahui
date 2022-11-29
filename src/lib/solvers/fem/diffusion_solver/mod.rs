@@ -7,6 +7,7 @@ pub use time_dependent::{DiffussionParamsTimeDependent, DiffussionSolverTimeDepe
 pub use time_independent::{DiffussionParamsTimeIndependent, DiffussionSolverTimeIndependent};
 
 
+/// Struct to make params for either time-dependent or time-independent diffussion solvers.
 pub struct DiffussionParams();
 
 

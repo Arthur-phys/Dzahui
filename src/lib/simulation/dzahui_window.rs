@@ -27,14 +27,23 @@ use gl;
 ///
 /// # Fields
 ///
-/// * `context` - Holds an *instance* of OpenGL. This normally means that all configuration associated with rendering is stored here. Only one context is allowed.
-/// * `geometry_shader` - Geometry_shaders to compile and use. Responsible for mesh drawing.
-/// * `event_loop` - To obtain user input in window.
-/// * `text_shader` - Text shaders to compile and use. Responsible for text rendering.
-/// * `height` - Height of window created.
-/// * `width` - Width of window created.
-/// * `timer` - Gives current time since creation of window. Call with `timer.elapsed()`.
+/// * `context` - Holds an *instance* of OpenGL. This normally means that all configuration associated with rendering is stored here. Only one context is allowed
+/// * `geometry_shader` - Geometry_shaders to compile and use. Responsible for mesh drawing
+/// * `event_loop` - To obtain user input in window and refresh window
+/// * `mouse_coordinates` - Current coordinates of mouse
+/// * `initial_time_step` - When solving a time-dependent problem and not specifiying a time, an initial should be given while enough information is collected
+/// to use framerate
+/// * `character_set` - Set of characters to draw on screen
+/// * `integration_iteration` - Amount of terms to approximate integral
+/// * `height` - Height of window created
+/// * `width` - Width of window created
+/// * `vertex_selector` - A cone to interact with the screen using the mouse
+/// * `text_shader` - Text shaders to compile and use. Responsible for text rendering
+/// * `window_text_scale` - Scale of text in front of window. This text does not change with camera view
+/// * `timer` - Gives current time since creation of window. Call with `timer.elapsed()`
 /// * `camera` - Camera configuration creates view and projetion matrices, which directly tells OpenGL what to and not to render.
+/// * `solver` - Solver enum representing the kind of equation to simmulate
+/// * `time_tep` - How much to forward a time-dependent solution 
 /// * `mesh` - A mesh to draw to screen. Represents an object tessellated into triangles/traingular prisms.
 ///
 pub struct DzahuiWindow {

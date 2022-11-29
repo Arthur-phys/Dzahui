@@ -152,7 +152,6 @@ impl Differentiable1D<PiecewiseFirstDegreePolynomial> for PiecewiseFirstDegreePo
     ///
     /// The derivative of a piecewise first degree polynomial is a step-like function.
     /// Resulting function is obtained via differentiation of every linear polynomial in instance.
-    /// Panic should not be possible.
     ///
     fn differentiate(&self) -> Result<PiecewiseFirstDegreePolynomial,Error> {
         let diff_polynomials: Vec<FirstDegreePolynomial> = self

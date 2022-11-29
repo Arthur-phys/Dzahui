@@ -93,12 +93,14 @@ impl DiffussionParamsTimeDependent {
 ///
 /// # Fields
 ///
-/// * `boundary_conditions` - Boundary conditions (Only dirichlet is supported for now, Neumann is being worked on).
-/// * `initial_conditions` - Every internal point needs an initial condition to advance the solution in time.
-/// * `internal_state` - The state of every internal point at time t. Struct has to be mutable.
-/// * `mesh` - A vector of floats representing a line.
-/// * `mu` - First ot two needed constants.
-/// * `stiffness_matrix` - Second of two needed constants.
+/// * `boundary_conditions` - Boundary conditions (Only dirichlet is supported for now, Neumann is being worked on)
+/// * `stiffness_matrix` - Matrix of elements that is multiplied by time
+/// * `initial_conditions` - Every internal point needs an initial condition to advance the solution in time
+/// * `mass_matrix` - A matrix that pertains only to elements that are not multiplied by time
+/// * `integration_step` - Amount of terms to sum over to make the integral
+/// * `state` - The state of every point at time t
+/// * `mu` - First ot two needed constants
+/// * `b` - Second of two needed constants
 ///
 pub struct DiffussionSolverTimeDependent {
     pub boundary_conditions: [f64; 2],
@@ -157,14 +159,16 @@ impl DiffussionSolverTimeDependent {
 
     /// # General Information
     /// 
-    /// Compĺete integration of mass mass_matrix and vector stiffness_matrix to create system Mx = stiffness_matrix.
-    /// Note that corners of the linear system of equations are treated differently since, normally, there's one less addition to make.
+    /// Compĺete integration of linear basis to obtain mass matrix and stiffness matrix.
+    /// Corners of every element have special values to attone for boundary conditions being constant.
+    /// Matrices serve to solve the resulting problem: M(u_ti+1) = M(u_ti) + S(delta_t * u_ti) where M is mass matrix and S is stiffness matrix.
     /// 
     /// # Parameters
     /// 
-    /// * `&self` - A reference to itself to use parameters stiffness_matrix, mu and mesh.
+    /// * `mu` - First of two terms to solve equation
+    /// * `b` - Second of two terms to solve equation
+    /// * `mesh` - Vector of f64 representing a mesh
     /// * `gauss_step` - Amount of nodes to compute for integration.
-    /// * `time_step` - How much to advance the solution.
     /// 
     fn gauss_legendre_integration(mu: f64, b: f64, mesh: &Vec<f64>, gauss_step: usize) -> Result<(Array2<f64>,Array2<f64>),Error> {
         
@@ -308,6 +312,11 @@ impl DiffussionSolverTimeDependent {
 
 impl DiffEquationSolver for DiffussionSolverTimeDependent {
 
+    /// # Specific implementation
+    /// 
+    /// Calculate a vector b on left-side of equation.
+    /// Then solve problem Ax = b for x.
+    /// 
     fn solve(&mut self, time_step: f64) -> Result<Vec<f64>, Error> {
 
         // let b = stiffness_matrix * self.state * time_step + mass_matrix * self.state;
@@ -328,8 +337,6 @@ impl DiffEquationSolver for DiffussionSolverTimeDependent {
         res[b.len()-1] = self.boundary_conditions[1];
         
         self.state = Array1::from_vec(res.clone());
-
-        // print!("{:?}",res);
 
         Ok(res)
 
