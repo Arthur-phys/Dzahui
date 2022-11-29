@@ -1,26 +1,52 @@
 use std::{num::{ParseIntError, ParseFloatError}, ffi::NulError};
 
 #[derive(Debug)]
+/// # General Information
+/// 
+/// Error enum to use on all functions. Contains personalized errors with a corresponding explanation
+/// 
+/// # Arms
+/// 
+/// * `ExtensionNotAllowed` - Files like shaders, meshes or font maps need a specific extension. When the extension is not appropiate, this error is thrown
+/// * `ImageError` - Errors related to image reading and parsing
+/// * `ParseFloat` - Error while parsing a float
+/// * `ParseInt` - Error while parsing an int
+/// * `CharacterError` - Error while creating the character set for the window
+/// * `NotFound` - Error while looking for files
+/// * `NullCString` - Error while converting to c-types
+/// * `Matrix` - Errors ocurring while using matrices
+/// * `Parse` - Error while interpreting files
+/// * `Integration` - Error on numeric integration
+/// * `Io` - Error on IO operations
+/// * `MeshParse` - Error while parsing a mesh
+/// * `FloatConversion` - Error on float conversion betweeen f64 and f32
+/// * `Custom` - Less common errors
+/// * `PieceWiseDims` - Error while creating a piecewise function
+/// * `Unimplemented` - Error that should not exist
+/// * `Infallible` - Error that never happens
+/// * `WrongDims` - Error while operating on vectors and matrices
+/// * `Overflow` - Error when a number overflows
+/// 
 pub enum Error {
-    Io(std::io::Error),
+    ExtensionNotAllowed(String, String),
     ImageError(image::ImageError),
+    ParseFloat(ParseFloatError),
     ParseInt(ParseIntError),
     CharacterError(String),
+    NotFound(&'static str),
     NullCString(NulError),
-    ParseFloat(ParseFloatError),
     Matrix(&'static str),
+    Parse(&'static str),
+    Integration(String),
+    Io(std::io::Error),
+    MeshParse(String),
     FloatConversion,
-    WrongDims,
-    Infallible,
     Custom(String),
-    ExtensionNotAllowed(String, String),
-    Overflow,
     PieceWiseDims,
     Unimplemented,
-    NotFound(&'static str),
-    Parse(&'static str),
-    MeshParse(String),
-    Integration(String),
+    Infallible,
+    WrongDims,
+    Overflow,
 }
 
 impl std::fmt::Display for Error {

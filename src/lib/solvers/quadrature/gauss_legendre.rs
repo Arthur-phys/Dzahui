@@ -5672,6 +5672,15 @@ const EVEN_WEIGHTS: [&[f64]; 50] = [
     &EVENW47, &EVENW48, &EVENW49, &EVENW50,
 ];
 
+/// # General Information
+/// 
+/// Obtains the values of the Bessel function of zeroth order on a certain node given by k.
+/// Either is calculated or obtained from previous calculation according to the constants on the same module and the value of k
+/// 
+/// # Parameters
+/// 
+/// * `k` - a natural number for evaluation.
+/// 
 fn bessel_j_zero(k: usize) -> f64 {
     if k < 20 {
         JZ[k - 1]
@@ -5692,6 +5701,15 @@ fn bessel_j_zero(k: usize) -> f64 {
     }
 }
 
+/// # General Information
+/// 
+/// Obtains the values of the Bessel function of first order on a certain node given by k.
+/// Either is calculated or obtained from previous calculation according to the constants on the same module and the value of k
+/// 
+/// # Parameters
+/// 
+/// * `k` - a natural number for evaluation.
+/// 
 fn bessel_j1_squared(k: usize) -> f64 {
     if k < 21 {
         J1[k - 1]
@@ -5711,6 +5729,17 @@ fn bessel_j1_squared(k: usize) -> f64 {
     }
 }
 
+/// # General Information
+/// 
+/// Calculation of quad-pair for Gauss-Legendre integration.
+/// in contrast to it's tabulated version, these are calculated via the hardcoded constants and a series of approximations.
+/// Returns the j-th zero of the n-th Legendre function alongside the domain element which would result in such a zero.
+/// 
+/// # Parameters
+/// 
+/// * `n` - the n-th Legendre polynomial
+/// * `k` - the k-th zero of the n-th Legendre polynomial
+/// 
 fn gauss_legendre_quad_pair_calculated(n: usize, k: usize) -> (f64, f64) {
     // First get the Bessel zero
     let w = 1.0 / (n as f64 + 0.5);
@@ -5823,6 +5852,15 @@ fn gauss_legendre_quad_pair_calculated(n: usize, k: usize) -> (f64, f64) {
     (theta, weight)
 }
 
+/// # General Information
+/// 
+/// Returns a quad-pair tabulated since approximation by calculation is not good enough for the first 100 or so terms.
+/// 
+/// # Parameters
+/// 
+/// * `l` - the l-th Legendre polynomial
+/// * `k` - the k-th zero of the l-th Legendre Polynomial
+/// 
 fn gauss_legendre_quad_pair_tabulated(l: usize, k: usize) -> (f64, f64) {
     if l & 1 == 1 {
         let l2 = (l - 1) / 2;
@@ -5857,6 +5895,16 @@ fn gauss_legendre_quad_pair_tabulated(l: usize, k: usize) -> (f64, f64) {
     }
 }
 
+/// # General Information
+/// 
+/// Returns a quad-pair for Gauss-Legendre integration according to  their degree.
+/// Decides wether it should be calculated or tabulated
+/// 
+/// # Parameters
+/// 
+/// * `n` - n-th Legendre Polynomial
+/// * `k` - k-th zero of n-th Legendre Polynomial
+/// 
 pub fn quad_pair(n: usize, k: usize) -> Result<(f64, f64),Error> {
     match k < n {
         true => {
@@ -5873,7 +5921,7 @@ pub fn quad_pair(n: usize, k: usize) -> Result<(f64, f64),Error> {
             }
         }
         false => {
-            Err(Error::Integration(String::from("Misuse of quad_pair function, k should be smaller than n")))
+            Err(Error::Integration(String::from("Misuse of quad_pair function: k should be smaller than n")))
         }
     }
 }

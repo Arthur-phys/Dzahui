@@ -17,7 +17,8 @@ pub trait DiffEquationSolver: Debug {
     ///
     /// # Parameters
     ///
-    /// * &self - An instance of an ODE/PDE solver.
+    /// * `&self` - An instance of an ODE/PDE solver.
+    /// * `time_step` - Optional for time independent methods, but important for others to move forward the solution.
     ///
     fn solve(&mut self, time_step: f64) -> Result<Vec<f64>, Error>;
 }

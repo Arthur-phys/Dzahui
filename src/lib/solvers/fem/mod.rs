@@ -14,8 +14,8 @@ pub use diffusion_solver::{DiffussionParamsTimeDependent, DiffussionSolverTimeDe
 ///
 /// # Arms
 ///
-/// * `DiffussionSolverTimeIndependent` - Diffusion equation solver representation. Currently accepting parameters, may not be the case in the future.
-/// * `DiffussionSolverTimeDependent` - Diffusion equation solver with time derivative representation. Currently accepting parameters, may not be the case in the future.
+/// * `DiffussionSolverTimeIndependent` - Diffusion equation solver representation.
+/// * `DiffussionSolverTimeDependent` - Diffusion equation solver with time derivative representation.
 /// * `NavierStokes1DSolver` - Navier Stokes in 1D solver representation.
 /// * `NavierStokes2DSolver` - Navier Stokes in 2D solver representation.
 /// * `None` - Visuallization of mesh in simulation. No equation attached.

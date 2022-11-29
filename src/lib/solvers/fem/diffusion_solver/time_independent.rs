@@ -10,6 +10,18 @@ use ndarray::{Array1, Array2};
 
 
 #[derive(Default, Debug)]
+/// # General Information
+/// 
+/// Parameters needed for solving diffussion equation in 1d with time-independence.
+/// If one of it's properties is not set, it will default to zero.
+/// Boundary conditions accepted are only Dirichlet for now.
+/// 
+/// # Parameters
+/// 
+/// * `mu` - Movement term
+/// * `b` - Velocity term
+/// * `boundary_conditions` - Dirichlet conditions
+/// 
 pub struct DiffussionParamsTimeIndependent {
     pub mu: f64,
     pub b: f64,
@@ -17,6 +29,7 @@ pub struct DiffussionParamsTimeIndependent {
 }
 
 impl DiffussionParamsTimeIndependent {
+    /// Set mu
     pub fn mu(self, mu: f64) -> Self {
         Self {
             mu,
@@ -24,6 +37,7 @@ impl DiffussionParamsTimeIndependent {
         }
     }
 
+    /// Set b
     pub fn b(self, b: f64) -> Self {
         Self {
             b,
@@ -31,6 +45,7 @@ impl DiffussionParamsTimeIndependent {
         }
     }
 
+    /// Set boundary cconditions
     pub fn boundary_conditions(self, left: f64, right: f64) -> Self {
         Self {
             boundary_conditions: [left, right],
@@ -46,8 +61,8 @@ impl DiffussionParamsTimeIndependent {
 ///
 /// # Fields
 ///
-/// * `boundary_conditions` - Original boundary conditions (Only dirichlet is supported for now, Neumann is being worked on).
-/// * `mesh` - A vector of floats representing a line.
+/// * `boundary_conditions` - Original boundary conditions (Only Dirichlet is supported for now, Neumann is being worked on).
+/// * `mesh` - A vector of f64 representing a line.
 /// * `mu` - First ot two needed constants.
 /// * `b` - Second of two needed constants.
 ///
@@ -64,8 +79,9 @@ impl DiffussionSolverTimeIndependent {
     /// Creates new instance
     pub fn new(params: &DiffussionParamsTimeIndependent, mesh: Vec<f64>, gauss_step: usize) -> Result<Self,Error> {
 
-        let (stiffness_matrix, b_vector) = Self::gauss_legendre_integration(params.boundary_conditions, 
-                params.mu, params.b, &mesh, gauss_step)?;
+        let (stiffness_matrix, b_vector) = Self::gauss_legendre_integration(
+            params.boundary_conditions, 
+            params.mu, params.b, &mesh, gauss_step)?;
 
         Ok(Self {
             boundary_conditions: params.boundary_conditions,
@@ -80,15 +96,16 @@ impl DiffussionSolverTimeIndependent {
     /// # General Information
     ///
     /// First, it generates the basis for a solver from the linear basis constructor.
-    /// Then the stiffnes matrix and vector b are generated based on linear basis integration via Gauss-Legendre.
-    /// The matrix and vector b generated are only for internal nodes of a given mesh because boundary nodes are fixed and given as boundary conditions.
-    /// The previous statement means that both of them are alwas `basis.len() - 2` long on their respective dimensions.
-    /// Basis length 3 or 4 cases are treated differently, since the only integral to be made are the ones that include first and last basis elements.
+    /// Then the stiffnes matrix and vector b are generated based on linear basis integration via Gauss-Legendre and returned.
+    /// Note that vector and matrix will have one on their diagonals' boundaries and zero on other boundary elements to make boundary conditions permanent. 
     ///
     /// # Parameters
     ///
-    /// * `&self` - An instance of `DiffussionSolverTimeIndependent`.
-    /// * `gauss_step` - how many nodes will be calculated for a given integration.
+    /// * `boundary_conditions` - Conditions to guarantee system solution.
+    /// * `mu` - Movement term.
+    /// * `b` - Velocity term.
+    /// * `mesh` - Vector of f64 representing a line.
+    /// * `gauss_step` - How many nodes will be calculated for a given integration.
     ///
     /// # Returns
     ///
@@ -193,8 +210,6 @@ impl DiffEquationSolver for DiffussionSolverTimeIndependent {
     ///
     /// Solving starts by obtaining stiffness matrix and vector b (Ax=b).
     /// Then both are used inside function `solve_by_thomas` to obtain the result vector.
-    /// Result vector has 2 extra entries: one at the beggining and one at the end. They correspond to boundary value conditions, which are set at the very
-    /// end since they do not change.
     ///
     fn solve(&mut self, _time_step: f64) -> Result<Vec<f64>, Error> {
 

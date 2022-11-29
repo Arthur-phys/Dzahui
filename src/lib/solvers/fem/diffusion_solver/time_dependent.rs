@@ -10,6 +10,17 @@ use ndarray::{Array1, Array2};
 
 
 #[derive(Debug)]
+///
+/// # General Conditions
+/// 
+/// An enum representing wether initial conditions are initialized or not.
+/// Can be set to default.
+/// 
+/// # Arms
+/// 
+/// * `Uninitialized` - Conditions are not present
+/// * `Are` - Conditions are present
+/// 
 pub(crate) enum Conditions {
     Uninitialized,
     Are(Vec<f64>)
@@ -22,6 +33,18 @@ impl Default for Conditions {
 }
 
 #[derive(Default,Debug)]
+///
+/// # General Information
+/// 
+/// A struct representing every param to solve the time-dependent equation including intial conditions.
+/// 
+/// # Params
+/// 
+/// * `mu` - Movement term
+/// * `b` - Velocity term
+/// * `boundary_conditions` - Dirichlet conditions
+/// * `initial_conditions` - Internal initial conditions
+/// 
 pub struct DiffussionParamsTimeDependent {
     pub mu: f64,
     pub b: f64,
@@ -30,6 +53,7 @@ pub struct DiffussionParamsTimeDependent {
 }
 
 impl DiffussionParamsTimeDependent {
+    /// Set mu
     pub fn mu(self, mu: f64) -> Self {
         Self {
             mu,
@@ -37,6 +61,7 @@ impl DiffussionParamsTimeDependent {
         }
     }
 
+    /// Set b
     pub fn b(self, b: f64) -> Self {
         Self {
             b,
@@ -44,6 +69,7 @@ impl DiffussionParamsTimeDependent {
         }
     }
 
+    /// Set boundary conditions
     pub fn boundary_conditions(self, left: f64, right: f64) -> Self {
         Self {
             boundary_conditions: [left, right],
@@ -51,6 +77,7 @@ impl DiffussionParamsTimeDependent {
         }
     }
 
+    /// Set initial conditions from a vector
     pub fn initial_conditions<A: IntoIterator<Item = f64>>(self, initial_conditions: A) -> Self {
         Self {
             initial_conditions: Conditions::Are(initial_conditions.into_iter().collect()),

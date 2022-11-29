@@ -4,7 +4,15 @@ use crate::Error;
 // External dependencies
 use ndarray::{Array1, Array2, Axis};
 
-
+/// # General Information
+/// 
+/// Adds two vectors of the same length entry by entry
+/// 
+/// # Parameters
+/// 
+/// * `b` - First vector
+/// * `v` - Second vector
+/// 
 pub fn add(b: &Array1<f64>, v: &Array1<f64>) -> Result<Array1<f64>,Error> {
 
     if b.len() != v.len() {
@@ -21,6 +29,15 @@ pub fn add(b: &Array1<f64>, v: &Array1<f64>) -> Result<Array1<f64>,Error> {
     Ok(result_vec)
 }
 
+/// # General Information
+/// 
+/// Matrix - vector multiplication for a tridiagonal system reducing number of operations from `n^2` to `3n`
+/// 
+/// # Parameters
+/// 
+/// * `a` - a tridiagonal matrix
+/// * `b` - a vector of the same length as any axis of the matrix
+/// 
 pub fn tridiagonal_matrix_vector_multiplication(a: &Array2<f64>, b: &Array1<f64>, c: f64) -> Result<Array1<f64>,Error> {
     
     if !a.is_square() || b.len() != a.len_of(Axis(0)) {
