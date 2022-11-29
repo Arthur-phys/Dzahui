@@ -142,7 +142,7 @@ impl DiffussionSolverTimeDependent {
     fn gauss_legendre_integration(mu: f64, b: f64, mesh: &Vec<f64>, gauss_step: usize) -> Result<(Array2<f64>,Array2<f64>),Error> {
         
         // First generate the basis
-        let linear_basis = LinearBasis::new(mesh).unwrap();
+        let linear_basis = LinearBasis::new(mesh)?;
         let basis_len = linear_basis.basis.len();
 
         // initialize matrix mass_matrix (boundaries included)

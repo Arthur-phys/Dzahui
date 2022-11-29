@@ -1,8 +1,8 @@
 // Internal dependencies
 use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
     solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
-        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, diffusion_solver
-    }
+        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent
+    }, Error
 };
 use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
 
@@ -49,6 +49,7 @@ pub struct DzahuiWindow {
     pub(crate) width: u32,
     vertex_selector: Cone,
     text_shader: Shader,
+    window_text_scale: f32,
     pub timer: Instant,
     camera: Camera,
     solver: Solver,
@@ -76,6 +77,7 @@ pub struct DzahuiWindowBuilder {
     text_vertex_shader: Option<String>,
     opengl_version: Option<(u8, u8)>,
     initial_time_step: Option<f64>,
+    window_text_scale: Option<f32>,
     mesh_dimension: MeshDimension,
     character_set: Option<String>,
     vertex_selector: Option<f32>,
@@ -103,6 +105,7 @@ impl DzahuiWindowBuilder {
             text_fragment_shader: None,
             camera: Camera::builder(),
             text_vertex_shader: None,
+            window_text_scale: None,
             initial_time_step: None,
             vertex_selector: None,
             solver: Solver::None,
@@ -138,6 +141,11 @@ impl DzahuiWindowBuilder {
     }
     /// Changes height and width.
     pub fn with_height_and_width(self, height: u32, width: u32) -> Self {
+
+        if height == 0 || width == 0 {
+            panic!("Dimensions cannot be zero!")
+        }
+
         Self {
             height: Some(height),
             width: Some(width),
@@ -238,6 +246,13 @@ impl DzahuiWindowBuilder {
             ..self
         }
     }
+    /// Size of text present on screen. Default is chosen otherwise, which may not be good for every scenario
+    pub fn with_window_text_scale(self, window_text_scale: f32) -> Self {
+        Self {
+            window_text_scale: Some(window_text_scale),
+            ..self
+        }
+    }
     /// Initial time step when simulation on real time
     pub fn with_initial_time_step(self, initial_time_step: f64) -> Self {
         if let Some(_) = self.time_step {
@@ -272,11 +287,16 @@ impl DzahuiWindowBuilder {
     /// * `self` - All configuration required is within self. Default shaders are hardcoded in here.
     ///
     pub fn build(self) -> DzahuiWindow {
+    
+        // Will never be None
+        let height = self.height.unwrap();
+        let width = self.width.unwrap();
+
         let window_builder = WindowBuilder::new()
             .with_title("Dzahui")
             .with_inner_size(PhysicalSize {
-                height: self.height.unwrap(),
-                width: self.width.unwrap(),
+                height,
+                width,
             })
             .with_resizable(true);
 
@@ -286,17 +306,24 @@ impl DzahuiWindowBuilder {
         let event_loop = EventLoop::new();
 
         // Creating context to use in application
-        let context = ContextBuilder::new().
+        let context = match ContextBuilder::new().
         with_gl(opengl_version).
         // core GL profile
         // Future compatible functions. Not backwards compatible (no previous versions of openGL).
         with_gl_profile(GlProfile::Core).
         with_vsync(true).
-        build_windowed(window_builder, &event_loop).
-        unwrap();
+        build_windowed(window_builder, &event_loop) {
+            Ok(w) => w,
+            Err(e) => panic!("Error on window creation: {}",e)
+        };
 
         // The latest instance becomes the current context always
-        let context = unsafe { context.make_current().unwrap() };
+        let context = unsafe { 
+            match context.make_current() {
+                Ok(context) => context,
+                Err(e) => panic!("Initializing context for window failed!: {}",e.1)
+            }
+        };
 
         // Loading OpenGL functions. Only done once
         gl::load_with(&|s: &str| context.get_proc_address(s));
@@ -305,8 +332,9 @@ impl DzahuiWindowBuilder {
             gl::Viewport(
                 0,
                 0,
-                self.width.unwrap() as i32,
-                self.height.unwrap() as i32,
+                // Cannot fail
+                width as i32,
+                height as i32,
             );
             gl::Enable(gl::DEPTH_TEST);
         }
@@ -324,7 +352,10 @@ impl DzahuiWindowBuilder {
             "./assets/text_fragment_shader.fs".to_string()
         };
 
-        let text_shader = Shader::new(vertex_shader, fragment_shader).unwrap();
+        let text_shader = match Shader::new(vertex_shader, fragment_shader) {
+            Ok(shader) => shader,
+            Err(e) => panic!("Error on text shader creation!: {}", e)
+        };
 
         // Use geometry_shaders chosen
         let vertex_shader: String = if let Some(vertex_shader) = self.geometry_vertex_shader {
@@ -339,21 +370,32 @@ impl DzahuiWindowBuilder {
             "./assets/geometry_fragment_shader.fs".to_string()
         };
 
-        let geometry_shader = Shader::new(vertex_shader, fragment_shader).unwrap();
+        let geometry_shader = match Shader::new(vertex_shader, fragment_shader) {
+            Ok(shader) => shader,
+            Err(e) => panic!("Error on geometry shader creation!: {}",e)
+        };
 
         // Creating mesh based on initial provided file.
-        let mesh = match self.mesh_dimension {
+        let mesh = match match self.mesh_dimension {
             MeshDimension::One => self.mesh.build_mesh_1d(),
             MeshDimension::Two => self.mesh.build_mesh_2d(),
             MeshDimension::Three => self.mesh.build_mesh_3d(),
-        }
-        .unwrap();
+        } {
+            Ok(mesh) => mesh,
+            Err(e) => panic!("Error while creating mesh!: {}", e)
+        };
+
+        let window_text_scale = if let Some(sc) = self.window_text_scale {
+            sc
+        } else {
+            0.0001
+        };
 
         // Camera created with selected configuration via shortcut functions.
         let camera = self.camera.build(
             mesh.max_length as f32,
-            self.height.unwrap(),
-            self.width.unwrap(),
+            height,
+            width
         );
 
         // Vertex selector (cone)
@@ -395,7 +437,10 @@ impl DzahuiWindowBuilder {
         } else {
             "assets/dzahui-font_2.fnt".to_string()
         };
-        let character_set = CharacterSet::new(&character_set_file);
+        let character_set = match CharacterSet::new(&character_set_file) {
+            Ok(chs) => chs,
+            Err(e) => panic!("Error while creating character set!: {}",e)
+        };
 
         // Start clock for delta time
         let timer = Instant::now();
@@ -404,6 +449,7 @@ impl DzahuiWindowBuilder {
             context,
             timer,
             geometry_shader,
+            window_text_scale,
             text_shader,
             vertex_selector,
             character_set,
@@ -411,8 +457,8 @@ impl DzahuiWindowBuilder {
             mesh,
             time_step,
             camera,
-            width: self.width.unwrap(),
-            height: self.height.unwrap(),
+            width,
+            height,
             event_loop: Some(event_loop),
             mouse_coordinates: Point2::new(0.0, 0.0),
             solver: self.solver,
@@ -451,17 +497,20 @@ impl DzahuiWindow {
     }
 
     /// Callback to obtain vertex intersection with click produced cone.
-    fn get_selected_vertex(&mut self) {
+    fn get_selected_vertex(&mut self) -> Result<(),Error> {
+        
         self.vertex_selector.change_from_mouse_position(
             &self.mouse_coordinates,
             &self.camera.projection_matrix,
             self.width,
             self.height,
-        );
+        )?;
+        
         let sel_vec = self
             .vertex_selector
             .obtain_nearest_intersection(&self.mesh.vertices, &self.camera.view_matrix);
         println!("{:?}", sel_vec);
+        Ok(())
     }
 
     /// Callback to change camera view matrix based on user motion.
@@ -527,7 +576,7 @@ impl DzahuiWindow {
 
                 match diffussion_solver {
                     Ok(d) => Box::new(d),
-                    Err(error) => panic!("Error creating instance of DiffussionSolverTimeIndependent {}",error)
+                    Err(error) => panic!("Error creating instance of DiffussionSolverTimeIndependent!: {}",error)
                 }
 
             },
@@ -542,43 +591,68 @@ impl DzahuiWindow {
 
                 match diffussion_solver {
                     Ok(d) => Box::new(d),
-                    Err(error) => panic!("Error creating instance of DiffussionSolverTimeDependent: {}",error)
+                    Err(error) => panic!("Error creating instance of DiffussionSolverTimeDependent!: {}",error)
                 }
             }
 
-            _ => {panic!()}
+            _ => {panic!("No solver selected!")}
         };
 
         // Send mesh info: mesh structure and vertices to create body on each one.
-        self.mesh.setup().unwrap();
-        self.mesh.send_to_gpu().unwrap();
+        if let Err(e) = self.mesh.setup() {
+            panic!("Error while setting up mesh on GPU!: {}",e)
+        };
+        if let Err(e) = self.mesh.send_to_gpu() {
+            panic!("Error while sending mesh to GPU!: {}",e)
+        }
 
         // Setup character set info.
-        // Maybe need to change shader (but I think shaders and binders are independent, so leave it like this for now).
-        self.character_set.setup().unwrap();
-        self.character_set.setup_texture().unwrap();
+        if let Err(e) = self.character_set.setup() {
+            panic!("Error while setting up character set to write on screen!: {}",e)
+        }
+        if let Err(e) = self.character_set.setup_texture() {
+            panic!("Error while setting up texture for character set!: {}",e)
+        }
         self.character_set.send_to_gpu();
 
         // Use geometry shader.
         self.geometry_shader.use_shader();
         // translation for mesh to always be near (0,0).
-        self.geometry_shader
-            .set_mat4("model", self.mesh.get_model_matrix());
-        self.geometry_shader
-            .set_mat4("view", &self.camera.view_matrix);
-        self.geometry_shader
-            .set_mat4("projection", &self.camera.projection_matrix);
+        if let Err(e) = self.geometry_shader
+            .set_mat4("model", self.mesh.get_model_matrix()) {
+                panic!("Unable to set model matrix for geometry!: {}",e)
+            }
+        if let Err(e) = self.geometry_shader
+            .set_mat4("view", &self.camera.view_matrix) {
+                panic!("Unable to set view matrix for geometry!: {}",e)
+            }
+        if let Err(e) = self.geometry_shader
+            .set_mat4("projection", &self.camera.projection_matrix) {
+                panic!("Unable to set projection matrix for geometry!: {}",e)
+            }
 
         // Use text shader to assign matrices.
         self.text_shader.use_shader();
 
         let model_mat =
-            CharacterSet::matrix_for_screen(0.0, 0.0, &self.camera.projection_matrix, self.height, self.width);
+            match CharacterSet::matrix_for_screen(0.0, 0.0,
+                &self.camera.projection_matrix, self.height, self.width, self.window_text_scale) {
+                
+                Ok(mat) => mat,
+                Err(e) => panic!("Matrix for character set not created properly!: {}",e)
+            
+            };
 
-        self.text_shader.set_mat4("model", &model_mat);
-        self.text_shader
-            .set_mat4("projection", &self.camera.projection_matrix);
-        self.text_shader.set_mat4("view", &Matrix4::identity());
+        if let Err(e) = self.text_shader.set_mat4("model", &model_mat) {
+            panic!("Unable to set model matrix for text!: {}",e)
+        }
+        if let Err(e) = self.text_shader
+            .set_mat4("projection", &self.camera.projection_matrix) {
+                panic!("Unable to set projection  matrix for text!: {}",e)
+            }
+        if let Err(e) = self.text_shader.set_mat4("view", &Matrix4::identity()) {
+            panic!("Unable to set view matrix for text shader!: {}",e)
+        }
 
         event_loop.run(move |event, _, control_flow| {
 
@@ -612,7 +686,9 @@ impl DzahuiWindow {
                         2 => self.activate_view_change(state),
                         1 => {
                             if let ElementState::Pressed = state {
-                                self.get_selected_vertex();
+                                if let Err(e) = self.get_selected_vertex() {
+                                    panic!("Error while using cone vertex selector!: {}",e)
+                                }
                             }
                         }
                         _ => {}
@@ -653,35 +729,55 @@ impl DzahuiWindow {
                         gl::Clear(gl::DEPTH_BUFFER_BIT);
                     }
         
-                    let solution = solver.solve(self.time_step).unwrap();
+                    let solution = match solver.solve(self.time_step) {
+                        Ok(solution) => solution,
+                        Err(e) => panic!("Error while solving equation!: {}",e)
+                    };
                     // println!("{:?}",solution);
         
                     // updating colors. One time per vertex should be updated (that is, every 6 steps).
                     self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
                     
-                    self.mesh.bind_all_no_texture().unwrap();
-                    self.mesh.send_to_gpu().unwrap();
+                    if let Err(e) = self.mesh.bind_all_no_texture() {
+                        panic!("Error while binding mesh again!: {}",e)
+                    }
+                    if let Err(e) = self.mesh.send_to_gpu() {
+                        panic!("Error while sending updated mesh to GPU!: {}",e)
+                    }
         
                     
                     // Text shader to draw text
                     self.text_shader.use_shader();
         
-                    self.character_set.bind_all().unwrap();
+                    if let Err(e) = self.character_set.bind_all() {
+                        panic!("Error while binding character set again! {}",e)
+                    }
                     self.character_set.draw_text(format!(
                         "x: {}, y: {}, FPS: {}",
                         self.mouse_coordinates.x, self.mouse_coordinates.y, fps
                     ));
-                    self.character_set.unbind_texture().unwrap();
+
+                    if let Err(e) = self.character_set.unbind_texture() {
+                        panic!("Error while unbinding texture for character set!: {}",e)
+                    }
         
                     // Geometry shader to draw mesh
                     self.geometry_shader.use_shader();
-                    self.geometry_shader
-                        .set_mat4("view", &self.camera.view_matrix);
+                    if let Err(e) = self.geometry_shader
+                        .set_mat4("view", &self.camera.view_matrix) {
+                            panic!("Unable to set new view matrix for geometry!: {}",e)
+                        }
         
-                    self.mesh.bind_vao().unwrap();
-                    self.mesh.draw().unwrap();
+                    if let Err(e) = self.mesh.bind_vao() {
+                        panic!("Unable to bind vao of mesh!: {}",e)
+                    }
+                    if let Err(e) = self.mesh.draw() {
+                        panic!("Unable to draw mesh!: {e}")
+                    }
                     // Need to change old and new buffer to redraw
-                    self.context.swap_buffers().unwrap();
+                    if let Err(e) = self.context.swap_buffers() {
+                        panic!("Unable to swap buffers!: {}",e)
+                    }
                     counter += 1;
                 },
 

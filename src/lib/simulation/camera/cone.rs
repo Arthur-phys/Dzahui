@@ -2,6 +2,8 @@
 use cgmath::{InnerSpace, Matrix4, Point2, Point3, Transform, Vector3, Vector4};
 use ndarray::{Array1, ArrayView1, Axis};
 
+use crate::Error;
+
 /// # General Information
 ///
 /// A cone firstly serves as an object with 'ray casting'-like functionality to be able to click elements from screen.
@@ -51,7 +53,7 @@ impl Cone {
         projection_matrix: &Matrix4<f32>,
         window_width: u32,
         window_height: u32,
-    ) {
+    ) -> Result<(),Error> {
         // Create cone from position of mouse
         let near_ndc_coordinates = Vector4::new(
             (mouse_coordinates.x - (window_width as f32) / 2.0) / ((window_width as f32) / 2.0), // map between -1 and 1
@@ -67,8 +69,7 @@ impl Cone {
         );
 
         let inverse_projection_matrix: Matrix4<f32> = projection_matrix
-            .inverse_transform()
-            .expect("No inverse transform exists for this matrix");
+            .inverse_transform().ok_or(Error::Matrix("Could not create inverse transformation matrix for vertex selector"))?;
         let near_view_coordinates = inverse_projection_matrix * near_ndc_coordinates;
         let far_view_coordinates = inverse_projection_matrix * far_ndc_coordinates;
 
@@ -93,6 +94,8 @@ impl Cone {
 
         self.anchorage_point = anchorage_point;
         self.direction = direction;
+
+        Ok(())
     }
 
     /// Matrix to translate vertex to a given location (normally determined by a mesh instance).

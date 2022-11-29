@@ -111,13 +111,14 @@ impl Bindable for Mesh {
 }
 
 impl Drawable for Mesh {
-    fn get_triangles(&self) -> Result<&Array1<u32>, Error> {
+    fn get_indices(&self) -> Result<&Array1<u32>, Error> {
         Ok(&self.indices)
     }
 
     fn get_vertices(&self) -> Result<Array1<f32>, Error> {
-        Ok(Array1::from_iter(
-            self.vertices.iter().map(|x| x.to_f32().unwrap()),
+        Ok(Array1::from_vec(
+            self.vertices.iter().map(|x| -> Result<f32,Error> { x.to_f32().ok_or(Error::FloatConversion) })
+            .collect::<Result<Vec<f32>,_>>()?
         ))
     }
 

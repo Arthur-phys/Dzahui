@@ -63,7 +63,7 @@ pub(crate) trait Drawable: Bindable {
     /// Creates a way to obtain vertices from drawable object. Getter.
     fn get_vertices(&self) -> Result<Array1<f32>, Error>;
     /// Creates a way to obtain indices to draw vertices (and triangles). Getter.
-    fn get_triangles(&self) -> Result<&Array1<u32>, Error>;
+    fn get_indices(&self) -> Result<&Array1<u32>, Error>;
     /// Creates a way to obtain order of object's dimensions. Getter.
     fn get_max_length(&self) -> Result<f32, Error>;
 
@@ -83,7 +83,7 @@ pub(crate) trait Drawable: Bindable {
     ///
     fn send_to_gpu(&self) -> Result<(), Error> {
         let vertices = self.get_vertices()?;
-        let triangles = self.get_triangles()?;
+        let indices = self.get_indices()?;
 
         unsafe {
             // Point to data, specify data length and how it should be drawn (static draw serves to only draw once).
@@ -98,8 +98,8 @@ pub(crate) trait Drawable: Bindable {
             // Point to data, specify data length and how it should be drawn
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,
-                (triangles.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
-                &triangles[0] as *const u32 as *const c_void,
+                (indices.len() * mem::size_of::<GLuint>()) as GLsizeiptr,
+                &indices[0] as *const u32 as *const c_void,
                 gl::DYNAMIC_DRAW,
             );
 
@@ -145,7 +145,7 @@ pub(crate) trait Drawable: Bindable {
     /// * `&self` - A reference to the object which is attached to a binder and knows how to get the indices and indices length.
     ///
     fn draw(&self) -> Result<(), Error> {
-        let indices_len: i32 = self.get_triangles()?.len() as i32;
+        let indices_len: i32 = self.get_indices()?.len() as i32;
 
         // Draw only when window is created and inside loop
         // Drawn as triangles

@@ -118,18 +118,17 @@ impl CharacterSet {
     ///
     /// * `character_file` - fnt file. It is important that the file is correctly created since metadata is important to struct instance.
     ///
-    pub fn new(character_file: &str) -> Self {
+    pub fn new(character_file: &str) -> Result<Self,Error> {
         let binder = Binder::new();
 
-        let file = File::open(character_file)
-            .expect("Unable to open file. Does the file exists and is readable?");
+        let file = File::open(character_file)?;
         let mut reader = BufReader::new(file).lines();
 
         // read general properties of font first
         let info_line = reader
             .next()
-            .unwrap()
-            .expect("Unable to read first line of file propperly.");
+            .ok_or(Error::Parse("Could not read first line from text font file"))??;
+
         let info_line: Vec<&str> = info_line.split("\"").collect();
 
         // Font properties
@@ -148,8 +147,8 @@ impl CharacterSet {
         // Second line also contains information
         let second_info_line = reader
             .next()
-            .unwrap()
-            .expect("Unable to read second line of file propperly.");
+            .ok_or(Error::Parse("Could not read second line from text font file"))??;
+
         let mut property_map_two = second_info_line.split(" ");
         // Skip 'common' word
         property_map_two.next();
@@ -164,8 +163,8 @@ impl CharacterSet {
         // Third line contains texture file
         let third_info_line = reader
             .next()
-            .unwrap()
-            .expect("Unable to read third line of file propperly.");
+            .ok_or(Error::Parse("Could not read third line from text font file"))??;
+            
         let mut property_map_three = third_info_line.split(" ");
         // SKip 'page' word
         property_map_three.next();
@@ -182,113 +181,103 @@ impl CharacterSet {
             "./assets/{}",
             property_map_three
                 .get("file")
-                .expect("Font file not found.")
+                .ok_or(Error::NotFound("Text image file"))?
                 .replace("\"", "")
-        ))
-        .unwrap();
+        ))?;
         let img_vec: Vec<u8> = img.into_bytes();
 
         // Fourth line contains number of characters
         let fourth_info_line = reader
             .next()
-            .unwrap()
-            .expect("Unable to read fourth line of file propperly.");
+            .ok_or(Error::Parse("Could not read fourth line from text font file"))??;
+            
         let mut property_map_four = fourth_info_line.split(" ");
-        // SKip 'chars' word
+        // Skip 'chars' word
         property_map_four.next();
         // Shadowing
         let mut property_map_four: HashMap<String, usize> = property_map_four
-            .map(|property| {
+            .map(|property| -> Result<(String, usize),Error> {
+
                 let key_value: Vec<&str> = property.split("=").collect();
-                (key_value[0].to_string(), key_value[1].parse().unwrap())
+                Ok((key_value[0].to_string(), key_value[1].parse()?))
+            
             })
-            .collect();
+            .collect::<Result<HashMap<String,usize>,_>>()?;
 
         // Processing rest of file to create the characters
         let mut characters: HashMap<char, Character> =
-            HashMap::with_capacity(*property_map_four.get("count").unwrap());
+            HashMap::with_capacity(*property_map_four.get("count").ok_or(Error::Custom("Could not find propperty 'count' on text file".to_string()))?);
         for line in reader {
-            match line {
-                Ok(content) => {
-                    // Get rid of multiple space
-                    let mut properties = content.split(" ").filter(|e| *e != "");
-                    let is_character_line = properties.next().unwrap();
 
-                    if is_character_line != "char" {
-                        continue;
-                    } else {
-                        // Property map for character
-                        let property_map: HashMap<&str, f32> = properties
-                            .map(|property| {
-                                let key_value: Vec<&str> = property.split("=").collect();
-                                (key_value[0], key_value[1].parse().unwrap())
-                            })
-                            .collect();
+            let content = line?;
+            
+            // Get rid of multiple space
+            let mut properties = content.split(" ").filter(|e| *e != "");
+            let is_character_line = properties.next().ok_or(Error::Parse("Could not parse text file propperly"))?;
 
-                        // Character creation
+            if is_character_line != "char" {
+                continue;
+            } else {
+                // Property map for character
+                let property_map: HashMap<&str, f32> = properties
+                    .map(|property| -> Result<(&str, f32),Error> {
+                        
+                        let key_value: Vec<&str> = property.split("=").collect();
+                        Ok((key_value[0], key_value[1].parse()?))
+                    
+                    })
+                    .collect::<Result<HashMap<&str,f32>,_>>()?;
 
-                        let temp_character = Character::new(
-                            property_map["id"] as u32,
-                            (property_map["x"], property_map["y"]),
-                            (property_map["width"], property_map["height"]),
-                            (property_map["xoffset"], property_map["yoffset"]),
-                        );
+                // Character creation
 
-                        // Insert character
-                        characters.insert(
-                            char::from_u32(property_map["id"] as u32).unwrap(),
-                            temp_character,
-                        );
-                    }
-                }
-                Err(e) => panic!("Unable to read file propperly: {}", e),
+                let temp_character = Character::new(
+                    property_map["id"] as u32,
+                    (property_map["x"], property_map["y"]),
+                    (property_map["width"], property_map["height"]),
+                    (property_map["xoffset"], property_map["yoffset"]),
+                );
+
+                // Insert character
+                characters.insert(
+                    char::from_u32(property_map["id"] as u32).ok_or(Error::Parse("A letter provided in text file is not a valid char"))?,
+                    temp_character,
+                );
             }
         }
 
-        Self {
+        Ok(Self {
             font_type,
             characters,
             binder,
             image_as_vec: img_vec,
             font_size: property_map_one
                 .remove("size")
-                .expect("Size parameter not found")
-                .parse()
-                .unwrap(),
+                .ok_or(Error::custom("Could not find 'size' property on text file"))?
+                .parse()?,
             is_bold: property_map_one
-                .get("bold")
-                .expect("Bold parameter not found")
+                .get("bold").ok_or(Error::custom("Could not find property 'bold' on text file"))?
                 == "1",
             is_italic: property_map_one
-                .get("bold")
-                .expect("Bold parameter not found")
+                .get("italic").ok_or(Error::custom("Could not find property 'bold'"))?
                 == "1",
             encoding: String::from("unicode"),
             line_height: property_map_two
-                .remove("lineHeight")
-                .expect("Line height property not found")
-                .parse()
-                .unwrap(),
+                .remove("lineHeight").ok_or(Error::custom("Could not find property 'lineHEight' on text file"))?
+                .parse()?,
             texture_size: (
                 property_map_two
-                    .remove("scaleW")
-                    .expect("Width property not found")
-                    .parse()
-                    .unwrap(),
+                    .remove("scaleW").ok_or(Error::custom("Could not find property 'scaleW' on text file"))?
+                    .parse()?,
                 property_map_two
-                    .remove("scaleH")
-                    .expect("Height property not found")
-                    .parse()
-                    .unwrap(),
+                    .remove("scaleH").ok_or(Error::custom("Could not find property 'scaleH' on text file"))?
+                    .parse()?,
             ),
             texture_file: property_map_three
-                .remove("file")
-                .expect("Font file not found.")
+                .remove("file").ok_or(Error::custom("Could not find property 'file' on text file"))?
                 .replace("\"", ""),
             character_number: property_map_four
-                .remove("count")
-                .expect("Character count not found"),
-        }
+                .remove("count").ok_or(Error::custom("Could not find property 'count' on text file"))?,
+        })
     }
 
     /// # General Information
@@ -374,9 +363,9 @@ impl CharacterSet {
     /// * `&self` - Obtain character struct for a given character to access it's properties.
     /// * `text` - A text string to parse and display on screen. Every character has to be in the original font (CharacterSet).
     ///
-    fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> (Vec<[f32; 20]>, Vec<[u32; 6]>) {
+    fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> Result<(Vec<[f32; 20]>, Vec<[u32; 6]>),Error> {
         // Split text into chars. Should be feasible given the fact that we only operate with the alphabet, numbers and some special symbols such as '?','!'
-        // Range of utf-8 values: 0,2^21 (given that there are at most 11 bits of metadata in a 4 byte sequence)
+        // Range of utf-8 values: 0,2^21 (given that there are at most 11 bits of metadata in a 4 bytes sequence)
         let text_vec: Vec<char> = text.as_ref().chars().collect();
         // Initialize vertices and indices vectors
         let mut vertices: Vec<[f32; 20]> = Vec::new();
@@ -385,7 +374,7 @@ impl CharacterSet {
         // Obtain subset of characters from CharacterSet HashMap
         text_vec
             .iter()
-            .fold((0.0_f32, 0_u32), |(width, last_index), character_string| {
+            .fold((0.0_f32, 0_u32), |(width, last_index), character_string| -> (f32,u32) {
                 let character_struct = self.characters.get(character_string);
                 match character_struct {
                     Some(character) => {
@@ -448,13 +437,10 @@ impl CharacterSet {
 
                         (width, last_index + 4)
                     }
-                    None => panic!(
-                        "Character {} does not exist on CharacterSet",
-                        character_string
-                    ),
+                    None => panic!("Character string {} not found",character_string)
                 }
             });
-        (vertices, indices)
+        Ok((vertices, indices))
     }
 
     /// # General Information
@@ -466,10 +452,10 @@ impl CharacterSet {
     /// * `&self` - Obtain vertices from text function
     /// * `text` - A given text input to draw into screen
     ///
-    pub(crate) fn draw_text<A: AsRef<str>>(&self, text: A) {
+    pub(crate) fn draw_text<A: AsRef<str>>(&self, text: A) -> Result<(),Error> {
         // use function inside event loop in dzahui window, not anywhere else.
         // obtain vertices and indices to draw
-        let (vertices, indices) = self.get_vertices_from_text(text);
+        let (vertices, indices) = self.get_vertices_from_text(text)?;
 
         vertices
             .iter()
@@ -497,6 +483,8 @@ impl CharacterSet {
                     gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
                 }
             });
+
+        Ok(())
     }
 
     /// # General Information
@@ -517,7 +505,8 @@ impl CharacterSet {
         projection_matrix: &Matrix4<f32>,
         window_height: u32,
         window_width: u32,
-    ) -> Matrix4<f32> {
+        text_scale: f32
+    ) -> Result<Matrix4<f32>,Error> {
         let ndc_coordinates = Vector4::new(
             (viewport_x - (window_width as f32) / 2.0) / ((window_width as f32) / 2.0), // map between -1 and 1
             (viewport_y - (window_height as f32) / 2.0) / ((window_height as f32) / 2.0),
@@ -526,8 +515,7 @@ impl CharacterSet {
         );
 
         let inverse_projection_matrix: Matrix4<f32> = projection_matrix
-            .inverse_transform()
-            .expect("No inverse transform exists for this matrix");
+            .inverse_transform().ok_or(Error::Matrix("No inverse matrix exists for projection matrix in text"))?;
         let view_coordinates = inverse_projection_matrix * ndc_coordinates;
 
         // need to divide by w (god knows why)
@@ -535,44 +523,48 @@ impl CharacterSet {
             Vector3::new(view_coordinates.x, view_coordinates.y, view_coordinates.z)
                 / view_coordinates.w;
 
-        Matrix4::from_translation(view_coordinates) * Matrix4::from_scale(0.0001)
+        Ok(Matrix4::from_translation(view_coordinates) * Matrix4::from_scale(text_scale))
     }
 }
 
-// #[cfg(test)]
-// mod test {
-//     use std::collections::HashMap;
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
 
-//     use super::{CharacterSet, Character};
+    use crate::simulation::drawable::binder::Binder;
 
-//     #[test]
-//     fn read_properly() {
-//         let set = CharacterSet::new("./assets/dzahui-font_test.fnt");
-//         let should_be_set = CharacterSet {
-//             characters: HashMap::from([
-//                 ('{', Character::new(123,(0.0,0.0),(21.0,61.0),(1.0,13.0))),
-//                 (' ',Character::new(32, (0.0,0.0), (0.0,0.0), (5.0,18.0))),
-//                 ('a',Character::new(97, (211.0,153.0), (35.0,37.0), (2.0,25.0))),
-//             ]),
-//             font_type: "Liberation Sans".to_string(),
-//             font_size: 12,
-//             is_italic: false,
-//             is_bold: false,
-//             line_height: 19,
-//             encoding: "unicode".to_string(),
-//             texture_file: "dzahui-font.png".to_string(),
-//             texture_size: (640, 394),
-//             character_number: 3,
-//         };
-//         assert!( set == should_be_set );
-//     }
+    use super::{CharacterSet, Character};
 
-//     #[test]
-//     fn test_vertices_content() {
-//         let set = CharacterSet::new("./assets/dzahui-font_test.fnt");
-//         let (vertices, indices) = set.get_vertices_from_text("{a{{{a");
-//         // number os squares (quads) should be 6, equal to the number of chars in text
-//         assert!( indices.len()/6 == 6 );
-//         assert!( vertices.len()/20 == 6 );
-//     }
-// }
+    #[test]
+    fn read_properly() {
+        let set = CharacterSet::new("./assets/dzahui-font_test.fnt").unwrap();
+        let should_be_set = CharacterSet {
+            characters: HashMap::from([
+                ('{', Character::new(123,(0.0,0.0),(21.0,61.0),(1.0,13.0))),
+                (' ',Character::new(32, (0.0,0.0), (0.0,0.0), (5.0,18.0))),
+                ('a',Character::new(97, (211.0,153.0), (35.0,37.0), (2.0,25.0))),
+            ]),
+            font_type: "Liberation Sans".to_string(),
+            font_size: 12,
+            is_italic: false,
+            is_bold: false,
+            line_height: 19,
+            encoding: "unicode".to_string(),
+            texture_file: "dzahui-font.png".to_string(),
+            texture_size: (640, 394),
+            character_number: 3,
+            binder: Binder::new(),
+            image_as_vec: set.image_as_vec.clone(),
+        };
+        assert!( set == should_be_set );
+    }
+
+    #[test]
+    fn test_vertices_content() {
+        let set = CharacterSet::new("./assets/dzahui-font_test.fnt").unwrap();
+        let (vertices, indices) = set.get_vertices_from_text("{a{{{a").unwrap();
+        // number of squares (quads) should be 6, equal to the number of chars in text
+        assert!( indices.len() == 6 );
+        assert!( vertices.len() == 6 );
+    }
+}

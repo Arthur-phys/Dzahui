@@ -124,8 +124,8 @@ impl Shader {
     }
 
     /// Send a 4x4 matrix variable to vertex shader. Matrix variable has to be declared as a uniform in shader and it's name must be known for this to work.
-    pub fn set_mat4(&self, opengl_variable_name: &str, mat4_value: &Matrix4<f32>) {
-        let c_str_name = CString::new(opengl_variable_name.as_bytes()).unwrap();
+    pub fn set_mat4(&self, opengl_variable_name: &str, mat4_value: &Matrix4<f32>) -> Result<(),Error> {
+        let c_str_name = CString::new(opengl_variable_name.as_bytes())?;
         unsafe {
             gl::UniformMatrix4fv(
                 gl::GetUniformLocation(self.id, c_str_name.as_ptr()),
@@ -134,5 +134,6 @@ impl Shader {
                 mat4_value.as_ptr(),
             );
         }
+        Ok(())
     }
 }

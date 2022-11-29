@@ -96,7 +96,7 @@ impl DiffussionSolverTimeIndependent {
     ///
     pub fn gauss_legendre_integration(boundary_conditions: [f64;2], mu: f64, b: f64, mesh: &Vec<f64>, gauss_step: usize) -> Result<(Array2<f64>, Array1<f64>),Error> {
         
-        let basis = LinearBasis::new(mesh).unwrap();
+        let basis = LinearBasis::new(mesh)?;
         let basis_len = basis.basis.len();
 
         let mut stiffness_matrix =
