@@ -1,3 +1,4 @@
+// External dependencies
 extern crate log;
 extern crate chrono;
 extern crate regex;
@@ -8,32 +9,46 @@ use std::fs::{File, OpenOptions, read_dir};
 use std::path::PathBuf;
 use std::io::{prelude::*, BufReader};
 
-// Para la comunicación con el escritor de archivos
+// Communication with file writer
 use std::sync::mpsc::{sync_channel, SyncSender, Receiver};
 use std::thread;
 
-// Para imprimir el tiempo adecuadamente
+// Print time adequately
 use chrono::prelude::*;
 
-/// Estructura que escribe a los archivos de bitácora.
+/// # General Information
+/// 
+/// Struct that writes logs to files. Changes files when maximum number of lines has been reached.
+/// 
+/// # Fields
+/// 
+/// * `log_path` - Direction in which files will be generated
+/// * `line_count` - Number of lines currently written 
+/// * `line_maximum` - Maximum number of lines per file
+/// * `current_log_file_number` - Number of current file in which logs are being written
+/// * `log_file` - Current log file
+/// * `rx` - Used for internal communication between log, warn and error in this structure
+/// 
 pub struct LogWriter {
-    /// Dirección en que deben generarse los archivos
     pub log_path: PathBuf,
-    /// Número de líneas escritas al archivo actual
     pub line_count: u64,
-    /// Momento en que debe cambiarse de archivo de bitácora
     pub line_maximum: u64,
-    /// Número de la bitácora actual
     pub current_log_file_number: i64,
-    /// Archivo actual de la bitácora
     pub log_file: File,
-    //pub log_file: BufWriter<File>,
-    /// Uso interno, para comunicación entre las llamadas log, warn y error con esta estructura
     pub rx: Receiver<String>
 }
 
 impl LogWriter {
-    // Genera el archivo de bitácora.
+    /// # General Information
+    /// 
+    /// Creates new instance of LogWriter while taking into account previous log files, last log file and state of last log file
+    /// 
+    /// # Parameters
+    /// 
+    /// * `log_path` - A path-like object where all logs remain
+    /// * `rx` - A receiver for internal communication
+    /// * `line_maximum` - Maximum number of lines for log file
+    /// 
     pub fn new(log_path: PathBuf, rx: Receiver<String>, line_maximum: u64) -> LogWriter {
         if !log_path.as_path().exists() {
             panic!("Log folder does not exist!");
@@ -66,7 +81,7 @@ impl LogWriter {
         }
         // We will check the number of lines of the current log file.
         let (line_count, log_file_path) = if current_log_file_number == -1 {
-            // No hay bitácora aún
+            // No log yet
             current_log_file_number += 1;
             let mut file_path = log_path.clone();
             file_path.push(format!("trace-{}.log", current_log_file_number));
@@ -114,16 +129,22 @@ impl LogWriter {
         };
         LogWriter{
             log_path,
-            //log_file: BufWriter::with_capacity(2000, f),
             log_file: f,
             rx: rx,
             line_count,
             line_maximum,
             current_log_file_number
         }
-        //LogWriter{log_file: f, rx: rx}
     }
 
+    /// # General Information
+    /// 
+    /// Writes to log file and changes internal values like line number and log file if necessary
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&mut self` - A mutable reference to write and change internal state
+    /// 
     pub fn run(&mut self){
         for record in &self.rx {
             match self.log_file.write((record+"\n").as_bytes()) {
@@ -152,20 +173,34 @@ impl LogWriter {
     }
 }
 
-/// Estructura de bitácora para Dzahui
+/// # General Information
+/// 
+/// Logger structure for Dzahui
+/// 
+/// # Fields
+/// 
+/// * `print_to_term` - Wether log should be printed to standard exit or not
+/// * `print_to_file` - Wether log should be written to file
+/// * `tx` - Communication between thread from logs and the rest of Dzahui
+/// * `logger_id` - String to print on log
+/// 
 pub struct DzahuiLogger {
-    /// Indica si la bitácora debe escribirse a salida estándar
     print_to_term: bool,
-    /// Indica si la bitácora deberá escribirse a un archivo
     print_to_file: bool,
-    /// Comunicación entre el thread encargado de las bitácoras y el resto de Kukulkán
     tx: SyncSender<String>,
-    /// Cadena a imprimir en la bitácora
     logger_id: &'static str
 }
 
 impl Log for DzahuiLogger {
-    /// Indica qué nivel de bitácora se usará
+    /// # General Information
+    /// 
+    /// Indicates which level of log will be used
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&self` - to acess method via '.'
+    /// * `metadata` - to check metadata level
+    /// 
     fn enabled(&self, metadata: &Metadata) -> bool {
         match metadata.level() {
             Level::Error => true,
@@ -176,9 +211,17 @@ impl Log for DzahuiLogger {
         }
     }
 
-    /// Lidia con los registros de manera individual
+    /// # General Information
+    /// 
+    /// Deals with every log on an individual manner
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&self` - An instance to check some internal state variables
+    /// * `record` - Payload of a log message to record
+    /// 
     fn log(&self, record: &Record) {
-        // Sólo hacemos caso a los mensajes que planeamos guardar en la bitácora
+        // Only process messages we're interested on
         if self.enabled(record.metadata()) {
             let level_string = {
                 match record.level() {
@@ -219,12 +262,21 @@ impl Log for DzahuiLogger {
         }
     }
 
-    /// Función vacía
+    /// Empty function
     fn flush(&self) {}
 }
 
 impl DzahuiLogger {
-    /// Genera una nueva instancia del gestor de bitácoras.
+    /// # General Information
+    /// 
+    /// Creates a new instance of the logger
+    /// 
+    /// # Parameters
+    /// 
+    /// * `logger_id` - An id for this instance 
+    /// * `print_to_term` - Wether to print to terminal or not 
+    /// * `log_path` - Where to store logs
+    ///  
     pub fn new(logger_id: &'static str, print_to_term: bool, log_path: Option<PathBuf>) -> DzahuiLogger {
         if let Some(log_path) = log_path {
             if !log_path.as_path().exists() {
@@ -245,9 +297,16 @@ impl DzahuiLogger {
     }
 }
 
-/// Spawns a boxed logger.
-///
-/// Must only be called once
+/// # General Information
+/// 
+/// Spawns a boxed logger
+/// Must only be called once.
+/// 
+/// # Parameters
+/// 
+/// * `log_level` - Which level of logging to use 
+/// * `prefix` - Id of logger
+/// 
 pub fn spawn(log_level: log::LevelFilter, prefix: &'static str) -> Result<(), log::SetLoggerError> {
     log::set_boxed_logger(Box::new(DzahuiLogger::new(prefix, true, None))).map(|()| 
         log::set_max_level(log_level)
