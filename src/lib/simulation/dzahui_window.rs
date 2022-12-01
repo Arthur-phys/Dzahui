@@ -31,7 +31,7 @@ use gl;
 /// * `geometry_shader` - Geometry_shaders to compile and use. Responsible for mesh drawing
 /// * `event_loop` - To obtain user input in window and refresh window
 /// * `mouse_coordinates` - Current coordinates of mouse
-/// * `initial_time_step` - When solving a time-dependent problem and not specifiying a time, an initial should be given while enough information is collected
+/// * `initial_time_step` - When solving a time-dependent problem and not specifiying a time, an initial time should be given while enough information is collected
 /// to use framerate
 /// * `character_set` - Set of characters to draw on screen
 /// * `integration_iteration` - Amount of terms to approximate integral
@@ -72,18 +72,32 @@ pub struct DzahuiWindow {
 ///
 /// # Fields
 ///
-/// * `geometry_shader` - Shader used to render triangulated 3D and 2D meshes. Defaults to assets/vertex_shader.vs and assets/fragment_shader.fs.
-/// * `text_shader` - Shader used to render text. Defaults to assets/text_vertex_shader.vs and assets/text_fragment_shader.fs.
+/// * `geometry_fragment_shader` - Shader used to render triangulated 3D and 2D meshes. Defaults to assets/geometry_fragment_shader.fs
+/// * `geometry_vertex_shader` - Shader used to render text. Defaults to assets/geometry_vertex_shader.vs
+/// * `text_fragment_shader` - Shader used to render triangulated 3D and 2D meshes. Defaults to assets/text_fragment_shader.fs
+/// * `text_vertex_shader` - Shader used to render text. Defaults to assets/text_vertex_shader.vs
+/// * `integration_iteration` - Amount of elements to sum to approximate integral
+/// * `opengl_version` - opengl version to use. Tested with 3.3, latter versions should work too
+/// * `initial_time_step` - When solving a time-dependent problem and not specifiying a time, an initial time should be given while enough information is collected
+/// to use framerate
+/// * `window_text_scale` - Scale of text in front of window. This text does not change with camera view
+/// * `mesh_dimension` - Dimension of mesh to build. Used to process certain elements of solution
+/// * `character_set` - Set of characters to draw on screen
+/// * `vertex_selector` - Angle for the cone that casts mouse coordinates to 3d world and selects vertices
+/// * `time_step` - How much to advance a time-dependent solution 
+/// * `camera` - A CameraBuilder. Certain properties can be changend via this structure's methods
 /// * `height` - Height of window. Defaults to 600 px.
 /// * `width` - Width of window. Defaults to 800 px.
+/// * `mesh` - A MeshBuilder. Certain properties can be changed via this structre's methods
+/// * `solver` - An enum representing the equation to be solved
 ///
 #[derive(Debug)]
 pub struct DzahuiWindowBuilder {
     geometry_fragment_shader: Option<String>,
     geometry_vertex_shader: Option<String>,
     text_fragment_shader: Option<String>,
-    integration_iteration: Option<usize>,
     text_vertex_shader: Option<String>,
+    integration_iteration: Option<usize>,
     opengl_version: Option<(u8, u8)>,
     initial_time_step: Option<f64>,
     window_text_scale: Option<f32>,
@@ -281,11 +295,11 @@ impl DzahuiWindowBuilder {
     /// # Details
     ///
     /// First it generates a window builder with title 'Dzahui', size according to builder and always resizable.
-    /// Then and OpenGL version is assigned based on builder.
+    /// Then an OpenGL version is assigned based on builder.
     /// Event loop is generated and, alongside window, made current context.
     /// OpenGL functions are made available and viewport for OpenGL is set.
     /// Geometry and Text shaders are created.
-    /// A new instance of Mesh2D or Mesh3D is placed inside a Box for later use.
+    /// A new instance of Mesh is created for later use.
     /// A new camera is created based on mesh (unless overriden).
     /// A timer is created.
     /// An instance of DzahuiWindow is created.
@@ -547,7 +561,7 @@ impl DzahuiWindow {
         self.camera.modify_view_matrix();
     }
 
-    /// Callback to resize window and change dimensions.
+    /// Callback to resize window.
     fn resize_window(&mut self, new_size: PhysicalSize<u32>) {
         self.context.resize(new_size);
         self.height = new_size.height;
@@ -557,11 +571,13 @@ impl DzahuiWindow {
     /// # General Information
     ///
     /// Run window with a mesh and an event loop. Consumes every object.
+    /// Generates actual solver based on solver enum.
+    /// Sets mesh and text.
+    /// 
     ///
     /// # Parameters
     ///
-    /// * `self` - A window instance.
-    /// * `mesh` - A file to draw a mesh from.
+    /// * `mut self` - A window instance.
     ///
     pub fn run(mut self) {
 
@@ -761,10 +777,12 @@ impl DzahuiWindow {
                     if let Err(e) = self.character_set.bind_all() {
                         panic!("Error while binding character set again! {}",e)
                     }
-                    self.character_set.draw_text(format!(
+                    if let Err(e) = self.character_set.draw_text(format!(
                         "x: {}, y: {}, FPS: {}",
                         self.mouse_coordinates.x, self.mouse_coordinates.y, fps
-                    ));
+                    )) {
+                        panic!("Error while writing coordinates and fps counter: {}",e);
+                    }
 
                     if let Err(e) = self.character_set.unbind_texture() {
                         panic!("Error while unbinding texture for character set!: {}",e)

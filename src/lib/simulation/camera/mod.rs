@@ -22,8 +22,7 @@ use cgmath::{self, Deg, Matrix4, Point3, Vector3};
 /// * `phi` - xz plane - position angle to move camera.
 /// * `radius` - how far away camera is from object.
 ///
-#[derive(Debug)]
-pub(crate) struct Camera {
+#[derive(Debug)]pub(crate) struct Camera {
     pub(crate) camera_position: Point3<f32>,
     camera_target: Point3<f32>,
     pub(crate) view_matrix: Matrix4<f32>,
@@ -120,7 +119,10 @@ impl CameraBuilder {
     ///
     /// # Parameters
     ///
-    /// * `self` -> All camera parameters are within self. Every parameter appearing in Camera struct but not here is derived from the ones that do appear.
+    /// * `self` - Every parameter appearing in Camera struct but not here is derived from the ones that do appear
+    /// * `mesh_length` - Length of mesh to display in order to properly set radius if not given
+    /// * `height` - Winow height
+    /// * `width` - Window width
     ///
     pub(crate) fn build(self, mesh_length: f32, height: u32, width: u32) -> Camera {
         // Normal fov is 45 degrees

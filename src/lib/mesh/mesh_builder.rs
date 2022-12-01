@@ -86,7 +86,7 @@ impl MeshBuilder {
         Ok(line_parts)
     }
 
-    /// Verifies the amount of face specifications per line is 3 and also that all of them have the correct syntax.
+    /// Verifies the amount of face specifications per line is 3 and also that all of them have the correct syntax 'a/b/c'.
     /// Auxiliar function used inside build methods.
     /// Part of the checkup made to a given input file.
     fn obj_face_checker<A>(line: &A) -> Result<Vec<u32>, Error>
@@ -116,7 +116,7 @@ impl MeshBuilder {
                     Error::MeshParse(format!("Error while parsing face coordinate: {}", e))
                 })
             } else {
-                Err(Error::Custom("".to_string()))
+                Err(Error::MeshParse(format!("Error while parsing face coordinate")))
             }?;
 
             if face_part.count() != 2 {

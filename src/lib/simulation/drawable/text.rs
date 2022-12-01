@@ -25,7 +25,7 @@ use super::binder::{Binder, Bindable};
 /// * `id` - Id of a character (unicode).
 /// * `origin` - Place of the character in charmap image.
 /// * `size` - Width and height in a tuple.
-/// * `character_start` - Where the character begins from rectangle ditctated in size.
+/// * `character_start` - Where the character begins from rectangle dictated in size.
 ///
 #[derive(Debug)]
 struct Character {
@@ -54,7 +54,7 @@ struct Character {
 /// * `line_height` - Where characters should start to be drawn vertically.
 /// * `character_number` - Number of characters in font.
 /// * `texture_file` - Where texture file is located.
-/// * `texture_size` - Size of the whole texture file.
+/// * `texture_size` - Dimension of the texture file.
 /// * `binder` - Binder associated to font.
 /// * `image_as_vec` - Image as a vector.
 ///
@@ -112,7 +112,7 @@ impl CharacterSet {
     /// # General Information
     ///
     /// New character set given a character file. It reads every line, substracting information neccesary to get every struct property and later
-    /// create every character and associating it to it's char. It also loads the image and generates a vector with it within.
+    /// create every character and associating it to it's char. It also loads the image and generates a vector with it inside.
     ///
     /// # Parameters
     ///
@@ -489,15 +489,18 @@ impl CharacterSet {
 
     /// # General Information
     ///
-    /// Obtain a matrix to make text appear on screen in a certain position with a certain size. There's still a problem of scale happening: it is hardcoded.
+    /// Obtain a matrix to make text appear on screen in a certain position with a certain size. There's still a problem of scale happening: should be chosen
+    /// dynamically.
     ///
     /// # Parameters
     ///
-    /// * `viewport_x` - Place where text will be rendered in viewport.
-    /// * `viewport_y` - Place where text will be rendered in viewport.
+    /// * `viewport_x` - Place where text will be rendered in viewport
+    /// * `viewport_y` - Place where text will be rendered in viewport
+    /// * `projection_matrix` - Matrix to inverse and obtain view coordinates
     /// * `camera` - A reference to a camera to obtain a projection matrix (should change)
-    /// * `window_height` - Size of viewport to normalize coordinates.
-    /// * `window_width` - Size of viewport to normalize coordinates.
+    /// * `window_height` - Size of viewport to normalize coordinates
+    /// * `window_width` - Size of viewport to normalize coordinates
+    /// * `text_scale` - Scale of text to display
     ///
     pub(crate) fn matrix_for_screen(
         viewport_x: f32,

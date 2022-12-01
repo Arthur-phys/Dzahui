@@ -6,16 +6,16 @@ use crate::Error;
 
 /// # General Information
 ///
-/// A cone firstly serves as an object with 'ray casting'-like functionality to be able to click elements from screen.
+/// A cone first serves as an object with 'ray casting'-like functionality to be able to click elements from screen.
 /// It transforms viewport coordinates to object coordinates and projects a cone inside this viewport. Then, an intersectrion can ben done to obtain closest
 /// object and return it to the user to do something.
 ///
 /// # Fields
 ///
-/// * `anchorage_point` - Point from where the cone starts. Normally coincides with near plane of camera.
+/// * `anchorage_point` - Point from where the cone starts. Normally coincides with near plane of camera
 /// * `direction` - Direction the cone will take. Given mouse position, a line is determined inside viewport. Near and far coordinates are determined and
-/// the direction vector of the line generated (by near and far points) is used.
-/// * `angle` - How much should the cone be open.
+/// the direction vector of the line generated (by near and far points) is used
+/// * `angle` - How much should the cone be open
 ///
 #[derive(Debug)]
 pub(crate) struct Cone {
@@ -98,6 +98,7 @@ impl Cone {
         Ok(())
     }
 
+    #[allow(dead_code)]
     /// Matrix to translate vertex to a given location (normally determined by a mesh instance).
     fn get_translation_matrix(arr: &Array1<f32>) -> Matrix4<f32> {
         let vec_arr = Vector3::new(arr[0] as f32, arr[1] as f32, arr[2] as f32);

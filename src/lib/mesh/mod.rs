@@ -17,7 +17,7 @@ use vertex_type::VertexType;
 
 /// # General Information
 ///
-/// Representation of a plane figure/ 3d body. Contains information to draw to screen and move/rotate mesh representation to final position.
+/// Representation of a plane figure / 3d body. Contains information to draw to screen and move/rotate mesh representation to final position.
 ///
 /// # Fields
 ///
@@ -60,7 +60,7 @@ impl Mesh {
         MeshBuilder::new(location)
     }
 
-    // Filtering vertices to give to 1d solver. Temporal function. To be changed for better solution.
+    /// Filtering vertices to give to 1d solver. Temporal function. To be changed for better solution.
     pub(crate) fn filter_for_solving_1d(&self) -> Array1<f64> {
         // size of vertex is 6. There are double the vertices in 1d since a new pair is generated to draw a bar, therefore len is divided by 12.
         let vertices_len = self.vertices.len() / 12;
