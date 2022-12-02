@@ -6,6 +6,8 @@ pub mod utils;
 // Internal dependencies + re-exports
 pub use diffusion_solver::{DiffussionParamsTimeDependent, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent, DiffussionParamsTimeIndependent};
 
+use super::solver_trait::DiffEquationSolver;
+
 /// # General Information
 ///
 /// An enum representing every equation implemented by this library.
@@ -25,4 +27,14 @@ pub enum Solver {
     DiffussionSolverTimeIndependent(DiffussionParamsTimeIndependent),
     DiffussionSolverTimeDependent(DiffussionParamsTimeDependent),
     None
+}
+
+#[derive(Debug)]
+pub struct NoSolver();
+
+impl DiffEquationSolver for NoSolver {
+
+    fn solve(&mut self, time_step: f64) -> Result<Vec<f64>, crate::Error> {
+        Ok(vec![])
+    }
 }

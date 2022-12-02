@@ -152,7 +152,6 @@ pub(crate) trait Drawable: Bindable {
         unsafe {
             // Draw
             // Comment to see the triangles filled instead of only the lines that form them.
-            gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
             gl::DrawElements(gl::TRIANGLES, indices_len, gl::UNSIGNED_INT, ptr::null());
         }
 

@@ -1,7 +1,7 @@
 // Internal dependencies
 use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
     solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
-        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent
+        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver
     }, Error
 };
 use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
@@ -17,7 +17,6 @@ use glutin::{
 };
 use cgmath::{Matrix4, Point2, Point3, SquareMatrix, Vector3};
 use std::time::Instant;
-use colored::Colorize;
 use gl;
 
 
@@ -144,6 +143,7 @@ impl DzahuiWindowBuilder {
         A: AsRef<str>,
         B: AsRef<str>,
     {
+        log::warn!("Changing shaders for geometry can have undesired results. Proceed with caution");
         Self {
             geometry_vertex_shader: Some(vertex_shader.as_ref().to_string()),
             geometry_fragment_shader: Some(fragment_shader.as_ref().to_string()),
@@ -156,6 +156,7 @@ impl DzahuiWindowBuilder {
         A: AsRef<str>,
         B: AsRef<str>,
     {
+        log::warn!("Changing shaders for text can have undesired results. Proceed with caution");
         Self {
             text_vertex_shader: Some(vertex_shader.as_ref().to_string()),
             text_fragment_shader: Some(fragment_shader.as_ref().to_string()),
@@ -177,6 +178,9 @@ impl DzahuiWindowBuilder {
     }
     /// Changes opengl version.
     pub fn with_opengl_version(self, opengl_version: (u8, u8)) -> Self {
+        if opengl_version.0 !=3 && opengl_version.1 != 3 {
+            log::warn!("Not using OpenGL version 3.3 can have undesired consequences")
+        }
         Self {
             opengl_version: Some(opengl_version),
             ..self
@@ -192,6 +196,7 @@ impl DzahuiWindowBuilder {
     // Shortcut to CameraBuilder methods
     /// Changes distance (radius) to object centered
     pub fn change_distance_from_camera_to_object(self, radius: f32) -> Self {
+        log::warn!("Changing distance to object could block simulation view");
         Self {
             camera: self.camera.change_distance_to_object(radius),
             ..self
@@ -199,6 +204,7 @@ impl DzahuiWindowBuilder {
     }
     /// Changes object being targeted
     pub fn camera_with_target(self, x: f32, y: f32, z: f32) -> Self {
+        log::warn!("Changing target could block simulation view");
         Self {
             camera: self.camera.with_target(x, y, z),
             ..self
@@ -206,6 +212,7 @@ impl DzahuiWindowBuilder {
     }
     /// Changes camera position in a sphere with center `camera_target`
     pub fn with_camera_position(self, theta: f32, phi: f32) -> Self {
+        log::warn!("Changing camera position could block simulation view");
         Self {
             camera: self.camera.with_camera_position(theta, phi),
             ..self
@@ -213,6 +220,7 @@ impl DzahuiWindowBuilder {
     }
     /// Changes fov when using projection matrix
     pub fn with_fov(self, fov: f32) -> Self {
+        log::info!("Changing fov could give you a doom-like experience");
         Self {
             camera: self.camera.with_fov(fov),
             ..self
@@ -220,6 +228,7 @@ impl DzahuiWindowBuilder {
     }
     /// Changes camera movement arround object being targeted
     pub fn with_sensitivity(self, sensitivity: f32) -> Self {
+        log::warn!("Changing camera sensitivity can make harder to control simulation perspective");
         Self {
             camera: self.camera.with_sensitivity(sensitivity),
             ..self
@@ -271,6 +280,7 @@ impl DzahuiWindowBuilder {
     }
     /// Size of text present on screen. Default is chosen otherwise, which may not be good for every scenario
     pub fn with_window_text_scale(self, window_text_scale: f32) -> Self {
+        log::warn!("Text rendering can block simulation it it's too big or can dissapear if it's too small");
         Self {
             window_text_scale: Some(window_text_scale),
             ..self
@@ -279,9 +289,9 @@ impl DzahuiWindowBuilder {
     /// Initial time step when simulation on real time
     pub fn with_initial_time_step(self, initial_time_step: f64) -> Self {
         if let Some(_) = self.time_step {
-            println!("{}","WARNING:\n time_step is set, therefore initial_time_step should not be set since simulation will not occur in real-time".yellow());
+            log::warn!("time_step is set, therefore initial_time_step should not be set since simulation will not occur in real-time");
         }
-        println!("{}","WARNING:\n This could result in a non-convergent solution".yellow());
+        log::warn!("This could result in a non-convergent solution");
         Self {
             initial_time_step: Some(initial_time_step),
             ..self
@@ -347,6 +357,7 @@ impl DzahuiWindowBuilder {
                 Err(e) => panic!("Initializing context for window failed!: {}",e.1)
             }
         };
+        log::info!("Window context created");
 
         // Loading OpenGL functions. Only done once
         gl::load_with(&|s: &str| context.get_proc_address(s));
@@ -361,11 +372,13 @@ impl DzahuiWindowBuilder {
             );
             gl::Enable(gl::DEPTH_TEST);
         }
+        log::info!("OpenGL functions loaded");
 
         // Use text_shaders chosen
         let vertex_shader: String = if let Some(vertex_shader) = self.text_vertex_shader {
             vertex_shader
         } else {
+            log::info!("Using default text shaders");
             "./assets/text_vertex_shader.vs".to_string()
         };
 
@@ -384,6 +397,7 @@ impl DzahuiWindowBuilder {
         let vertex_shader: String = if let Some(vertex_shader) = self.geometry_vertex_shader {
             vertex_shader
         } else {
+            log::info!("Using default geometry shaders");
             "./assets/geometry_vertex_shader.vs".to_string()
         };
 
@@ -400,17 +414,28 @@ impl DzahuiWindowBuilder {
 
         // Creating mesh based on initial provided file.
         let mesh = match match self.mesh_dimension {
-            MeshDimension::One => self.mesh.build_mesh_1d(),
-            MeshDimension::Two => self.mesh.build_mesh_2d(),
-            MeshDimension::Three => self.mesh.build_mesh_3d(),
+            MeshDimension::One => {
+                log::info!("Creating a 1D Mesh");
+                self.mesh.build_mesh_1d()
+            },
+            MeshDimension::Two => {
+                log::info!("Creating a 2D Mesh");
+                self.mesh.build_mesh_2d()
+            },
+            MeshDimension::Three => {
+                log::info!("Creating a 3D Mesh");
+                self.mesh.build_mesh_3d()
+            },
         } {
             Ok(mesh) => mesh,
             Err(e) => panic!("Error while creating mesh!: {}", e)
         };
 
         let window_text_scale = if let Some(sc) = self.window_text_scale {
+            log::info!("Text scale is: {}",sc);
             sc
         } else {
+            log::info!("Text scale is: 0.0001");
             0.0001
         };
 
@@ -420,11 +445,14 @@ impl DzahuiWindowBuilder {
             height,
             width
         );
+        log::info!("Camera created");
 
         // Vertex selector (cone)
         let angle = if let Some(angle) = self.vertex_selector {
+            log::info!("Angle for vertex selector is: {}",angle);
             angle
         } else {
+            log::info!("Angle for vertex selector is: 3.0");
             3.0
         };
         let vertex_selector = Cone::new(
@@ -432,11 +460,14 @@ impl DzahuiWindowBuilder {
             Vector3::new(0.0, 0.0, 1.0),
             angle,
         );
+        log::info!("Vertex selector created");
 
         // set integration precision
         let integration_iteration = if let Some(integration_iteration) = self.integration_iteration {
+            log::info!("Integration iteration is {}",integration_iteration);
             integration_iteration
         } else {
+            log::info!("Integration iteration is 150");
             150
         };
 
@@ -449,7 +480,6 @@ impl DzahuiWindowBuilder {
             if let Some(initial_time_step) = self.initial_time_step {
                 initial_time_step
             } else {
-                log::warn!("\u{26a0} Not setting a time step could result in a non-convergent solution \u{26a0}");
                 0.000001
             }
         };
@@ -464,6 +494,7 @@ impl DzahuiWindowBuilder {
             Ok(chs) => chs,
             Err(e) => panic!("Error while creating character set!: {}",e)
         };
+        log::info!("Character set loaded");
 
         // Start clock for delta time
         let timer = Instant::now();
@@ -599,8 +630,12 @@ impl DzahuiWindow {
                     self.mesh.filter_for_solving_1d().to_vec(),
                     self.integration_iteration);
 
+                    
                 match diffussion_solver {
-                    Ok(d) => Box::new(d),
+                    Ok(d) => {
+                        log::info!("Diffussion solver with time independence created");
+                        Box::new(d)
+                    },
                     Err(error) => panic!("Error creating instance of DiffussionSolverTimeIndependent!: {}",error)
                 }
 
@@ -615,12 +650,18 @@ impl DzahuiWindow {
                 );
 
                 match diffussion_solver {
-                    Ok(d) => Box::new(d),
+                    Ok(d) => {
+                        log::info!("Diffussion solver with time dependence created");
+                        Box::new(d)
+                    },
                     Err(error) => panic!("Error creating instance of DiffussionSolverTimeDependent!: {}",error)
                 }
             }
 
-            _ => {panic!("No solver selected!")}
+            Solver::None => {
+                log::info!("No solver selected. Program will display Mesh");
+                Box::new(NoSolver())
+            }
         };
 
         // Send mesh info: mesh structure and vertices to create body on each one.
@@ -630,6 +671,7 @@ impl DzahuiWindow {
         if let Err(e) = self.mesh.send_to_gpu() {
             panic!("Error while sending mesh to GPU!: {}",e)
         }
+        log::info!("Mesh info has been set up");
 
         // Setup character set info.
         if let Err(e) = self.character_set.setup() {
@@ -639,6 +681,7 @@ impl DzahuiWindow {
             panic!("Error while setting up texture for character set!: {}",e)
         }
         self.character_set.send_to_gpu();
+        log::info!("Characters for writing have been set up");
 
         // Use geometry shader.
         self.geometry_shader.use_shader();
@@ -655,6 +698,7 @@ impl DzahuiWindow {
             .set_mat4("projection", &self.camera.projection_matrix) {
                 panic!("Unable to set projection matrix for geometry!: {}",e)
             }
+        log::info!("Matrices for Mesh visualization set up");
 
         // Use text shader to assign matrices.
         self.text_shader.use_shader();
@@ -678,6 +722,7 @@ impl DzahuiWindow {
         if let Err(e) = self.text_shader.set_mat4("view", &Matrix4::identity()) {
             panic!("Unable to set view matrix for text shader!: {}",e)
         }
+        log::info!("Matrices for Character visualization set up");
 
         event_loop.run(move |event, _, control_flow| {
 
@@ -753,22 +798,32 @@ impl DzahuiWindow {
                         gl::Clear(gl::COLOR_BUFFER_BIT);
                         gl::Clear(gl::DEPTH_BUFFER_BIT);
                     }
-        
-                    let solution = match solver.solve(self.time_step) {
-                        Ok(solution) => solution,
-                        Err(e) => panic!("Error while solving equation!: {}",e)
-                    };
-                    // println!("{:?}",solution);
-        
-                    // updating colors. One time per vertex should be updated (that is, every 6 steps).
-                    self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
-                    
-                    if let Err(e) = self.mesh.bind_all_no_texture() {
-                        panic!("Error while binding mesh again!: {}",e)
+
+                    match self.solver {
+                        
+                        Solver::None => {},
+                        _ => {
+
+                            let solution = match solver.solve(self.time_step) {
+                                Ok(solution) => solution,
+                                Err(e) => panic!("Error while solving equation!: {}",e)
+                            };
+                            // println!("{:?}",solution);
+                
+                            // updating colors. One time per vertex should be updated (that is, every 6 steps).
+                            self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
+                            
+                            if let Err(e) = self.mesh.bind_all_no_texture() {
+                                panic!("Error while binding mesh again!: {}",e)
+                            }
+                            if let Err(e) = self.mesh.send_to_gpu() {
+                                panic!("Error while sending updated mesh to GPU!: {}",e)
+                            }
+                        
+                        }
+
                     }
-                    if let Err(e) = self.mesh.send_to_gpu() {
-                        panic!("Error while sending updated mesh to GPU!: {}",e)
-                    }
+        
         
                     
                     // Text shader to draw text
@@ -797,6 +852,14 @@ impl DzahuiWindow {
         
                     if let Err(e) = self.mesh.bind_vao() {
                         panic!("Unable to bind vao of mesh!: {}",e)
+                    }
+
+                    // Draw filled or not filled
+                    match self.solver {
+                        Solver::None => {}
+                        _ => unsafe {
+                            gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
+                        }
                     }
                     if let Err(e) = self.mesh.draw() {
                         panic!("Unable to draw mesh!: {e}")
