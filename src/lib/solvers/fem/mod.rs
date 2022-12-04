@@ -34,7 +34,7 @@ pub struct NoSolver();
 
 impl DiffEquationSolver for NoSolver {
 
-    fn solve(&mut self, time_step: f64) -> Result<Vec<f64>, crate::Error> {
+    fn solve(&mut self, _time_step: f64) -> Result<Vec<f64>, crate::Error> {
         Ok(vec![])
     }
 }

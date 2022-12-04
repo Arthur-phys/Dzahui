@@ -1,4 +1,4 @@
-use std::{num::{ParseIntError, ParseFloatError}, ffi::NulError};
+use std::{num::{ParseIntError, ParseFloatError}, ffi::NulError, sync::mpsc::RecvError};
 
 #[derive(Debug)]
 /// # General Information
@@ -26,6 +26,8 @@ use std::{num::{ParseIntError, ParseFloatError}, ffi::NulError};
 /// * `Infallible` - Error that never happens
 /// * `WrongDims` - Error while operating on vectors and matrices
 /// * `Overflow` - Error when a number overflows
+/// * `Receiver` - Error on communication between threads
+/// * `Writing` - Error while writing to file values of equation
 /// 
 pub enum Error {
     ExtensionNotAllowed(String, String),
@@ -47,6 +49,8 @@ pub enum Error {
     Infallible,
     WrongDims,
     Overflow,
+    Receiver(RecvError),
+    Writing,
 }
 
 impl std::fmt::Display for Error {
@@ -76,7 +80,9 @@ impl std::fmt::Display for Error {
             Error::Unimplemented => {
                 format!("This error should not exist. Report it to the developer")
             },
-            Error::Integration(e) => format!("Error on integration method occurred: {}",e)
+            Error::Integration(e) => format!("Error on integration method occurred: {}",e),
+            Error::Writing => format!("Error while writing to file values of differential equation"),
+            Error::Receiver(e) => format!("No message received on thread: {}",e)
         };
         write!(formatter, "{}", content)
     }
@@ -117,5 +123,11 @@ impl From<ParseFloatError> for Error {
 impl From<NulError> for Error {
     fn from(source: NulError) -> Self {
         Error::NullCString(source)
+    }
+}
+
+impl From<RecvError> for Error {
+    fn from(source: RecvError) -> Self {
+        Error::Receiver(source)
     }
 }
