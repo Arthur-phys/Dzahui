@@ -2,7 +2,7 @@
 use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
     solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
         solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver
-    }, Error
+    }, Error, writer::Writer
 };
 use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
 
@@ -16,7 +16,7 @@ use glutin::{
     Api, ContextBuilder, ContextWrapper, GlProfile, GlRequest, PossiblyCurrent,
 };
 use cgmath::{Matrix4, Point2, Point3, SquareMatrix, Vector3};
-use std::time::Instant;
+use std::{time::Instant, sync::mpsc::{self, SyncSender, Receiver}, path::PathBuf, thread};
 use gl;
 
 
@@ -40,10 +40,12 @@ use gl;
 /// * `text_shader` - Text shaders to compile and use. Responsible for text rendering
 /// * `window_text_scale` - Scale of text in front of window. This text does not change with camera view
 /// * `timer` - Gives current time since creation of window. Call with `timer.elapsed()`
-/// * `camera` - Camera configuration creates view and projetion matrices, which directly tells OpenGL what to and not to render.
+/// * `camera` - Camera configuration creates view and projetion matrices, which directly tells OpenGL what to and not to render
 /// * `solver` - Solver enum representing the kind of equation to simmulate
 /// * `time_tep` - How much to forward a time-dependent solution 
-/// * `mesh` - A mesh to draw to screen. Represents an object tessellated into triangles/traingular prisms.
+/// * `mesh` - A mesh to draw to screen. Represents an object tessellated into triangles/traingular prisms
+/// * `write_location` - Where to write values from solved equation of needed
+/// * `file_prefix`- If writing files require a prefix to identify them
 ///
 pub struct DzahuiWindow {
     context: ContextWrapper<PossiblyCurrent, Window>,
@@ -63,6 +65,8 @@ pub struct DzahuiWindow {
     solver: Solver,
     time_step: f64,
     mesh: Mesh,
+    write_location: String,
+    file_prefix: String,
 }
 
 /// # General Information
@@ -89,6 +93,8 @@ pub struct DzahuiWindow {
 /// * `width` - Width of window. Defaults to 800 px.
 /// * `mesh` - A MeshBuilder. Certain properties can be changed via this structre's methods
 /// * `solver` - An enum representing the equation to be solved
+/// * `write_location` - Where to write values from solved equation of needed. Will be chosen automatically if None
+/// * `file_prefix`- If writing files require a prefix to identify them. Will be chosen automatically if None
 ///
 #[derive(Debug)]
 pub struct DzahuiWindowBuilder {
@@ -109,6 +115,8 @@ pub struct DzahuiWindowBuilder {
     width: Option<u32>,
     mesh: MeshBuilder,
     solver: Solver,
+    write_location: Option<String>,
+    file_prefix: Option<String>
 }
 
 impl DzahuiWindowBuilder {
@@ -135,6 +143,8 @@ impl DzahuiWindowBuilder {
             height: Some(600),
             width: Some(800),
             time_step: None,
+            write_location: None,
+            file_prefix: None
         }
     }
     /// Changes geometry shader.
@@ -294,6 +304,20 @@ impl DzahuiWindowBuilder {
         log::warn!("This could result in a non-convergent solution");
         Self {
             initial_time_step: Some(initial_time_step),
+            ..self
+        }
+    }
+    /// Set file location. If let None, a predetermined will be chosen later
+    pub fn set_file_location<A: AsRef<str>>(self, write_location: A) -> Self {
+        Self {
+            write_location: Some(write_location.as_ref().to_string()),
+            ..self
+        }
+    }
+    /// Set file prefix. If let None, a predetermined will be chosen later
+    pub fn set_file_prefix<A: AsRef<str>>(self, file_prefix: A) -> Self {
+        Self {
+            file_prefix: Some(file_prefix.as_ref().to_string()),
             ..self
         }
     }
@@ -496,6 +520,20 @@ impl DzahuiWindowBuilder {
         };
         log::info!("Character set loaded");
 
+        // Writing location setting
+        let write_location = if let Some(s) = self.write_location {
+            s
+        } else {
+            "./saved".to_string()
+        };
+
+        // File prefix setting
+        let file_prefix = if let Some(s) = self.file_prefix {
+            s
+        } else {
+            "result".to_string()
+        };
+
         // Start clock for delta time
         let timer = Instant::now();
 
@@ -513,6 +551,8 @@ impl DzahuiWindowBuilder {
             camera,
             width,
             height,
+            write_location,
+            file_prefix,
             event_loop: Some(event_loop),
             mouse_coordinates: Point2::new(0.0, 0.0),
             solver: self.solver,
@@ -599,6 +639,14 @@ impl DzahuiWindow {
         self.width = new_size.width;
     }
 
+    /// Send information of vertices to be written
+    fn send_vertex_info(&self, info: Vec<f64>, sender: &SyncSender<Vec<f64>>) {
+        match sender.send(info) {
+            Err(e) => panic!("Error while communicating between threads. Report this to th deveoper!: {}",e),
+            _ => {}
+        }
+    }
+
     /// # General Information
     ///
     /// Run window with a mesh and an event loop. Consumes every object.
@@ -616,6 +664,51 @@ impl DzahuiWindow {
         let mut counter = 0;
         let mut fps = 0;
         let mut prev_time = 0;
+
+        //set up objects for thread writer
+        let (tx, rx) = mpsc::sync_channel(3);
+        
+        // set writer
+        let writer = match self.solver {
+            Solver::DiffussionSolverTimeDependent(_) => {
+                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), ["x"], true)
+            },
+            Solver::DiffussionSolverTimeIndependent(_) => {
+                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), ["x"], true)
+            },
+            Solver::None => {
+                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), [""], false)
+            }
+        };
+
+        let writer = match writer {
+            Ok(w) => w,
+            Err(e) => panic!("Unable to create writer to record values to files!: {}",e)
+        };
+        // copy of timer for new thread
+        let timer_copy = self.timer.clone();
+
+        // sending writer to thread and start execution
+        thread::spawn(move || {
+            loop {
+                if let Ok(vals) = writer.receiver.recv() {
+                    
+                    let time = timer_copy.elapsed().as_secs_f64();
+                    let res = writer.write(time, vals);
+                    // Send result back to main thread
+                    match res {
+                        Ok(()) => log::info!("Data has been saved"),
+                        Err(e) => panic!("Something happened between threads. Pleas report error to developer!: {}",e) 
+                    }
+                
+                } else {
+                    break;
+                }
+            }
+        });
+        log::info!("Writer has been set in: {}",self.write_location);
+        log::info!("Files will have prefix: {}",self.file_prefix);
+        
 
         // Obtaining Event Loop is necessary since `event_loop.run()` consumes it alongside window if let inside struct instance.
         let event_loop = Option::take(&mut self.event_loop).unwrap();
@@ -724,6 +817,9 @@ impl DzahuiWindow {
         }
         log::info!("Matrices for Character visualization set up");
 
+        // Keep last result
+        let mut solution: Vec<f64> = vec![];
+
         event_loop.run(move |event, _, control_flow| {
 
             match event {
@@ -742,7 +838,10 @@ impl DzahuiWindow {
 
                     WindowEvent::KeyboardInput { input, .. } => match input.scancode {
                         1 => *control_flow = ControlFlow::Exit,
-                        _ => (),
+                        31 => {
+                            self.send_vertex_info(solution.clone(), &tx)
+                        }
+                        _ => {},
                     },
 
                     _ => (),
@@ -804,7 +903,7 @@ impl DzahuiWindow {
                         Solver::None => {},
                         _ => {
 
-                            let solution = match solver.solve(self.time_step) {
+                            solution = match solver.solve(self.time_step) {
                                 Ok(solution) => solution,
                                 Err(e) => panic!("Error while solving equation!: {}",e)
                             };
