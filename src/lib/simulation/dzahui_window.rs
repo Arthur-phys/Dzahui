@@ -16,7 +16,7 @@ use glutin::{
     Api, ContextBuilder, ContextWrapper, GlProfile, GlRequest, PossiblyCurrent,
 };
 use cgmath::{Matrix4, Point2, Point3, SquareMatrix, Vector3};
-use std::{time::Instant, sync::mpsc::{self, SyncSender, Receiver}, path::PathBuf, thread};
+use std::{time::Instant, sync::mpsc::{self, SyncSender}, thread};
 use gl;
 
 
@@ -642,7 +642,7 @@ impl DzahuiWindow {
     /// Send information of vertices to be written
     fn send_vertex_info(&self, info: Vec<f64>, sender: &SyncSender<Vec<f64>>) {
         match sender.send(info) {
-            Err(e) => panic!("Error while communicating between threads. Report this to th deveoper!: {}",e),
+            Err(e) => panic!("Error while communicating between threads. Report this to the deveoper!: {}",e),
             _ => {}
         }
     }
@@ -664,6 +664,8 @@ impl DzahuiWindow {
         let mut counter = 0;
         let mut fps = 0;
         let mut prev_time = 0;
+        // To know wether writer can be called again or not
+        let mut writer_sleep = 0;
 
         //set up objects for thread writer
         let (tx, rx) = mpsc::sync_channel(3);
@@ -839,7 +841,21 @@ impl DzahuiWindow {
                     WindowEvent::KeyboardInput { input, .. } => match input.scancode {
                         1 => *control_flow = ControlFlow::Exit,
                         31 => {
-                            self.send_vertex_info(solution.clone(), &tx)
+                            match input.state {
+                                
+                                ElementState::Pressed => {
+                                    let current_time = self.timer.elapsed().as_millis();
+                                    // Block many succesive calls to savde data (can do 5 per second)
+                                    if current_time - writer_sleep > 200 {
+                                        println!("Saved!");
+                                        writer_sleep = current_time; 
+                                        self.send_vertex_info(solution.clone(), &tx)
+                                    }
+                                },
+                                
+                                _ => {}
+                            }
+
                         }
                         _ => {},
                     },

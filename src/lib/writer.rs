@@ -5,6 +5,19 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
 
+/// # General Information
+/// 
+/// Writer struct writes solution of equation to a given file.
+/// Can take a path to write to, names of variables and a prefix for all files.
+/// Struct is meant to run on it's own thread to block as little as possible the execution of DzahuiWindow
+/// 
+/// # Fields
+/// 
+/// * `receiver` - A sync_channel receiver to obtain vector values to write to file 
+/// * `write_path` - A directory to write files in
+/// * `variable_names` - Chosen by a given equation. Normally a vector like ['x','y','z'] or similar
+/// * `file_prefix` - To identify files from a single simulation
+/// 
 pub(crate) struct Writer {
     pub(crate) receiver: Receiver<Vec<f64>>,
     write_path: PathBuf,
@@ -14,9 +27,31 @@ pub(crate) struct Writer {
 
 impl Writer {
 
-    /// Creates a new instance of writer (And there should be only one, but it is not enforced). Can be told to erase previous files.
-    pub(crate) fn new<A: AsRef<str>, B: AsRef<str>, C: IntoIterator<Item = &'static str>>(receiver: Receiver<Vec<f64>>, write_path: B,
-        file_prefix: A, variable_names: C, erase_prev_dir: bool) -> Result<Self,Error> {
+    /// # General Information
+    /// 
+    /// Creates a new instance of writer (And there should be only one, but it is not enforced).
+    /// Can be told to erase previous files on a directory.
+    /// Will complain if directory is not present
+    /// 
+    /// # Parameters
+    /// 
+    /// * `receiver` - A receiver to obtain the solution to an equation
+    /// * `write_path` - The path in which files are created and written to
+    /// * `file_prefix` - Prefix for all files of a given simulation
+    /// * `variable_names` - A vector with all variables of a problem. Chosen by the equation struct in dzahui window. Also determines how many elements
+    /// from solution vector are taken per line
+    /// * `erase_prev_dir` - Option to erase every file inside dir given. Will not erase nested directories
+    /// 
+    pub(crate) fn new<A, B, C>(
+        receiver: Receiver<Vec<f64>>,
+        write_path: B,
+        file_prefix: A,
+        variable_names: C,
+        erase_prev_dir: bool
+    ) -> Result<Self,Error> where
+        A: AsRef<str>,
+        B: AsRef<str>,
+        C: IntoIterator<Item = &'static str> {
 
         let write_path = PathBuf::from(write_path.as_ref().to_string());
 
@@ -48,7 +83,17 @@ impl Writer {
         })
     }
 
-    /// Writes once to a file created inside
+    /// # General Information
+    /// 
+    /// Writes once to a file created inside. Will create a file for every call.
+    /// To make every file unique, an id must be passed. Dzahui window will pass the time in milis, but any other unique f64 value will do.
+    /// 
+    /// # Parameters
+    /// 
+    /// * `&self` - A reference to itsel to use write path and file prefix
+    /// * `id` - A unique id for a file
+    /// * `vals` - a vector with values to write to file
+    /// 
     pub(crate) fn write(&self, id: f64, vals: Vec<f64>) -> Result<(),Error> {
 
         //Create file name
@@ -96,8 +141,5 @@ impl Writer {
         }
 
         Ok(())
-
     }
-
-
 }
