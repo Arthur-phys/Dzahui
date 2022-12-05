@@ -1,8 +1,6 @@
 use dzahui::{DzahuiWindow, DzahuiWindowBuilder, DiffussionParams};
 
 fn main() {
-    dzahui::logger::spawn(log::LevelFilter::Info, "dzahui").unwrap();
-
     /* TIME DEPENDENT DIFFUSSION */
     let diffussion_params = DiffussionParams::time_dependent()
     .b(1.0)

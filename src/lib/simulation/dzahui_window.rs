@@ -2,7 +2,7 @@
 use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
     solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
         solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver
-    }, Error, writer::Writer
+    }, Error, writer::Writer, logger
 };
 use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
 
@@ -660,6 +660,9 @@ impl DzahuiWindow {
     ///
     pub fn run(mut self) {
 
+        // Spawning logger
+        logger::spawn(log::LevelFilter::Info, "dzahui").unwrap();
+
         self.restart_timer();
         let mut counter = 0;
         let mut fps = 0;
@@ -847,7 +850,6 @@ impl DzahuiWindow {
                                     let current_time = self.timer.elapsed().as_millis();
                                     // Block many succesive calls to savde data (can do 5 per second)
                                     if current_time - writer_sleep > 200 {
-                                        println!("Saved!");
                                         writer_sleep = current_time; 
                                         self.send_vertex_info(solution.clone(), &tx)
                                     }
