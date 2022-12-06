@@ -8,30 +8,6 @@ use crate::Error;
 // External dependencies
 use ndarray::{Array1, Array2};
 
-
-#[derive(Debug)]
-///
-/// # General Conditions
-/// 
-/// An enum representing wether initial conditions are initialized or not.
-/// Can be set to default.
-/// 
-/// # Arms
-/// 
-/// * `Uninitialized` - Conditions are not present
-/// * `Are` - Conditions are present
-/// 
-pub(crate) enum Conditions {
-    Uninitialized,
-    Are(Vec<f64>)
-}
-
-impl Default for Conditions {
-    fn default() -> Self {
-        Conditions::Uninitialized
-    }
-}
-
 #[derive(Default,Debug)]
 ///
 /// # General Information
@@ -49,42 +25,9 @@ pub struct DiffussionParamsTimeDependent {
     pub mu: f64,
     pub b: f64,
     pub boundary_conditions: [f64;2],
-    pub(crate) initial_conditions: Conditions
+    pub(crate) initial_conditions: Vec<f64>
 }
 
-impl DiffussionParamsTimeDependent {
-    /// Set mu
-    pub fn mu(self, mu: f64) -> Self {
-        Self {
-            mu,
-            ..self
-        }
-    }
-
-    /// Set b
-    pub fn b(self, b: f64) -> Self {
-        Self {
-            b,
-            ..self
-        }
-    }
-
-    /// Set boundary conditions
-    pub fn boundary_conditions(self, left: f64, right: f64) -> Self {
-        Self {
-            boundary_conditions: [left, right],
-            ..self
-        }
-    }
-
-    /// Set initial conditions from a vector
-    pub fn initial_conditions<A: IntoIterator<Item = f64>>(self, initial_conditions: A) -> Self {
-        Self {
-            initial_conditions: Conditions::Are(initial_conditions.into_iter().collect()),
-            ..self
-        }
-    }
-}
 #[derive(Debug)]
 /// # General Information
 ///
@@ -117,14 +60,7 @@ impl DiffussionSolverTimeDependent {
     /// Creates new instance checking initial conditions are the size they should be.
     pub fn new(params: &DiffussionParamsTimeDependent, mesh: Vec<f64>, integration_step: usize) -> Result<Self,Error> {
         
-        let initial_conditions = match &params.initial_conditions {
-            Conditions::Uninitialized => {
-                vec![0_f64;mesh.len()]
-            },
-            Conditions::Are(vec) => {
-                vec.clone()
-            }
-        };
+        let initial_conditions = params.initial_conditions.clone();
         
         if initial_conditions.len() != mesh.len() - 2 {
             return Err(Error::WrongDims)
@@ -356,7 +292,7 @@ mod tests {
             .b(1_f64)
             .mu(1_f64)
             .boundary_conditions(0_f64, 1_f64)
-            .initial_conditions(vec![0_f64;1]);
+            .initial_conditions(vec![0_f64;1]).build();
 
         let dif_solver = DiffussionSolverTimeDependent::new(
             &conditions,
@@ -389,7 +325,7 @@ mod tests {
             .initial_conditions(vec![15_f64;1]);
 
         let mut dif_solver = DiffussionSolverTimeDependent::new(
-            &conditions,
+            &conditions.build(),
             vec![0_f64,0.5,1_f64],
             150)
             .unwrap();

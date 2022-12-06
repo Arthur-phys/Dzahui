@@ -2,7 +2,7 @@
 use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
     solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
         solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver
-    }, Error, writer::Writer, logger
+    }, Error, writer::{self, Writer}, logger
 };
 use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
 
@@ -16,7 +16,7 @@ use glutin::{
     Api, ContextBuilder, ContextWrapper, GlProfile, GlRequest, PossiblyCurrent,
 };
 use cgmath::{Matrix4, Point2, Point3, SquareMatrix, Vector3};
-use std::{time::Instant, sync::mpsc::{self, SyncSender}, thread};
+use std::{time::Instant, sync::mpsc::{self, SyncSender}};
 use gl;
 
 
@@ -694,23 +694,7 @@ impl DzahuiWindow {
         let timer_copy = self.timer.clone();
 
         // sending writer to thread and start execution
-        thread::spawn(move || {
-            loop {
-                if let Ok(vals) = writer.receiver.recv() {
-                    
-                    let time = timer_copy.elapsed().as_secs_f64();
-                    let res = writer.write(time, vals);
-                    // Send result back to main thread
-                    match res {
-                        Ok(()) => log::info!("Data has been saved"),
-                        Err(e) => panic!("Something happened between threads. Pleas report error to developer!: {}",e) 
-                    }
-                
-                } else {
-                    break;
-                }
-            }
-        });
+        writer::spawn(writer, timer_copy);
         log::info!("Writer has been set in: {}",self.write_location);
         log::info!("Files will have prefix: {}",self.file_prefix);
         

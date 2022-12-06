@@ -4,6 +4,8 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::mpsc::Receiver;
+use std::thread;
+use std::time::Instant;
 
 /// # General Information
 /// 
@@ -142,4 +144,24 @@ impl Writer {
 
         Ok(())
     }
+}
+
+pub(crate) fn spawn(writer: Writer, timer: Instant) {
+    thread::spawn(move || {
+        loop {
+            if let Ok(vals) = writer.receiver.recv() {
+                
+                let time = timer.elapsed().as_secs_f64();
+                let res = writer.write(time, vals);
+                // Send result back to main thread
+                match res {
+                    Ok(()) => log::info!("Data has been saved"),
+                    Err(e) => panic!("Something happened between threads. Pleas report error to developer!: {}",e) 
+                }
+            
+            } else {
+                break;
+            }
+        }
+    });
 }

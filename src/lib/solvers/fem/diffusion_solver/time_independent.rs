@@ -28,32 +28,6 @@ pub struct DiffussionParamsTimeIndependent {
     pub boundary_conditions: [f64;2],
 }
 
-impl DiffussionParamsTimeIndependent {
-    /// Set mu
-    pub fn mu(self, mu: f64) -> Self {
-        Self {
-            mu,
-            ..self
-        }
-    }
-
-    /// Set b
-    pub fn b(self, b: f64) -> Self {
-        Self {
-            b,
-            ..self
-        }
-    }
-
-    /// Set boundary cconditions
-    pub fn boundary_conditions(self, left: f64, right: f64) -> Self {
-        Self {
-            boundary_conditions: [left, right],
-            ..self
-        }
-    }
-}
-
 #[derive(Debug)]
 /// # General Information
 ///
@@ -229,7 +203,8 @@ mod test {
     #[test]
     fn regular_mesh_matrix_3p() {
 
-        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0)
+        .build();
 
         let dif_solver = DiffussionSolverTimeIndependent::new(
             &params,
@@ -247,7 +222,8 @@ mod test {
     #[test]
     fn solve_system_3p() {
 
-        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0)
+        .build();
 
         let dif_solver = DiffussionSolverTimeIndependent::new(
             &params,
@@ -264,7 +240,8 @@ mod test {
     #[test]
     fn regular_mesh_matrix_4p() {
 
-        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0)
+        .build();
 
         let dif_solver = DiffussionSolverTimeIndependent::new(
             &params,
@@ -286,7 +263,8 @@ mod test {
     #[test]
     fn solve_system_4p() {
 
-        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0)
+        .build();
 
         let dif_solver = DiffussionSolverTimeIndependent::new(
             &params,
@@ -306,7 +284,8 @@ mod test {
     #[test]
     fn regular_mesh_bigger_matrix() {
 
-        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0)
+        .build();
         
         let dif_solver = DiffussionSolverTimeIndependent::new(
             &params,
@@ -333,7 +312,8 @@ mod test {
     #[test]
     fn solve_bigger_system() {
 
-        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0);
+        let params = DiffussionParams::time_independent().b(1.0).mu(1.0).boundary_conditions(0.0, 1.0)
+        .build();
 
         let dif_solver = DiffussionSolverTimeIndependent::new(
             &params,
