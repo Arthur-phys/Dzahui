@@ -1,7 +1,13 @@
 pub mod dim1_time_independent;
 pub mod dim1_time_dependent;
 
-pub use dim1_time_independent::{NavierStokesParams1DTimeIndependent, NavierStokesSolver1DTimeIndependent};
+pub use dim1_time_independent::NavierStokesParams1DTimeIndependent;
+pub use dim1_time_independent::NavierStokesSolver1DTimeIndependent;
+
+// Aliasing
+pub type StaticPressureSolver = NavierStokesSolver1DTimeIndependent;
+pub type StaticPressureParams = NavierStokesParams1DTimeIndependent;
+pub type StaticPressureParamsBuilder = NavierStokesParams1DTimeIndependentBuilder;
 
 /// Struct to initialize builders params for either time-dependent or time-independent diffussion solvers.
 pub struct NavierStokesParams();
@@ -15,8 +21,13 @@ pub struct NavierStokesParams1DTimeIndependentBuilder {
 
 
 impl NavierStokesParams {
+    /// Redirects to time indepentend 1d Navier-Stokes params
     pub fn time_independent1d() -> NavierStokesParams1DTimeIndependentBuilder {
         NavierStokesParams1DTimeIndependentBuilder::default()
+    }
+    /// Redirects to time indepentend 1d Navier-Stokes params with aliasing
+    pub fn static_pressure() -> StaticPressureParamsBuilder {
+        StaticPressureParamsBuilder::default()
     }
 }
 

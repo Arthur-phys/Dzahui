@@ -28,6 +28,7 @@ pub struct NavierStokesParams1DTimeIndependent {
     pub force_function: Box<dyn Fn(f64) -> f64>,
 }
 
+
 impl Default for NavierStokesParams1DTimeIndependent {
     fn default() -> Self {
         Self {
@@ -169,6 +170,74 @@ impl NavierStokesSolver1DTimeIndependent {
             b_vector[i] = b_integral_approximation;
         
         }
+        
+        let derivative_phi_0 = basis.basis[0].differentiate()?;
+        let derivative_phi_n = basis.basis[basis_len-1].differentiate()?;
+        let derivative_phi_1 = basis.basis[1].differentiate()?;
+        let derivative_phi_nm1 = basis.basis[basis_len-2].differentiate()?;
+
+        let transform_function_square_0 =
+            FirstDegreePolynomial::transformation_from_m1_p1(
+                mesh[0],
+                mesh[1],
+            );
+        let transform_function_square_n =
+            FirstDegreePolynomial::transformation_from_m1_p1(
+                mesh[basis_len - 2],
+                mesh[basis_len - 1],
+            );
+        let derivative_t_square_0 = transform_function_square_0.differentiate()?;
+        let derivative_t_square_n = transform_function_square_n.differentiate()?;
+
+        let mut integral_0_approximation = 0_f64;
+        let mut integral_0_next_approximation = 0_f64;
+        let mut integral_n_approximation = 0_f64;
+        let mut integral_n_prev_approximation = 0_f64;
+        let mut b_first_integral_approximation = 0_f64;
+        let mut b_last_integral_approximation = 0_f64;
+
+
+        for j in 1..gauss_step {
+
+            // Obtaining arccos(node) and weight
+            let (theta, w) = gauss_legendre::quad_pair(gauss_step, j)?;
+            let x = theta.cos();
+
+            let translated_0 = transform_function_square_0.evaluate(x); 
+            let translated_n = transform_function_square_n.evaluate(x);
+
+            integral_0_approximation += basis.basis[0].evaluate(translated_0) * 
+                derivative_phi_0.evaluate(translated_0) * 
+                derivative_t_square_0.evaluate(x) * w;
+            
+            integral_0_next_approximation += basis.basis[0].evaluate(translated_0) * 
+            derivative_phi_1.evaluate(translated_0) * 
+            derivative_t_square_0.evaluate(x) * w;
+            
+            integral_n_approximation += basis.basis[basis_len - 1].evaluate(translated_n) * 
+                derivative_phi_n.evaluate(translated_n) * 
+                derivative_t_square_n.evaluate(x) * w;
+            
+            integral_n_prev_approximation += basis.basis[basis_len - 1].evaluate(translated_n) * 
+            derivative_phi_nm1.evaluate(translated_n) * 
+            derivative_t_square_n.evaluate(x) * w;
+
+            b_first_integral_approximation += rho * function(translated_0) *
+            basis.basis[0].evaluate(translated_0) *
+            derivative_t_square_0.evaluate(x) * w;
+            
+            b_last_integral_approximation += rho * function(translated_n) *
+            basis.basis[basis_len - 1].evaluate(translated_n) *
+            derivative_t_square_n.evaluate(x) * w;
+
+        }
+
+        stiffness_matrix[[0, 0]] = integral_0_approximation;
+        stiffness_matrix[[basis_len - 1, basis_len - 1]] = integral_n_approximation;
+        stiffness_matrix[[0, 1]] = integral_0_next_approximation;
+        stiffness_matrix[[basis_len -1, basis_len - 2]] = integral_n_prev_approximation;
+        b_vector[0] = b_first_integral_approximation;
+        b_vector[basis_len - 1] = b_last_integral_approximation;
 
         Ok((stiffness_matrix, b_vector))
 

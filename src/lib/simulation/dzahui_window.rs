@@ -1,7 +1,7 @@
 // Internal dependencies
 use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
     solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
-        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver, NavierStokesSolver1DTimeIndependent, NavierStokesParams1DTimeIndependent
+        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver, StaticPressureSolver, NavierStokesParams1DTimeIndependent
     }, Error, writer::{self, Writer}, logger
 };
 use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
@@ -266,7 +266,7 @@ impl DzahuiWindowBuilder {
             ..self
         }
     }
-    // Makes time-dependant diffusion solver simulation
+    /// Makes time-dependant diffusion solver simulation
     pub fn solve_1d_time_dependent_diffussion(self, params: DiffussionParamsTimeDependent) -> Self {
         Self {
             solver: Solver::DiffussionSolverTimeDependent(params),
@@ -274,7 +274,16 @@ impl DzahuiWindowBuilder {
             ..self
         }
     }
+    /// Makes Navier-Stokes time-independent solver simulation
     pub fn solve_1d_time_independent_navier_stokes(self, params: NavierStokesParams1DTimeIndependent) -> Self {
+        Self {
+            solver: Solver::NavierStokes1DSolverTimeIndependent(params),
+            mesh_dimension: MeshDimension::One,
+            ..self
+        }
+    }
+    /// Makes Navier-Stokes time-independent solver simulation with alias StaticPressureSolver
+    pub fn solve_static_pressure(self, params: NavierStokesParams1DTimeIndependent) -> Self {
         Self {
             solver: Solver::NavierStokes1DSolverTimeIndependent(params),
             mesh_dimension: MeshDimension::One,
@@ -752,7 +761,7 @@ impl DzahuiWindow {
 
             Solver::NavierStokes1DSolverTimeIndependent(ref params) => {
                 
-                let navier_stokes_1d_solver = NavierStokesSolver1DTimeIndependent::new(
+                let navier_stokes_1d_solver = StaticPressureSolver::new(
                     &params,
                     self.mesh.filter_for_solving_1d().to_vec(),
                     self.integration_iteration

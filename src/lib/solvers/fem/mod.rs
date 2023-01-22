@@ -6,7 +6,7 @@ pub mod navier_stokes_solver;
 
 // Internal dependencies + re-exports
 pub use diffusion_solver::{DiffussionParamsTimeDependent, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent, DiffussionParamsTimeIndependent};
-pub use navier_stokes_solver::{NavierStokesParams1DTimeIndependent,NavierStokesSolver1DTimeIndependent};
+pub use navier_stokes_solver::{NavierStokesParams1DTimeIndependent,StaticPressureSolver};
 use super::solver_trait::DiffEquationSolver;
 
 /// # General Information

@@ -30,8 +30,8 @@ chrono = "0.4.23"
 lazy_static = "1.4.0"
 
 [[bin]]
-name = "navier_stokes_1d_time_independent"
-src = "src/bin/navier_stokes_1d_time_independent.rs"
+name = "static_pressure"
+src = "src/bin/static_pressure.rs"
 
 [[bin]]
 name = "diffusion_time_dependent"
