@@ -3,6 +3,7 @@ name = "Dzahui"
 version = "0.1.0-beta.2"
 edition = "2021"
 license = "MIT"
+default-run = "main"
 description = "CFD Library for 2D and 1D simulation"
 homepage = "https://github.com/Arthur-phys/Dzahui"
 documentation = "https://github.com/Arthur-phys/Dzahui"
@@ -13,6 +14,7 @@ readme = "README.md"
 [lib]
 name = "dzahui"
 path = "src/lib/mod.rs"
+
 
 [dependencies]
 glutin = "0.28.0"
@@ -38,3 +40,7 @@ src = "src/bin/diffusion_time_dependent.rs"
 [[bin]]
 name = "diffusion_time_independent"
 src = "src/bin/diffusion_time_dependent.rs"
+
+[[bin]]
+name = "main"
+src = "src/bin/main.rs"
