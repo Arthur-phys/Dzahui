@@ -1,6 +1,7 @@
 // Module definition
+pub mod piecewise_polynomials_1degree;
+pub mod piecewise_polynomials_2degree;
 pub mod linear_basis;
-pub mod piecewise_polynomials_1d;
 pub mod polynomials_1d;
 pub mod quadratic_basis;
 pub mod functions;

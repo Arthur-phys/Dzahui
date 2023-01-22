@@ -147,6 +147,34 @@ impl SecondDegreePolynomial {
             independent_term,
         }
     }
+
+    // One of three basis functions on unit interval [0,1]
+    pub fn psi_1() -> SecondDegreePolynomial {
+        SecondDegreePolynomial {
+            quadratic_coefficient: 2_f64,
+            linear_coefficient: -3_f64,
+            independent_term: 1_f64
+        }
+    }
+
+    // One of three basis functions on unit interval [0,1]
+    pub fn psi_2() -> SecondDegreePolynomial {
+        SecondDegreePolynomial {
+            quadratic_coefficient: -4_f64,
+            linear_coefficient: 4_f64,
+            independent_term: 0_f64
+        }
+    }
+
+    // One of three basis functions on unit interval [0,1]
+    pub fn psi_3() -> SecondDegreePolynomial {
+        SecondDegreePolynomial {
+            quadratic_coefficient: 2_f64,
+            linear_coefficient: -1_f64,
+            independent_term: 0_f64
+        }
+    }
+
 }
 
 impl Function1D for SecondDegreePolynomial {

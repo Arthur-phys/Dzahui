@@ -1,11 +1,11 @@
 // Module declarations
 pub mod basis;
-pub mod diffusion_solver;
 pub mod utils;
+pub mod diffusion_solver;
+pub mod navier_stokes_solver;
 
 // Internal dependencies + re-exports
 pub use diffusion_solver::{DiffussionParamsTimeDependent, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent, DiffussionParamsTimeIndependent};
-
 use super::solver_trait::DiffEquationSolver;
 
 /// # General Information
