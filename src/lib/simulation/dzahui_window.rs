@@ -1,7 +1,7 @@
 // Internal dependencies
 use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
     solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
-        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver
+        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver, NavierStokesSolver1DTimeIndependent, NavierStokesParams1DTimeIndependent
     }, Error, writer::{self, Writer}, logger
 };
 use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
@@ -270,6 +270,13 @@ impl DzahuiWindowBuilder {
     pub fn solve_1d_time_dependent_diffussion(self, params: DiffussionParamsTimeDependent) -> Self {
         Self {
             solver: Solver::DiffussionSolverTimeDependent(params),
+            mesh_dimension: MeshDimension::One,
+            ..self
+        }
+    }
+    pub fn solve_1d_time_independent_navier_stokes(self, params: NavierStokesParams1DTimeIndependent) -> Self {
+        Self {
+            solver: Solver::NavierStokes1DSolverTimeIndependent(params),
             mesh_dimension: MeshDimension::One,
             ..self
         }
@@ -676,10 +683,13 @@ impl DzahuiWindow {
         // set writer
         let writer = match self.solver {
             Solver::DiffussionSolverTimeDependent(_) => {
-                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), ["x"], true)
+                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), ["v_x"], true)
             },
             Solver::DiffussionSolverTimeIndependent(_) => {
-                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), ["x"], true)
+                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), ["v_x"], true)
+            },
+            Solver::NavierStokes1DSolverTimeIndependent(_) => {
+                Writer::new(rx,self.write_location.clone(), self.file_prefix.clone(), ["p_x"],true)
             },
             Solver::None => {
                 Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), [""], false)
@@ -737,6 +747,23 @@ impl DzahuiWindow {
                         Box::new(d)
                     },
                     Err(error) => panic!("Error creating instance of DiffussionSolverTimeDependent!: {}",error)
+                }
+            },
+
+            Solver::NavierStokes1DSolverTimeIndependent(ref params) => {
+                
+                let navier_stokes_1d_solver = NavierStokesSolver1DTimeIndependent::new(
+                    &params,
+                    self.mesh.filter_for_solving_1d().to_vec(),
+                    self.integration_iteration
+                );
+
+                match navier_stokes_1d_solver {
+                    Ok(n) => {
+                        log::info!("Navier-Stokes solver in 1D with no time dependency created");
+                        Box::new(n)
+                    },
+                    Err(error) => panic!("Error creatin instance of NavierStokesSolver1DTimeIndependent!: {}",error)
                 }
             }
 

@@ -11,3 +11,4 @@ pub use self::error::Error;
 pub use self::simulation::dzahui_window::{DzahuiWindow, DzahuiWindowBuilder};
 pub use self::solvers::euler::EulerSolver;
 pub use self::solvers::diffusion_solver::DiffussionParams;
+pub use self::solvers::navier_stokes_solver::NavierStokesParams;

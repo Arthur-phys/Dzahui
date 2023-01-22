@@ -35,8 +35,10 @@ pub struct DiffussionParamsTimeIndependent {
 ///
 /// # Fields
 ///
-/// * `boundary_conditions` - Original boundary conditions (Only Dirichlet is supported for now, Neumann is being worked on).
-/// * `mesh` - A vector of f64 representing a line.
+/// * `boundary_conditions` - Original boundary conditions (Only Dirichlet is supported for now).
+/// * `stiffness_matrix` - Left-side matrix of the resulting discrete equation.
+/// * `b_vector` - Right-side vector of the resulting discrete equation.
+/// * `gauss_step` - Precision of quadrature.
 /// * `mu` - First ot two needed constants.
 /// * `b` - Second of two needed constants.
 ///

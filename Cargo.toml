@@ -26,3 +26,15 @@ log = {version = "0.4.17", features=["std"]}
 regex = "1.7.0"
 chrono = "0.4.23"
 lazy_static = "1.4.0"
+
+[[bin]]
+name = "navier_stokes_1d_time_independent"
+src = "src/bin/navier_stokes_1d_time_independent.rs"
+
+[[bin]]
+name = "diffusion_time_dependent"
+src = "src/bin/diffusion_time_dependent.rs"
+
+[[bin]]
+name = "diffusion_time_independent"
+src = "src/bin/diffusion_time_dependent.rs"
