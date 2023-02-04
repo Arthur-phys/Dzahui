@@ -19,12 +19,12 @@ use ndarray::{Array1, Array2};
 /// # Parameters
 /// 
 /// * `rho` - Constant density
-/// * `speed` - Constant speed
+/// * `pressure` - Pressure [0] at index [1]
 /// * `boundary_condition_pressure` - Pressure boundary condition
 /// 
 pub struct NavierStokesParams1DTimeIndependent {
     pub rho: f64,
-    pub speed: f64,
+    pub pressure: (f64,usize),
     pub force_function: Box<dyn Fn(f64) -> f64>,
 }
 
@@ -33,7 +33,7 @@ impl Default for NavierStokesParams1DTimeIndependent {
     fn default() -> Self {
         Self {
             rho: 0_f64,
-            speed: 0_f64,
+            pressure: (0_f64,0),
             force_function: Box::new(|x| x)
         }
     }
@@ -43,7 +43,7 @@ impl Debug for NavierStokesParams1DTimeIndependent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ff = &self.force_function;
         let eval = ff(0_f64);
-        let content = format!("{{ rho: {},\nspeed: {},\n force_function: f(0) -> {} }}", self.rho, self.speed,eval);
+        let content = format!("{{ rho: {},\npressure: {:?},\n force_function: f(0) -> {} }}", self.rho, self.pressure,eval);
         write!(f, "{}", content)
     }
 }
@@ -66,7 +66,7 @@ pub struct NavierStokesSolver1DTimeIndependent {
     pub(crate) stiffness_matrix: Array2<f64>,
     pub(crate) b_vector: Array1<f64>,
     pub gauss_step: usize,
-    pub speed: f64,
+    pub pressure: (f64,usize),
     pub rho: f64,
 }
 
@@ -74,8 +74,13 @@ impl NavierStokesSolver1DTimeIndependent {
 
     pub fn new(params: &NavierStokesParams1DTimeIndependent, mesh: Vec<f64>, gauss_step: usize) -> Result<Self,Error> {
 
+        if params.pressure.1 >= mesh.len() {
+            return Err(Error::BoundaryError(format!("Pressure index {} is larger than mesh lenght", params.pressure.1)))
+        }
+
         let (stiffness_matrix, b_vector) = Self::gauss_legendre_integration(
             params.rho,
+            params.pressure,
             &mesh,
             gauss_step,
             &params.force_function
@@ -84,13 +89,13 @@ impl NavierStokesSolver1DTimeIndependent {
             stiffness_matrix,
             gauss_step,
             b_vector,
-            speed: params.speed,
+            pressure: params.pressure,
             rho: params.rho
         })
 
     }
 
-    pub fn gauss_legendre_integration(rho: f64, mesh: &Vec<f64>, gauss_step: usize, function: &Box<dyn Fn(f64) -> f64>) -> Result<(Array2<f64>, Array1<f64>),Error> {
+    pub fn gauss_legendre_integration(rho: f64, pressure: (f64,usize), mesh: &Vec<f64>, gauss_step: usize, function: &Box<dyn Fn(f64) -> f64>) -> Result<(Array2<f64>, Array1<f64>),Error> {
 
         let basis = LinearBasis::new(mesh)?;
         let basis_len = basis.basis.len();
@@ -238,6 +243,13 @@ impl NavierStokesSolver1DTimeIndependent {
         stiffness_matrix[[basis_len -1, basis_len - 2]] = integral_n_prev_approximation;
         b_vector[0] = b_first_integral_approximation;
         b_vector[basis_len - 1] = b_last_integral_approximation;
+
+        // Insert pressure condition
+        b_vector[pressure.1] = pressure.0;
+        for k in 0..basis_len {
+            stiffness_matrix[[pressure.1,k]] = 0_f64;
+        }
+        stiffness_matrix[[pressure.1,pressure.1]] = 1_f64;
 
         Ok((stiffness_matrix, b_vector))
 
