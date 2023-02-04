@@ -35,6 +35,7 @@ pub enum Error {
     ParseFloat(ParseFloatError),
     ParseInt(ParseIntError),
     CharacterError(String),
+    BoundaryError(String),
     NotFound(&'static str),
     NullCString(NulError),
     Matrix(&'static str),
@@ -65,6 +66,7 @@ impl std::fmt::Display for Error {
             Error::ParseFloat(e) => format!("ParseFloat error: {}",e),
             Error::ParseInt(e) => format!("ParseInt error: {}",e),
             Error::NotFound(file) => format!("Could not find file: {}",file),
+            Error::BoundaryError(e) => format!("Boundary error: {}",e),
             Error::Io(e) => format!("IO error: {}", e),
             Error::ImageError(e) => format!("Image error: {}",e),
             Error::WrongDims => {
