@@ -14,7 +14,7 @@ pub struct NavierStokesParams();
 
 #[derive(Default)]
 pub struct NavierStokesParams1DTimeIndependentBuilder {
-    pressure: Option<(f64,usize)>,
+    pressure: Option<f64>,
     rho: Option<f64>,
     force_function: Option<Box<dyn Fn(f64) -> f64>>
 }
@@ -33,9 +33,9 @@ impl NavierStokesParams {
 
 impl NavierStokesParams1DTimeIndependentBuilder {
     /// Set pressure
-    pub fn pressure(self, pressure_value: f64, pressure_index: usize) -> Self {
+    pub fn hydrostatic_pressure(self, pressure_value: f64) -> Self {
         Self {
-            pressure: Some((pressure_value,pressure_index)),
+            pressure: Some(pressure_value),
             ..self
         }
     }
@@ -56,10 +56,10 @@ impl NavierStokesParams1DTimeIndependentBuilder {
     /// Build NavierStokesParams1D
     pub fn build(self) -> NavierStokesParams1DTimeIndependent {
         
-        let pressure = if let Some(pressure) = self.pressure {
-            pressure
+        let hydrostatic_pressure = if let Some(hydrostatic_pressure) = self.pressure {
+            hydrostatic_pressure
         } else {
-            panic!("Params lack 'speed' term!");
+            panic!("Params lack 'hydrostatic_pressure' term!");
         };
 
         let rho = if let Some(rho) = self.rho {
@@ -75,7 +75,7 @@ impl NavierStokesParams1DTimeIndependentBuilder {
         };
         
         NavierStokesParams1DTimeIndependent {
-            pressure,
+            hydrostatic_pressure,
             rho,
             force_function
         }

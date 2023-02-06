@@ -24,7 +24,7 @@ use ndarray::{Array1, Array2};
 /// 
 pub struct NavierStokesParams1DTimeIndependent {
     pub rho: f64,
-    pub pressure: (f64,usize),
+    pub hydrostatic_pressure: f64,
     pub force_function: Box<dyn Fn(f64) -> f64>,
 }
 
@@ -33,7 +33,7 @@ impl Default for NavierStokesParams1DTimeIndependent {
     fn default() -> Self {
         Self {
             rho: 0_f64,
-            pressure: (0_f64,0),
+            hydrostatic_pressure: 0_f64,
             force_function: Box::new(|x| x)
         }
     }
@@ -43,7 +43,7 @@ impl Debug for NavierStokesParams1DTimeIndependent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ff = &self.force_function;
         let eval = ff(0_f64);
-        let content = format!("{{ rho: {},\npressure: {:?},\n force_function: f(0) -> {} }}", self.rho, self.pressure,eval);
+        let content = format!("{{ rho: {},\npressure: {},\n force_function: f(0) -> {} }}", self.rho, self.hydrostatic_pressure,eval);
         write!(f, "{}", content)
     }
 }
@@ -66,7 +66,7 @@ pub struct NavierStokesSolver1DTimeIndependent {
     pub(crate) stiffness_matrix: Array2<f64>,
     pub(crate) b_vector: Array1<f64>,
     pub gauss_step: usize,
-    pub pressure: (f64,usize),
+    pub hydrostatic_pressure: f64,
     pub rho: f64,
 }
 
@@ -74,13 +74,9 @@ impl NavierStokesSolver1DTimeIndependent {
 
     pub fn new(params: &NavierStokesParams1DTimeIndependent, mesh: Vec<f64>, gauss_step: usize) -> Result<Self,Error> {
 
-        if params.pressure.1 >= mesh.len() {
-            return Err(Error::BoundaryError(format!("Pressure index {} is larger than mesh lenght", params.pressure.1)))
-        }
-
         let (stiffness_matrix, b_vector) = Self::gauss_legendre_integration(
             params.rho,
-            params.pressure,
+            params.hydrostatic_pressure,
             &mesh,
             gauss_step,
             &params.force_function
@@ -89,13 +85,13 @@ impl NavierStokesSolver1DTimeIndependent {
             stiffness_matrix,
             gauss_step,
             b_vector,
-            pressure: params.pressure,
+            hydrostatic_pressure: params.hydrostatic_pressure,
             rho: params.rho
         })
 
     }
 
-    pub fn gauss_legendre_integration(rho: f64, pressure: (f64,usize), mesh: &Vec<f64>, gauss_step: usize, function: &Box<dyn Fn(f64) -> f64>) -> Result<(Array2<f64>, Array1<f64>),Error> {
+    pub fn gauss_legendre_integration(rho: f64, hydrostatic_pressure: f64, mesh: &Vec<f64>, gauss_step: usize, function: &Box<dyn Fn(f64) -> f64>) -> Result<(Array2<f64>, Array1<f64>),Error> {
 
         let basis = LinearBasis::new(mesh)?;
         let basis_len = basis.basis.len();
@@ -177,29 +173,18 @@ impl NavierStokesSolver1DTimeIndependent {
         }
         
         let derivative_phi_0 = basis.basis[0].differentiate()?;
-        let derivative_phi_n = basis.basis[basis_len-1].differentiate()?;
         let derivative_phi_1 = basis.basis[1].differentiate()?;
-        let derivative_phi_nm1 = basis.basis[basis_len-2].differentiate()?;
 
         let transform_function_square_0 =
             FirstDegreePolynomial::transformation_from_m1_p1(
                 mesh[0],
                 mesh[1],
             );
-        let transform_function_square_n =
-            FirstDegreePolynomial::transformation_from_m1_p1(
-                mesh[basis_len - 2],
-                mesh[basis_len - 1],
-            );
         let derivative_t_square_0 = transform_function_square_0.differentiate()?;
-        let derivative_t_square_n = transform_function_square_n.differentiate()?;
 
         let mut integral_0_approximation = 0_f64;
         let mut integral_0_next_approximation = 0_f64;
-        let mut integral_n_approximation = 0_f64;
-        let mut integral_n_prev_approximation = 0_f64;
         let mut b_first_integral_approximation = 0_f64;
-        let mut b_last_integral_approximation = 0_f64;
 
 
         for j in 1..gauss_step {
@@ -208,8 +193,7 @@ impl NavierStokesSolver1DTimeIndependent {
             let (theta, w) = gauss_legendre::quad_pair(gauss_step, j)?;
             let x = theta.cos();
 
-            let translated_0 = transform_function_square_0.evaluate(x); 
-            let translated_n = transform_function_square_n.evaluate(x);
+            let translated_0 = transform_function_square_0.evaluate(x);
 
             integral_0_approximation += basis.basis[0].evaluate(translated_0) * 
                 derivative_phi_0.evaluate(translated_0) * 
@@ -218,38 +202,18 @@ impl NavierStokesSolver1DTimeIndependent {
             integral_0_next_approximation += basis.basis[0].evaluate(translated_0) * 
             derivative_phi_1.evaluate(translated_0) * 
             derivative_t_square_0.evaluate(x) * w;
-            
-            integral_n_approximation += basis.basis[basis_len - 1].evaluate(translated_n) * 
-                derivative_phi_n.evaluate(translated_n) * 
-                derivative_t_square_n.evaluate(x) * w;
-            
-            integral_n_prev_approximation += basis.basis[basis_len - 1].evaluate(translated_n) * 
-            derivative_phi_nm1.evaluate(translated_n) * 
-            derivative_t_square_n.evaluate(x) * w;
 
             b_first_integral_approximation += rho * function(translated_0) *
             basis.basis[0].evaluate(translated_0) *
             derivative_t_square_0.evaluate(x) * w;
-            
-            b_last_integral_approximation += rho * function(translated_n) *
-            basis.basis[basis_len - 1].evaluate(translated_n) *
-            derivative_t_square_n.evaluate(x) * w;
 
         }
 
         stiffness_matrix[[0, 0]] = integral_0_approximation;
-        stiffness_matrix[[basis_len - 1, basis_len - 1]] = integral_n_approximation;
         stiffness_matrix[[0, 1]] = integral_0_next_approximation;
-        stiffness_matrix[[basis_len -1, basis_len - 2]] = integral_n_prev_approximation;
+        stiffness_matrix[[basis_len-1,basis_len-1]] = 1_f64;
         b_vector[0] = b_first_integral_approximation;
-        b_vector[basis_len - 1] = b_last_integral_approximation;
-
-        // Insert pressure condition
-        b_vector[pressure.1] = pressure.0;
-        for k in 0..basis_len {
-            stiffness_matrix[[pressure.1,k]] = 0_f64;
-        }
-        stiffness_matrix[[pressure.1,pressure.1]] = 1_f64;
+        b_vector[basis_len - 1] = hydrostatic_pressure;
 
         Ok((stiffness_matrix, b_vector))
 
@@ -272,5 +236,40 @@ impl DiffEquationSolver for NavierStokesSolver1DTimeIndependent {
 
 #[cfg(test)]
 mod test {
+    use crate::NavierStokesParams;
+
+    use super::{NavierStokesSolver1DTimeIndependent,DiffEquationSolver};
+
+    #[test]
+    fn regular_mesh_matrix_4p_nav() {
+        
+        let params = NavierStokesParams::time_independent1d().force_function(Box::new(|_| 10_f64))
+            .hydrostatic_pressure(1_f64).rho(1_f64).build();
+
+        let mut eq = NavierStokesSolver1DTimeIndependent::new(&params, vec![0_f64,0.333,0.666,1_f64], 150).unwrap();
+
+        assert!(eq.stiffness_matrix[[0, 0]] <= -0.4 && eq.stiffness_matrix[[0, 0]] >= -0.6);
+        assert!(eq.stiffness_matrix[[0, 1]] <= 0.6 && eq.stiffness_matrix[[0, 1]] >= 0.4);
+        assert!(eq.stiffness_matrix[[1, 0]] <= -0.4 && eq.stiffness_matrix[[1, 0]] >= -0.6);
+        assert!(eq.stiffness_matrix[[1, 1]] <= 0.1 && eq.stiffness_matrix[[1, 1]] >= -0.1);
+        assert!(eq.stiffness_matrix[[1, 2]] <= 0.6 && eq.stiffness_matrix[[1, 2]] >= 0.4);
+        assert!(eq.stiffness_matrix[[2, 1]] <= -0.4 && eq.stiffness_matrix[[2, 1]] >= -0.6);
+        assert!(eq.stiffness_matrix[[2, 2]] <= 0.1 && eq.stiffness_matrix[[2, 2]] >= -0.1);
+        assert!(eq.stiffness_matrix[[2, 3]] <= 0.6 && eq.stiffness_matrix[[2, 3]] >= 0.4);
+        assert!(eq.stiffness_matrix[[3, 2]] == 0_f64);
+        assert!(eq.stiffness_matrix[[3, 3]] == 1_f64);
     
+        println!("{:?}",eq.b_vector);
+        assert!(eq.b_vector[[0]] <= 1.75 && eq.b_vector[[0]] >= 1.55);       
+        assert!(eq.b_vector[[1]] <= 3.45 && eq.b_vector[[1]] >= 3.25);       
+        assert!(eq.b_vector[[2]] <= 3.45 && eq.b_vector[[2]] >= 3.25);       
+        assert!(eq.b_vector[[3]] == 1_f64);
+        
+        let solution = eq.solve(0_f64).unwrap();
+
+        assert!(solution[0] <= -8.9 && solution[0] >= -9.1);
+        assert!(solution[1] <= -5.5 && solution[1] >= -5.7);
+        assert!(solution[2] <= -2.2 && solution[2] >= -2.4);
+
+    }
 }

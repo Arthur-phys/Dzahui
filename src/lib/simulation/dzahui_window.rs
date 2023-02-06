@@ -945,7 +945,6 @@ impl DzahuiWindow {
                                 Ok(solution) => solution,
                                 Err(e) => panic!("Error while solving equation!: {}",e)
                             };
-                            // println!("{:?}",solution);
                 
                             // updating colors. One time per vertex should be updated (that is, every 6 steps).
                             self.mesh.update_gradient_1d(solution.iter().map(|x| x.abs()).collect());
