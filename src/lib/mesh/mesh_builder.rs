@@ -417,12 +417,18 @@ impl MeshBuilder {
                         boundary_edges.get_mut(&[triangle[0], triangle[1]])
                     {
                         *counter += 1;
+                    } else if let Some(counter) = boundary_edges.get_mut(&[triangle[1],triangle[0]]) {
+                        
+                        *counter += 1;
                     } else {
                         boundary_edges.insert([triangle[0], triangle[1]], 1);
                     }
                     if let Some(counter) =
                         boundary_edges.get_mut(&[triangle[0], triangle[2]])
                     {
+                        *counter += 1;
+                    } else if let Some(counter) = boundary_edges.get_mut(&[triangle[2],triangle[0]]) {
+
                         *counter += 1;
                     } else {
                         boundary_edges.insert([triangle[0], triangle[2]], 1);
@@ -431,7 +437,10 @@ impl MeshBuilder {
                         boundary_edges.get_mut(&[triangle[2], triangle[1]])
                     {
                         *counter += 1;
-                    } else {
+                    } else if let Some(counter) = boundary_edges.get_mut(&[triangle[1],triangle[2]]) {
+
+                        *counter += 1;
+                    }else {
                         boundary_edges.insert([triangle[2], triangle[1]], 1);
                     }
 
@@ -462,6 +471,7 @@ impl MeshBuilder {
         )
         .into_iter().collect();
 
+        let boundary_indices = merge_sort(boundary_indices)?;
         log::info!("{:?}",boundary_indices);
 
         // Model matrix for viewing purposes
@@ -594,12 +604,62 @@ impl MeshBuilder {
     }
 }
 
-trait Sortable: IntoIterator + Sized + PartialEq + PartialOrd {
-    
-    fn merge_sort(self) -> Self {
-        
 
-        todo!()
+fn merge_sort(mut vec_arr: Vec<u32>) -> Result<Vec<u32>,Error> {
+    
+    let r = vec_arr.len();
+    let l: usize = 0;
+    if l == r {
+        return Ok(vec_arr)
     }
+    let mid = r / 2;
+
+    let mut left_array = Vec::new();
+    let mut right_array = Vec::new();
+    vec_arr[l..mid].clone_into(&mut left_array);
+    vec_arr[mid..=r-1].clone_into(&mut right_array);
+
+    let left_array = merge_sort(left_array)?;
+    let right_array = merge_sort(right_array)?;
+
+    merge(&mut vec_arr, left_array, right_array)?;
+
+    Ok(vec_arr)
+}
+
+fn merge(arr: &mut Vec<u32>, left: Vec<u32>, right: Vec<u32>) -> Result<(),Error> {
+
+    let mut i_left: usize = 0;
+    let mut i_right: usize = 0;
+    let mut k: usize = 0;
+
+    while i_left < left.len() && i_right < right.len() {
+        
+        if left[i_left] <= right[i_right] {
+            arr[k] = left[i_left];
+            i_left += 1
+        } else {
+            arr[k] = right[i_right];
+            i_right += 1
+        }
+
+        k += 1
+
+    }
+
+    while i_left < left.len() {
+        arr[k] = left[i_left];
+        i_left += 1;
+        k += 1;
+    }
+
+    while i_right < right.len() {
+        arr[k] = right[i_right];
+        i_right += 1;
+        k += 1;
+
+    }
+
+    Ok(())
 
 }
