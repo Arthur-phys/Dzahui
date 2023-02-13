@@ -1,6 +1,5 @@
 // Module declaration
 pub(crate) mod mesh_builder;
-pub(crate) mod vertex_type;
 
 // External dependencies
 use cgmath::Matrix4;
@@ -13,7 +12,6 @@ use crate::{
     Error,
 };
 use mesh_builder::MeshBuilder;
-use vertex_type::VertexType;
 
 /// # General Information
 ///
@@ -38,9 +36,9 @@ use vertex_type::VertexType;
 ///
 #[derive(Debug)]
 pub(crate) struct Mesh {
-    pub(crate) conditions: Array1<VertexType>,
     pub(crate) max_length: f64,
     pub(crate) model_matrix: Matrix4<f32>,
+    pub(crate) boundary_indices: Option<Vec<u32>>,
     binder: Binder,
     pub(crate) indices: Array1<u32>,
     pub(crate) vertices: Array1<f64>,

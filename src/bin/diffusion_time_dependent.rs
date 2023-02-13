@@ -6,7 +6,7 @@ fn main() {
     .b(1.0)
     .mu(1.0)
     .boundary_conditions(1.0, 15.0)
-    .initial_conditions([0_f64,135_f64,1215_f64,15432_f64,212141_f64,43431_f64, 6565_f64,655_f64]).build();
+    .initial_conditions([0_f64,135_f64,1215_f64,15432_f64,212141_f64,43431_f64,6565_f64,3000_f64,655_f64]).build();
     
     //Creating window with predetermined configuration
     let window_builder: DzahuiWindowBuilder = DzahuiWindow::builder("./assets/1dbar.obj")

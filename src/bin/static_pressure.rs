@@ -2,8 +2,8 @@ use dzahui::{DzahuiWindow, DzahuiWindowBuilder, NavierStokesParams};
 
 fn main() {
 
-    let naviers_params = NavierStokesParams::static_pressure().hydrostatic_pressure(1_f64).rho(1_f64).force_function(
-        Box::new(|_| 10_f64)
+    let naviers_params = NavierStokesParams::static_pressure().hydrostatic_pressure(100_f64).rho(1_f64).force_function(
+        Box::new(|_| -10_f64)
     ).build();
 
     let window_builder: DzahuiWindowBuilder = DzahuiWindow::builder("./assets/1dbar.obj")

@@ -125,6 +125,9 @@ impl DzahuiWindowBuilder {
     where
         F: AsRef<str>,
     {
+        // Spawning logger
+        logger::spawn(log::LevelFilter::Info, "dzahui").unwrap();
+        
         Self {
             mesh_dimension: MeshDimension::Two,
             geometry_fragment_shader: None,
@@ -675,9 +678,6 @@ impl DzahuiWindow {
     /// * `mut self` - A window instance.
     ///
     pub fn run(mut self) {
-
-        // Spawning logger
-        logger::spawn(log::LevelFilter::Info, "dzahui").unwrap();
 
         self.restart_timer();
         let mut counter = 0;

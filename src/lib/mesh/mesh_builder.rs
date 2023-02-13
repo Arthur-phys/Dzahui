@@ -1,15 +1,12 @@
 // Internal dependencies
-use super::{
-    vertex_type::{Condition, VertexType},
-    Mesh,
-};
+use super::Mesh;
 use crate::{simulation::drawable::binder::Binder, Error};
 
 // External dependencies
 use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader};
 use cgmath::{Matrix4, Vector3};
-use ndarray::{arr1, Array1};
+use ndarray::Array1;
 use std::fs::File;
 
 
@@ -20,7 +17,7 @@ use std::fs::File;
 /// # Arms
 ///
 /// * `One` - Line. In 1D, two of three coordinates must be constant throught the whole mesh.
-/// * `Two` - Plane figure. In 2D, one coordinate needs to be constant through the whole mesh.
+/// * `Two` - Plane figure. In 2D, one coordinate needs to be constant throught the whole mesh.
 /// * `Three` - 3D Body. No dimensional check-ups are done. Results depend solely on user's mesh.
 ///
 #[derive(Debug)]
@@ -209,7 +206,6 @@ impl MeshBuilder {
         let binder = Binder::new();
         let mut vertices: Vec<f64> = vec![];
         let mut indices: Vec<u32> = vec![];
-        let mut conditions: Vec<VertexType>;
         let max_length: f64;
         let mut middle_point: [f32; 3] = [0.; 3];
         let file = File::open(&self.location)?;
@@ -305,16 +301,6 @@ impl MeshBuilder {
             ])
         }
 
-        //Create vector of vertex types
-        conditions = vec![VertexType::Internal(arr1(&[0.0, 0.0, 0.0])); vertices_len as usize * 2];
-        conditions[0] = VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0, 0.0, 0.0])));
-        conditions[vertices_len as usize - 1] =
-            VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0, 0.0, 0.0])));
-        conditions[vertices_len as usize] =
-            VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0, 0.0, 0.0])));
-        conditions[vertices_len as usize * 2 - 1] =
-            VertexType::Boundary(Condition::Dirichlet(arr1(&[0.0, 0.0, 0.0])));
-
         // get middle point for camera
         middle_point[0] = max_length as f32 / 2_f32;
         middle_point[1] = prom_width as f32 / 2_f32;
@@ -329,8 +315,8 @@ impl MeshBuilder {
         Ok(Mesh {
             vertices: Array1::from_vec(vertices),
             indices: Array1::from_vec(indices),
+            boundary_indices: None,
             max_length,
-            conditions: Array1::from_vec(conditions),
             model_matrix,
             binder,
         })
@@ -353,7 +339,6 @@ impl MeshBuilder {
         let binder = Binder::new();
         let mut vertices: Vec<f64> = vec![];
         let mut indices: Vec<u32> = vec![];
-        let mut conditions: Vec<VertexType> = vec![];
         let max_length: f64;
         let mut middle_point: [f32; 3] = [0.; 3];
         let file = File::open(&self.location)?;
@@ -372,7 +357,7 @@ impl MeshBuilder {
             return Err(Error::MeshParse("Only coordinates over a plane paralell to x, y or z plane are accepted. Check .obj file.".to_string()));
         };
 
-        // Generate maximum and minimum value hashmap for x and y to encapsulate mesh in a square (for properly viewing purposes).
+        // Generate maximum and minimum value hashmap for x and y to encapsulate mesh in a square (for proper viewing purposes).
         let mut max_min = HashMap::from([
             ("x_min", 0.0),
             ("y_min", 0.0),
@@ -380,7 +365,7 @@ impl MeshBuilder {
             ("y_max", 0.0),
         ]);
 
-        // Primary data structure for boundary vertices algorithm (first we work with deges in the form (a,b))
+        // Primary data structure for boundary vertices algorithm (first we work with edges in the form (a,b))
         let mut boundary_edges: HashMap<[u32; 2], usize> = HashMap::new();
 
         let reader = BufReader::new(file).lines();
@@ -420,9 +405,6 @@ impl MeshBuilder {
                     vertices.append(&mut coordinate);
                     // Adding initial color: blue
                     vertices.append(&mut vec![0.0, 0.0, 1.0]);
-                    // Initialize condtions vector along with vertices
-                    conditions
-                        .push(VertexType::Internal(Array1::from_vec(vec![0.0, 0.0, 0.0])));
                 }
                 // Whenever there is an f
                 else if content.starts_with("f ") {
@@ -436,21 +418,21 @@ impl MeshBuilder {
                     {
                         *counter += 1;
                     } else {
-                        boundary_edges.insert([triangle[0], triangle[1]], 0);
+                        boundary_edges.insert([triangle[0], triangle[1]], 1);
                     }
                     if let Some(counter) =
                         boundary_edges.get_mut(&[triangle[0], triangle[2]])
                     {
                         *counter += 1;
                     } else {
-                        boundary_edges.insert([triangle[0], triangle[2]], 0);
+                        boundary_edges.insert([triangle[0], triangle[2]], 1);
                     }
                     if let Some(counter) =
                         boundary_edges.get_mut(&[triangle[2], triangle[1]])
                     {
                         *counter += 1;
                     } else {
-                        boundary_edges.insert([triangle[2], triangle[1]], 0);
+                        boundary_edges.insert([triangle[2], triangle[1]], 1);
                     }
 
                     // Push into triangles vector of u32
@@ -469,8 +451,8 @@ impl MeshBuilder {
         // Finally obtaining max length
         max_length = if len_x > len_y { len_x } else { len_y };
 
-        // reducing boundary edges to vertices with a filter based ob wether they are at the boundary or not.
-        HashSet::<u32>::from_iter(
+        // reducing boundary edges to vertices with a filter based on wether they are at the boundary or not.
+        let boundary_indices: Vec<u32> = HashSet::<u32>::from_iter(
             boundary_edges
                 .into_iter()
                 .filter(|(_duple, counter)| if *counter != 1 { false } else { true })
@@ -478,11 +460,9 @@ impl MeshBuilder {
                 .into_keys()
                 .flatten(),
         )
-        .into_iter()
-        .for_each(|boundary_vertex| {
-            conditions[boundary_vertex as usize] =
-                VertexType::Boundary(Condition::Dirichlet(Array1::from_vec(vec![0.0, 0.0, 0.0])))
-        });
+        .into_iter().collect();
+
+        log::info!("{:?}",boundary_indices);
 
         // Model matrix for viewing purposes
         let model_matrix = Matrix4::from_translation(Vector3::new(
@@ -494,8 +474,8 @@ impl MeshBuilder {
         Ok(Mesh {
             vertices: Array1::from_vec(vertices),
             indices: Array1::from_vec(indices),
+            boundary_indices: Some(boundary_indices),
             max_length,
-            conditions: Array1::from_vec(conditions),
             model_matrix,
             binder,
         })
@@ -515,7 +495,6 @@ impl MeshBuilder {
         let binder = Binder::new();
         let mut vertices: Vec<f64> = vec![];
         let mut indices: Vec<u32> = vec![];
-        let mut conditions: Vec<VertexType> = vec![];
         let max_length: f64;
         let mut middle_point: [f32; 3] = [0.; 3];
         let file = File::open(&self.location)?;
@@ -607,10 +586,20 @@ impl MeshBuilder {
         Ok(Mesh {
             vertices: Array1::from_vec(vertices),
             indices: Array1::from_vec(indices),
+            boundary_indices: None,
             max_length,
-            conditions: Array1::from_vec(conditions),
             model_matrix,
             binder,
         })
     }
+}
+
+trait Sortable: IntoIterator + Sized + PartialEq + PartialOrd {
+    
+    fn merge_sort(self) -> Self {
+        
+
+        todo!()
+    }
+
 }
