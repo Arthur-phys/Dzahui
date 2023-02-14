@@ -1,37 +1,36 @@
 pub mod dim1_time_independent;
-pub mod dim1_time_dependent;
 
-pub use dim1_time_independent::NavierStokesParams1DTimeIndependent;
-pub use dim1_time_independent::NavierStokesSolver1DTimeIndependent;
+pub use dim1_time_independent::StokesParams1D;
+pub use dim1_time_independent::StokesSolver1D;
 
 // Aliasing
-pub type StaticPressureSolver = NavierStokesSolver1DTimeIndependent;
-pub type StaticPressureParams = NavierStokesParams1DTimeIndependent;
-pub type StaticPressureParamsBuilder = NavierStokesParams1DTimeIndependentBuilder;
+pub type StaticPressureSolver = StokesSolver1D;
+pub type StaticPressureParams = StokesParams1D;
+pub type StaticPressureParamsBuilder = StokesParams1DBuilder;
 
 /// Struct to initialize builders params for either time-dependent or time-independent diffussion solvers.
-pub struct NavierStokesParams();
+pub struct StokesParams();
 
 #[derive(Default)]
-pub struct NavierStokesParams1DTimeIndependentBuilder {
+pub struct StokesParams1DBuilder {
     pressure: Option<f64>,
     rho: Option<f64>,
     force_function: Option<Box<dyn Fn(f64) -> f64>>
 }
 
 
-impl NavierStokesParams {
-    /// Redirects to time indepentend 1d Navier-Stokes params
-    pub fn time_independent1d() -> NavierStokesParams1DTimeIndependentBuilder {
-        NavierStokesParams1DTimeIndependentBuilder::default()
+impl StokesParams {
+    /// Redirects to 1e Stokes params
+    pub fn normal_1d() -> StokesParams1DBuilder {
+        StokesParams1DBuilder::default()
     }
-    /// Redirects to time indepentend 1d Navier-Stokes params with aliasing
+    /// Redirects to 1d Stokes params with aliasing
     pub fn static_pressure() -> StaticPressureParamsBuilder {
         StaticPressureParamsBuilder::default()
     }
 }
 
-impl NavierStokesParams1DTimeIndependentBuilder {
+impl StokesParams1DBuilder {
     /// Set pressure
     pub fn hydrostatic_pressure(self, pressure_value: f64) -> Self {
         Self {
@@ -53,8 +52,8 @@ impl NavierStokesParams1DTimeIndependentBuilder {
             ..self
         }
     }
-    /// Build NavierStokesParams1D
-    pub fn build(self) -> NavierStokesParams1DTimeIndependent {
+    /// Build StokesParams1D
+    pub fn build(self) -> StokesParams1D {
         
         let hydrostatic_pressure = if let Some(hydrostatic_pressure) = self.pressure {
             hydrostatic_pressure
@@ -74,7 +73,7 @@ impl NavierStokesParams1DTimeIndependentBuilder {
             panic!("Params lack force_function!");
         };
         
-        NavierStokesParams1DTimeIndependent {
+        StokesParams1D {
             hydrostatic_pressure,
             rho,
             force_function

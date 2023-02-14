@@ -2,11 +2,11 @@
 pub mod basis;
 pub mod utils;
 pub mod diffusion_solver;
-pub mod navier_stokes_solver;
+pub mod stokes_solver;
 
 // Internal dependencies + re-exports
 pub use diffusion_solver::{DiffussionParamsTimeDependent, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent, DiffussionParamsTimeIndependent};
-pub use navier_stokes_solver::{NavierStokesParams1DTimeIndependent,StaticPressureSolver};
+pub use stokes_solver::{StokesParams1D,StaticPressureSolver};
 use super::solver_trait::DiffEquationSolver;
 
 /// # General Information
@@ -19,15 +19,15 @@ use super::solver_trait::DiffEquationSolver;
 ///
 /// * `DiffussionSolverTimeIndependent` - Diffusion equation solver representation.
 /// * `DiffussionSolverTimeDependent` - Diffusion equation solver with time derivative representation.
-/// * `NavierStokes1DSolver` - Navier Stokes in 1D solver representation.
-/// * `NavierStokes2DSolver` - Navier Stokes in 2D solver representation.
+/// * `Stokes1DSolver` - Stokes in 1D solver representation.
+/// * `Stokes2DSolver` - Stokes in 2D solver representation.
 /// * `None` - Visuallization of mesh in simulation. No equation attached.
 ///
 #[derive(Debug)]
 pub enum Solver {
     DiffussionSolverTimeIndependent(DiffussionParamsTimeIndependent),
     DiffussionSolverTimeDependent(DiffussionParamsTimeDependent),
-    NavierStokes1DSolverTimeIndependent(NavierStokesParams1DTimeIndependent),
+    Stokes1DSolver(StokesParams1D),
     None
 }
 

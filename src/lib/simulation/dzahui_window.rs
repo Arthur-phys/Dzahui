@@ -1,7 +1,7 @@
 // Internal dependencies
 use crate::{mesh::{mesh_builder::{MeshBuilder, MeshDimension}, Mesh},
     solvers::{Solver, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent,
-        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver, StaticPressureSolver, NavierStokesParams1DTimeIndependent
+        solver_trait::DiffEquationSolver, DiffussionParamsTimeDependent, DiffussionParamsTimeIndependent, NoSolver, StaticPressureSolver, StokesParams1D
     }, Error, writer::{self, Writer}, logger
 };
 use super::{shader::Shader, drawable::{text::CharacterSet, binder::{Bindable, Drawable}}, camera::{cone::Cone, Camera, CameraBuilder}};
@@ -277,18 +277,18 @@ impl DzahuiWindowBuilder {
             ..self
         }
     }
-    /// Makes Navier-Stokes time-independent solver simulation
-    pub fn solve_1d_time_independent_navier_stokes(self, params: NavierStokesParams1DTimeIndependent) -> Self {
+    /// Makes Stokes time-independent solver simulation
+    pub fn solve_1d_stokes(self, params: StokesParams1D) -> Self {
         Self {
-            solver: Solver::NavierStokes1DSolverTimeIndependent(params),
+            solver: Solver::Stokes1DSolver(params),
             mesh_dimension: MeshDimension::One,
             ..self
         }
     }
-    /// Makes Navier-Stokes time-independent solver simulation with alias StaticPressureSolver
-    pub fn solve_static_pressure(self, params: NavierStokesParams1DTimeIndependent) -> Self {
+    /// Makes Stokes time-independent solver simulation with alias StaticPressureSolver
+    pub fn solve_static_pressure(self, params: StokesParams1D) -> Self {
         Self {
-            solver: Solver::NavierStokes1DSolverTimeIndependent(params),
+            solver: Solver::Stokes1DSolver(params),
             mesh_dimension: MeshDimension::One,
             ..self
         }
@@ -697,7 +697,7 @@ impl DzahuiWindow {
             Solver::DiffussionSolverTimeIndependent(_) => {
                 Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), ["v_x"], true)
             },
-            Solver::NavierStokes1DSolverTimeIndependent(_) => {
+            Solver::Stokes1DSolver(_) => {
                 Writer::new(rx,self.write_location.clone(), self.file_prefix.clone(), ["p_x"],true)
             },
             Solver::None => {
@@ -759,20 +759,20 @@ impl DzahuiWindow {
                 }
             },
 
-            Solver::NavierStokes1DSolverTimeIndependent(ref params) => {
+            Solver::Stokes1DSolver(ref params) => {
                 
-                let navier_stokes_1d_solver = StaticPressureSolver::new(
+                let stokes_1d_solver = StaticPressureSolver::new(
                     &params,
                     self.mesh.filter_for_solving_1d().to_vec(),
                     self.integration_iteration
                 );
 
-                match navier_stokes_1d_solver {
+                match stokes_1d_solver {
                     Ok(n) => {
-                        log::info!("Navier-Stokes solver in 1D with no time dependency created");
+                        log::info!("Stokes solver in 1D with no time dependency created");
                         Box::new(n)
                     },
-                    Err(error) => panic!("Error creatin instance of NavierStokesSolver1DTimeIndependent!: {}",error)
+                    Err(error) => panic!("Error creating instance of StokesSolver1D!: {}",error)
                 }
             }
 
@@ -889,8 +889,10 @@ impl DzahuiWindow {
                     device_id: _,
                     event,
                 } => match event {
-                    DeviceEvent::Button { button, state } => match button {
+                    DeviceEvent::Button { button, state } =>
+                        match button {
                         2 => self.activate_view_change(state),
+                        0 => self.activate_view_change(state),
                         1 => {
                             if let ElementState::Pressed = state {
                                 if let Err(e) = self.get_selected_vertex() {

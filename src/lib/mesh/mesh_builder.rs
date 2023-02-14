@@ -398,7 +398,7 @@ impl MeshBuilder {
                         *y_min = coordinate[1];
                     }
                     let y_max = max_min.get_mut("y_max").ok_or(Error::Infallible)?;
-                    if &coordinate[1] < y_max {
+                    if &coordinate[1] > y_max {
                         *y_max = coordinate[1];
                     }
 
@@ -452,11 +452,12 @@ impl MeshBuilder {
             .collect::<Result<Vec<_>, _>>()?;
 
         // Obtaining max and min from hashmap
+        log::info!("{:?}",max_min);
         let len_x = max_min.get("x_max").ok_or(Error::Infallible)? - max_min.get("x_min").ok_or(Error::Infallible)?;
         let len_y = max_min.get("y_max").ok_or(Error::Infallible)? - max_min.get("y_min").ok_or(Error::Infallible)?;
         // Obtaining middle point
-        middle_point[0] = len_x as f32 / 2.0;
-        middle_point[1] = len_y as f32 / 2.0;
+        middle_point[0] = (max_min.get("x_max").ok_or(Error::Infallible)? + max_min.get("x_min").ok_or(Error::Infallible)?) as f32 / 2.0;
+        middle_point[1] = (max_min.get("y_max").ok_or(Error::Infallible)? + max_min.get("y_min").ok_or(Error::Infallible)?) as f32 / 2.0;
         // Finally obtaining max length
         max_length = if len_x > len_y { len_x } else { len_y };
 
@@ -472,7 +473,6 @@ impl MeshBuilder {
         .into_iter().collect();
 
         let boundary_indices = merge_sort(boundary_indices)?;
-        log::info!("{:?}",boundary_indices);
 
         // Model matrix for viewing purposes
         let model_matrix = Matrix4::from_translation(Vector3::new(
@@ -607,21 +607,22 @@ impl MeshBuilder {
 
 fn merge_sort(mut vec_arr: Vec<u32>) -> Result<Vec<u32>,Error> {
     
+    if vec_arr.len() == 1 {
+        return Ok(vec_arr);
+    }
     let r = vec_arr.len();
     let l: usize = 0;
-    if l == r {
-        return Ok(vec_arr)
-    }
     let mid = r / 2;
 
     let mut left_array = Vec::new();
     let mut right_array = Vec::new();
     vec_arr[l..mid].clone_into(&mut left_array);
     vec_arr[mid..=r-1].clone_into(&mut right_array);
-
+    
     let left_array = merge_sort(left_array)?;
     let right_array = merge_sort(right_array)?;
 
+    
     merge(&mut vec_arr, left_array, right_array)?;
 
     Ok(vec_arr)

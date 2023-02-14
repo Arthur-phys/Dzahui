@@ -12,7 +12,7 @@ use ndarray::{Array1, Array2};
 
 /// # General Information
 /// 
-/// Parameters needed for solving Navier-Stokes equation in 1d with time-independence.
+/// Parameters needed for solving Stokes equation in 1d.
 /// If one of it's properties is not set, it will default to zero.
 /// Boundary conditions accepted are only Dirichlet for now.
 /// 
@@ -22,14 +22,14 @@ use ndarray::{Array1, Array2};
 /// * `pressure` - Pressure [0] at index [1]
 /// * `boundary_condition_pressure` - Pressure boundary condition
 /// 
-pub struct NavierStokesParams1DTimeIndependent {
+pub struct StokesParams1D {
     pub rho: f64,
     pub hydrostatic_pressure: f64,
     pub force_function: Box<dyn Fn(f64) -> f64>,
 }
 
 
-impl Default for NavierStokesParams1DTimeIndependent {
+impl Default for StokesParams1D {
     fn default() -> Self {
         Self {
             rho: 0_f64,
@@ -39,7 +39,7 @@ impl Default for NavierStokesParams1DTimeIndependent {
     }
 }
 
-impl Debug for NavierStokesParams1DTimeIndependent {
+impl Debug for StokesParams1D {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ff = &self.force_function;
         let eval = ff(0_f64);
@@ -51,7 +51,7 @@ impl Debug for NavierStokesParams1DTimeIndependent {
 #[derive(Debug)]
 /// # General Information
 ///
-/// A Navier-Stokes solver with time-independence abstracts the equation: "(1/ρ)p_x = f" with constant velocity and contains boundary conditions along with "ρ"
+/// A Stokes solver 1d abstracts the equation: "(1/ρ)p_x = f" with constant velocity and hydrostatic pressure "ρ"
 ///
 /// # Fields
 ///
@@ -62,7 +62,7 @@ impl Debug for NavierStokesParams1DTimeIndependent {
 /// * `speed` - Constant speed.
 /// * `rho` - Constant density.
 ///
-pub struct NavierStokesSolver1DTimeIndependent {
+pub struct StokesSolver1D {
     pub(crate) stiffness_matrix: Array2<f64>,
     pub(crate) b_vector: Array1<f64>,
     pub gauss_step: usize,
@@ -70,9 +70,9 @@ pub struct NavierStokesSolver1DTimeIndependent {
     pub rho: f64,
 }
 
-impl NavierStokesSolver1DTimeIndependent {
+impl StokesSolver1D {
 
-    pub fn new(params: &NavierStokesParams1DTimeIndependent, mesh: Vec<f64>, gauss_step: usize) -> Result<Self,Error> {
+    pub fn new(params: &StokesParams1D, mesh: Vec<f64>, gauss_step: usize) -> Result<Self,Error> {
 
         let (stiffness_matrix, b_vector) = Self::gauss_legendre_integration(
             params.rho,
@@ -220,7 +220,7 @@ impl NavierStokesSolver1DTimeIndependent {
     }
 }
 
-impl DiffEquationSolver for NavierStokesSolver1DTimeIndependent {
+impl DiffEquationSolver for StokesSolver1D {
     /// # Specific implementation
     ///
     /// Solving starts by obtaining stiffness matrix and vector b (Ax=b).
@@ -236,17 +236,17 @@ impl DiffEquationSolver for NavierStokesSolver1DTimeIndependent {
 
 #[cfg(test)]
 mod test {
-    use crate::NavierStokesParams;
+    use crate::StokesParams;
 
-    use super::{NavierStokesSolver1DTimeIndependent,DiffEquationSolver};
+    use super::{StokesSolver1D,DiffEquationSolver};
 
     #[test]
     fn regular_mesh_matrix_4p_nav() {
         
-        let params = NavierStokesParams::time_independent1d().force_function(Box::new(|_| 10_f64))
+        let params = StokesParams::normal_1d().force_function(Box::new(|_| 10_f64))
             .hydrostatic_pressure(1_f64).rho(1_f64).build();
 
-        let mut eq = NavierStokesSolver1DTimeIndependent::new(&params, vec![0_f64,0.333,0.666,1_f64], 150).unwrap();
+        let mut eq = StokesSolver1D::new(&params, vec![0_f64,0.333,0.666,1_f64], 150).unwrap();
 
         assert!(eq.stiffness_matrix[[0, 0]] <= -0.4 && eq.stiffness_matrix[[0, 0]] >= -0.6);
         assert!(eq.stiffness_matrix[[0, 1]] <= 0.6 && eq.stiffness_matrix[[0, 1]] >= 0.4);
