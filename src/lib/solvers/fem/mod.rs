@@ -6,7 +6,7 @@ pub mod stokes_solver;
 
 // Internal dependencies + re-exports
 pub use diffusion_solver::{DiffussionParamsTimeDependent, DiffussionSolverTimeDependent, DiffussionSolverTimeIndependent, DiffussionParamsTimeIndependent};
-pub use stokes_solver::{StokesParams1D,StaticPressureSolver};
+pub use stokes_solver::{StokesParams1D, StokesParams2D, StaticPressureSolver};
 use super::solver_trait::DiffEquationSolver;
 
 /// # General Information
@@ -28,6 +28,7 @@ pub enum Solver {
     DiffussionSolverTimeIndependent(DiffussionParamsTimeIndependent),
     DiffussionSolverTimeDependent(DiffussionParamsTimeDependent),
     Stokes1DSolver(StokesParams1D),
+    Stokes2DSolver(StokesParams2D),
     None
 }
 

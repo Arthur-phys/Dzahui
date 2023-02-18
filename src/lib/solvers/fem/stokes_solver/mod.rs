@@ -1,7 +1,9 @@
-pub mod dim1_time_independent;
+pub mod dim1;
+pub mod dim2;
 
-pub use dim1_time_independent::StokesParams1D;
-pub use dim1_time_independent::StokesSolver1D;
+pub use dim1::StokesParams1D;
+pub use dim1::StokesSolver1D;
+pub use dim2::StokesParams2D;
 
 // Aliasing
 pub type StaticPressureSolver = StokesSolver1D;
@@ -18,6 +20,15 @@ pub struct StokesParams1DBuilder {
     force_function: Option<Box<dyn Fn(f64) -> f64>>
 }
 
+#[derive(Default)]
+pub struct StokesParams2DBuilder {
+    boundary_conditions: Option<Vec<[f64;2]>>,
+    hydrostatic_pressure: Option<f64>,
+    force_function: Option<Box<dyn Fn([f64;2]) -> [f64;2]>>,
+    rho: Option<f64>,
+    nu: Option<f64>
+}
+
 
 impl StokesParams {
     /// Redirects to 1e Stokes params
@@ -27,6 +38,10 @@ impl StokesParams {
     /// Redirects to 1d Stokes params with aliasing
     pub fn static_pressure() -> StaticPressureParamsBuilder {
         StaticPressureParamsBuilder::default()
+    }
+    /// Redirects to 2d stokes params
+    pub fn normal_2d() -> StokesParams2DBuilder {
+        StokesParams2DBuilder::default()
     }
 }
 
@@ -39,7 +54,7 @@ impl StokesParams1DBuilder {
         }
     }
     /// Set rho
-    pub fn rho(self, rho: f64) -> Self {
+    pub fn density(self, rho: f64) -> Self {
         Self {
             rho: Some(rho),
             ..self
@@ -58,13 +73,13 @@ impl StokesParams1DBuilder {
         let hydrostatic_pressure = if let Some(hydrostatic_pressure) = self.pressure {
             hydrostatic_pressure
         } else {
-            panic!("Params lack 'hydrostatic_pressure' term!");
+            panic!("Params lack 'pressure' term!");
         };
 
         let rho = if let Some(rho) = self.rho {
             rho
         } else {
-            panic!("Params lack 'rho' term!");
+            panic!("Params lack 'density' term!");
         };
 
         let force_function = if let Some(func) = self.force_function {
@@ -77,6 +92,85 @@ impl StokesParams1DBuilder {
             hydrostatic_pressure,
             rho,
             force_function
+        }
+    }
+}
+
+impl StokesParams2DBuilder {
+    /// Set boundary conditions
+    pub fn boundary_conditions(self, boundary_conditions: Vec<[f64;2]>) -> Self {
+        Self {
+            boundary_conditions: Some(boundary_conditions),
+            ..self
+        }
+    }
+    /// Set pressure
+    pub fn pressure(self, pressure_value: f64) -> Self {
+        Self {
+            hydrostatic_pressure: Some(pressure_value),
+            ..self
+        }
+    }
+    /// Set nu
+    pub fn kinematic_viscosity(self, viscosity_value: f64) -> Self {
+        Self {
+            nu: Some(viscosity_value),
+            ..self
+        }
+    }
+    /// Set density
+    pub fn density(self, density_value: f64) -> Self {
+        Self {
+            rho: Some(density_value),
+            ..self
+        }
+    }
+    /// Set force function
+    pub fn force_function(self, func: Box<dyn Fn([f64;2]) -> [f64;2]>) -> Self {
+        Self {
+            force_function: Some(func),
+            ..self
+        }
+    }
+    /// Build params
+    pub fn build(self) -> StokesParams2D {
+        
+        let hydrostatic_pressure = if let Some(p) = self.hydrostatic_pressure {
+            p
+        } else {
+            panic!("Params lack 'pressure' term!");
+        };
+
+        let nu = if let Some(n) = self.nu {
+            n
+        } else {
+            panic!("Params lack 'kinematic viscosity' term!");
+        };
+        
+        let force_function = if let Some(f) = self.force_function {
+            f
+        } else {
+            panic!("Params lack 'force_function!");
+        };
+
+        let boundary_conditions = if let Some(b) = self.boundary_conditions {
+            b
+        } else {
+            panic!("Params lack 'boundary_conditions'!");
+        };
+
+        let rho = if let Some(r) = self.rho {
+            r
+        } else {
+            panic!("Params lack 'density' term!");
+        };
+
+        StokesParams2D {
+            hydrostatic_pressure,
+            nu,
+            force_function,
+            boundary_conditions,
+            rho
         }
     }
 }

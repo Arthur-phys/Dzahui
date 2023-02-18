@@ -692,16 +692,19 @@ impl DzahuiWindow {
         // set writer
         let writer = match self.solver {
             Solver::DiffussionSolverTimeDependent(_) => {
-                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), ["v_x"], true)
+                Writer::new(rx, &self.write_location, &self.file_prefix, ["v_x"], true)
             },
             Solver::DiffussionSolverTimeIndependent(_) => {
-                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), ["v_x"], true)
+                Writer::new(rx, &self.write_location, &self.file_prefix, ["v_x"], true)
             },
             Solver::Stokes1DSolver(_) => {
-                Writer::new(rx,self.write_location.clone(), self.file_prefix.clone(), ["p_x"],true)
+                Writer::new(rx,&self.write_location, &self.file_prefix, ["p"],true)
             },
+            Solver::Stokes2DSolver(_) => {
+                Writer::new(rx,&self.write_location, &self.file_prefix,["v_x","v_y"],true)
+            }
             Solver::None => {
-                Writer::new(rx, self.write_location.clone(), self.file_prefix.clone(), [""], false)
+                Writer::new(rx, &self.write_location, &self.file_prefix, [""], false)
             }
         };
 
@@ -774,6 +777,10 @@ impl DzahuiWindow {
                     },
                     Err(error) => panic!("Error creating instance of StokesSolver1D!: {}",error)
                 }
+            },
+
+            Solver::Stokes2DSolver(ref params) => {
+                todo!()
             }
 
             Solver::None => {

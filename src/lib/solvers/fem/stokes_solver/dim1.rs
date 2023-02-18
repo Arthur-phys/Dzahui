@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 // Internal dependencies
 use crate::solvers::fem::basis::single_variable::{
-    linear_basis::LinearBasis, polynomials_1d::{FirstDegreePolynomial}, Differentiable1D, Function1D,
+    linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
 };
 use crate::solvers::{quadrature::gauss_legendre, matrix_solver, solver_trait::DiffEquationSolver};
 use crate::Error;
@@ -43,7 +43,7 @@ impl Debug for StokesParams1D {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let ff = &self.force_function;
         let eval = ff(0_f64);
-        let content = format!("{{ rho: {},\npressure: {},\n force_function: f(0) -> {} }}", self.rho, self.hydrostatic_pressure,eval);
+        let content = format!("{{ rho: {},\nhydrostatic_pressure: {},\n force_function: f(0) -> {} }}", self.rho, self.hydrostatic_pressure,eval);
         write!(f, "{}", content)
     }
 }
@@ -244,7 +244,7 @@ mod test {
     fn regular_mesh_matrix_4p_nav() {
         
         let params = StokesParams::normal_1d().force_function(Box::new(|_| 10_f64))
-            .hydrostatic_pressure(1_f64).rho(1_f64).build();
+            .hydrostatic_pressure(1_f64).density(1_f64).build();
 
         let mut eq = StokesSolver1D::new(&params, vec![0_f64,0.333,0.666,1_f64], 150).unwrap();
 

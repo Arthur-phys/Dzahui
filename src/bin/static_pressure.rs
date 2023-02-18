@@ -2,7 +2,7 @@ use dzahui::{DzahuiWindow, DzahuiWindowBuilder, StokesParams};
 
 fn main() {
 
-    let naviers_params = StokesParams::static_pressure().hydrostatic_pressure(100_f64).rho(1_f64).force_function(
+    let naviers_params = StokesParams::static_pressure().hydrostatic_pressure(100_f64).density(1_f64).force_function(
         Box::new(|_| -10_f64)
     ).build();
 
