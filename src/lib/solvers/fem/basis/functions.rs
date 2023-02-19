@@ -29,6 +29,19 @@ pub trait Function2D {
 }
 
 /// # General Information
+/// 
+/// Methods a 2D vector function should have ( F: R^2 -> R^2 )
+/// 
+/// # Functions
+/// 
+/// * `evaluate(...)` - Evaluation of a 2D vector function ( F: R^2 -> R^2 )
+/// 
+pub trait Function2D2D {
+    /// Evaluation of a 2D vector function
+    fn evaluate(&self, x: f64, y: f64) -> (f64,f64);
+}
+
+/// # General Information
 ///
 /// Every differentiable 1D function-like struct must implement this trait. It is important to know which kind of function will result from differentiating.
 /// Such a function needs to become a struct that represents a family of it's kind and also implements the trait `Function1D`.

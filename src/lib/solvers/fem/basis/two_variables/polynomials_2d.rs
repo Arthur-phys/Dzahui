@@ -1,5 +1,5 @@
 // Internal dependencies
-use crate::solvers::basis::functions::Function2D;
+use crate::solvers::basis::functions::{Function2D, Function2D2D};
 
 #[derive(PartialEq, Debug)]
 /// # General Information
@@ -39,6 +39,32 @@ pub struct SecondDegreePolynomial2D {
     y_linear_coefficient: f64,
     independent_term: f64,
 }
+
+/// # General Information
+/// 
+/// Represents a matrix transformation in 2D. A normal matrix composed of vectors or arrays is not used since
+/// more control over the traits that are implemented on the struct makes latter implementations easier.
+/// 
+/// # Fields
+/// 
+/// * `a` - Element [0,0] in matrix
+/// * `b` - Element [0,1] in matrix
+/// * `c` - Element [1,0] in matrix
+/// * `d` - Element [1,1] in matrix
+/// 
+pub struct Transformation2D {
+    a: f64,
+    b: f64,
+    c: f64,
+    d: f64
+}
+
+impl Function2D2D for Transformation2D {
+    fn evaluate(&self, x: f64, y: f64) -> (f64,f64) {
+        (self.a * x + self.b * y, self.c * x + self.d * y)
+    }
+}
+
 
 impl FirstDegreePolynomial2D {
     /// Normal constructor.
