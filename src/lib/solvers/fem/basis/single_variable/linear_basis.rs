@@ -1,7 +1,7 @@
 // Internal dependencies
 use super::piecewise_polynomials_1degree::PiecewiseFirstDegreePolynomial;
 use super::polynomials_1d::FirstDegreePolynomial;
-use super::functions::Composable1D;
+use crate::solvers::basis::functions::Composable1D;
 use crate::Error;
 
 /// # General Information

@@ -1,7 +1,7 @@
 use crate::Error;
 
 // Internal dependencies.
-use super::functions::{Composable1D, Differentiable1D, Function1D};
+use crate::solvers::basis::functions::{Composable1D, Differentiable1D, Function1D};
 
 #[derive(PartialEq, Debug)]
 /// # General Information
@@ -21,13 +21,13 @@ pub struct FirstDegreePolynomial {
 #[derive(PartialEq, Debug)]
 /// # General Information
 ///
-/// A simple, second degree polynomial in one variablee
+/// A simple, second degree polynomial in one variable
 ///
 /// # Fields
 ///
 /// * `quadratic_coefficient` - constant that multiplies quadratic term.
 /// * `linear_coefficient` - constant that multiplies linear term.
-/// * `independent_term` - constant that adds to varaible.
+/// * `independent_term` - constant that is added to varaible.
 ///
 pub struct SecondDegreePolynomial {
     quadratic_coefficient: f64,

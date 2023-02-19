@@ -1,8 +1,8 @@
 
 use crate::Error;
 
-use super::{polynomials_1d::{SecondDegreePolynomial, FirstDegreePolynomial}, Function1D, Differentiable1D, piecewise_polynomials_1degree::PiecewiseFirstDegreePolynomial};
-
+use super::{polynomials_1d::{SecondDegreePolynomial, FirstDegreePolynomial}, piecewise_polynomials_1degree::PiecewiseFirstDegreePolynomial};
+use crate::solvers::basis::functions::{Function1D,Differentiable1D};
 /// # General Information
 ///
 /// A piecewise definition of a first-degree polynomial function. Carries both a vector of functions and the intervals on which each must be evaluated.

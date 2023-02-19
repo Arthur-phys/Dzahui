@@ -1,11 +1,9 @@
-use std::fmt::Debug;
 
 // Internal dependencies
-use crate::solvers::{quadrature::gauss_legendre, matrix_solver, solver_trait::DiffEquationSolver};
-use crate::Error;
 
 // External dependencies
 use ndarray::{Array1, Array2};
+use std::fmt::Debug;
 
 pub struct StokesParams2D {
     pub boundary_conditions: Vec<[f64;2]>,

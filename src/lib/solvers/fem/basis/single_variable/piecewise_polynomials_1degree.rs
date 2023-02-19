@@ -1,5 +1,6 @@
 // Internal dependencies.
-use super::{polynomials_1d::FirstDegreePolynomial, functions::{Differentiable1D, Function1D}};
+use super::{polynomials_1d::FirstDegreePolynomial};
+use crate::solvers::basis::functions::{Differentiable1D,Function1D};
 use crate::Error;
 
 /// # General Information

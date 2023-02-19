@@ -1,7 +1,8 @@
 // Internal dependencies
 use crate::solvers::fem::basis::single_variable::{
-    linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
+    linear_basis::LinearBasis, polynomials_1d::FirstDegreePolynomial
 };
+use crate::solvers::basis::functions::{Differentiable1D, Function1D};
 use crate::solvers::{quadrature::gauss_legendre, matrix_solver, solver_trait::DiffEquationSolver};
 use crate::Error;
 

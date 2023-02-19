@@ -5931,9 +5931,8 @@ mod test {
 
     use super::PI;
     use super::*;
-    use crate::solvers::fem::basis::single_variable::{
-        polynomials_1d::FirstDegreePolynomial, Differentiable1D, Function1D,
-    };
+    use crate::solvers::fem::basis::single_variable::{polynomials_1d::FirstDegreePolynomial};
+    use crate::solvers::basis::functions::{Differentiable1D, Function1D};
 
     #[test]
     fn integrate_exp_tabulate() {
