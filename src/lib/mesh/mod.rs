@@ -34,6 +34,7 @@ use mesh_builder::MeshBuilder;
 ///
 /// * `vertices` -  Vertices in 3d space. Normally used in sextuples (coordinate and color). Specified in gl configuration.
 ///
+#[allow(dead_code)]
 #[derive(Debug)]
 pub(crate) struct Mesh {
     pub(crate) max_length: f64,

@@ -18,7 +18,7 @@ impl Default for StokesParams2D {
         Self {
             boundary_conditions: vec![],
             hydrostatic_pressure: 0_f64,
-            force_function: Box::new(|t| [0_f64;2]),
+            force_function: Box::new(|_| [0_f64;2]),
             nu: 0_f64,
             rho: 0_f64
         }
@@ -33,7 +33,7 @@ impl Debug for StokesParams2D {
         write!(f, "{}", content)
     }
 }
-
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct StokesSolver2D {
     pub(crate) stiffness_matrix: Array2<f64>,

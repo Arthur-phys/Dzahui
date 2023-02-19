@@ -66,7 +66,7 @@ impl DiffussionParamsTimeDependentBuilder {
         }
     }
     /// Use function 
-    pub fn initial_conditions_from_function<A: Fn(f64) -> f64, B: AsRef<str>>(func: A, mesh: B) -> Self {
+    pub fn initial_conditions_from_function<A: Fn(f64) -> f64, B: AsRef<str>>(_func: A, _mesh: B) -> Self {
 
         
 

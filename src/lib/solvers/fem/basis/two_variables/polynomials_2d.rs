@@ -69,7 +69,7 @@ impl FirstDegreePolynomial2D {
     }
 
     /// Transformation from psi functions into any polynomial function on any triangle.
-    /// Must only be used with such functions, otherwise it may unexpected results
+    /// Must only be used psi_1, psi_2 and psi_3 functions, otherwise it may yield unexpected results
     pub fn transform_original_basis_function(&self, triangle: [(f64,f64);3]) -> FirstDegreePolynomial2D {
         
         let [first,second,third] = triangle;

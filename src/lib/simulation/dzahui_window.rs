@@ -701,7 +701,7 @@ impl DzahuiWindow {
                 Writer::new(rx,&self.write_location, &self.file_prefix, ["p"],true)
             },
             Solver::Stokes2DSolver(_) => {
-                Writer::new(rx,&self.write_location, &self.file_prefix,["v_x","v_y"],true)
+                Writer::new(rx,&self.write_location, &self.file_prefix,["v_x","v_y","p"],true)
             }
             Solver::None => {
                 Writer::new(rx, &self.write_location, &self.file_prefix, [""], false)
@@ -779,8 +779,8 @@ impl DzahuiWindow {
                 }
             },
 
-            Solver::Stokes2DSolver(ref params) => {
-                todo!()
+            Solver::Stokes2DSolver(ref _params) => {
+                panic!("Not implemented yet!")
             }
 
             Solver::None => {
