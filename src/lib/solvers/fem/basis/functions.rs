@@ -109,7 +109,7 @@ where
 /// * `compose(...)` - Returns a function from the composition of the two functions involved. Consumes functions.
 pub trait Composable2D<T,V>
 where
-    T: Function2D,
+    T: Function2D2D,
     V: Function2D
 {
     fn compose(self,other: T) -> Result<V,Error>;

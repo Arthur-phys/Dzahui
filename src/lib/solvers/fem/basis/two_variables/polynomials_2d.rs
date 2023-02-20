@@ -1,5 +1,5 @@
 // Internal dependencies
-use crate::solvers::basis::functions::{Function2D, Function2D2D};
+use crate::solvers::basis::functions::{Function2D, Function2D2D, Composable2D, Differentiable2D};
 
 #[derive(PartialEq, Debug)]
 /// # General Information
@@ -59,6 +59,33 @@ pub struct Transformation2D {
     d: f64
 }
 
+impl Transformation2D {
+
+    ///  New instance
+    pub fn new(a: f64, b: f64, c: f64, d: f64) -> Transformation2D {
+        Transformation2D {
+            a,
+            b,
+            c,
+            d
+        }
+    }
+
+    /// Inverse of a  2x2 matrix
+    pub fn inverse(self) -> Transformation2D {
+        
+        let determinant = 1_f64 / (self.a * self.d - self.b * self.c);
+        
+        Transformation2D {
+             a: self.d * determinant,
+             b: - self.b * determinant,
+             c: - self.c * determinant,
+             d: self.a * determinant
+        }
+    }
+
+}
+
 impl Function2D2D for Transformation2D {
     fn evaluate(&self, x: f64, y: f64) -> (f64,f64) {
         (self.a * x + self.b * y, self.c * x + self.d * y)
@@ -79,8 +106,8 @@ impl FirstDegreePolynomial2D {
     /// Zero function factory.
     pub fn zero() -> FirstDegreePolynomial2D {
         Self {
-            y_coefficient: 0_f64,
             x_coefficient: 0_f64,
+            y_coefficient: 0_f64,
             independent_term: 0_f64,
         }
     }
@@ -88,29 +115,20 @@ impl FirstDegreePolynomial2D {
     /// Constant function factory.
     pub fn constant(independent_term: f64) -> FirstDegreePolynomial2D {
         Self {
-            y_coefficient: 0_f64,
             x_coefficient: 0_f64,
+            y_coefficient: 0_f64,
             independent_term,
         }
     }
 
-    /// Transformation from psi functions into any polynomial function on any triangle.
-    /// Must only be used psi_1, psi_2 and psi_3 functions, otherwise it may yield unexpected results
-    pub fn transform_original_basis_function(&self, triangle: [(f64,f64);3]) -> FirstDegreePolynomial2D {
-        
-        let [first,second,third] = triangle;
-        let second = (second.0 - first.0, second.1 - first.1);
-        let third = (third.0 - first.0, third.1 - first.1);
-        let determinant = 1_f64 / (second.0 * third.1 - second.1 * third.0);
-        let x_coefficient = determinant * (self.x_coefficient * third.1 - self.y_coefficient * second.1);
-        let y_coefficient = determinant * (- self.x_coefficient * third.0 + self.y_coefficient * second.0);
-
-        FirstDegreePolynomial2D {
-            x_coefficient,
-            y_coefficient,
-            independent_term: self.independent_term,
+    /// Translate a function by a given point
+    pub fn translate(self, w: f64, z: f64) -> FirstDegreePolynomial2D {
+        Self {
+            x_coefficient: self.x_coefficient,
+            y_coefficient: self.y_coefficient,
+            independent_term: self.independent_term - self.x_coefficient * w - self.y_coefficient * z,
         }
-    }
+    } 
 
     /// One of three basis functions on unit triangle {(0,0),(1,0),(0,1)}
     pub fn psi_1() -> FirstDegreePolynomial2D {
@@ -143,5 +161,46 @@ impl FirstDegreePolynomial2D {
 impl Function2D for FirstDegreePolynomial2D {
     fn evaluate(&self, x: f64, y: f64) -> f64 {
         self.x_coefficient * x + self.y_coefficient * y + self.independent_term
+    }
+}
+
+impl Composable2D<Transformation2D, FirstDegreePolynomial2D> for FirstDegreePolynomial2D {
+    
+    fn compose(self, other: Transformation2D) -> Result<FirstDegreePolynomial2D,crate::Error> {
+
+        let x_coefficient = other.a * self.x_coefficient + other.c * self.y_coefficient;
+        let y_coefficient = other.b * self.x_coefficient + other.d *  self.y_coefficient;
+
+        Ok(FirstDegreePolynomial2D {
+            x_coefficient,
+            y_coefficient,
+            independent_term: self.independent_term,
+        })
+
+    }
+}
+
+impl Differentiable2D<FirstDegreePolynomial2D,FirstDegreePolynomial2D> for FirstDegreePolynomial2D {
+    
+    fn differentiate_x(&self) -> Result<FirstDegreePolynomial2D,crate::Error> {
+        Ok(
+            FirstDegreePolynomial2D {
+                x_coefficient: 0_f64,
+                y_coefficient: 0_f64,
+                independent_term: self.x_coefficient
+            }
+        )
+
+    }
+
+    fn differentiate_y(&self) -> Result<FirstDegreePolynomial2D,crate::Error> {
+        Ok(
+            FirstDegreePolynomial2D {
+                x_coefficient: 0_f64,
+                y_coefficient: 0_f64,
+                independent_term: self.y_coefficient
+            }
+        )
+
     }
 }
