@@ -26,6 +26,7 @@ use super::binder::{Binder, Bindable};
 /// * `origin` - Place of the character in charmap image.
 /// * `size` - Width and height in a tuple.
 /// * `character_start` - Where the character begins from rectangle dictated in size.
+/// * `xadvance` - How much should the cursor move to get to next character
 ///
 #[derive(Debug)]
 struct Character {
@@ -37,6 +38,8 @@ struct Character {
     pub(crate) size: (f32, f32),
     // Offset from top left corner
     pub(crate) character_start: (f32, f32),
+    // Advance to next character
+    pub(crate) xadvance: f32
 }
 
 /// # General Information
@@ -76,12 +79,13 @@ pub(crate) struct CharacterSet {
 
 impl Character {
     /// New instance of a character
-    pub fn new(id: u32, origin: (f32, f32), size: (f32, f32), character_start: (f32, f32)) -> Self {
+    pub fn new(id: u32, origin: (f32, f32), size: (f32, f32), character_start: (f32, f32), xadvance: f32) -> Self {
         Self {
             id,
             origin,
             size,
             character_start,
+            xadvance
         }
     }
 }
@@ -235,6 +239,7 @@ impl CharacterSet {
                     (property_map["x"], property_map["y"]),
                     (property_map["width"], property_map["height"]),
                     (property_map["xoffset"], property_map["yoffset"]),
+                    property_map["xadvance"]
                 );
 
                 // Insert character
@@ -337,17 +342,17 @@ impl CharacterSet {
             );
             gl::EnableVertexAttribArray(1); // Enabling vertex atributes giving vertex location (setup in vertex shader).
 
-            // now allocate quad (two triangles) information to be sent
+            // now allocate two quads (four triangles) for information to be sent. Second quad is for spacing
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                (5 * 4 * mem::size_of::<GLfloat>()) as GLsizeiptr, // number of vertices * number of values in each * size of float 32 bits
+                (5 * 6 * mem::size_of::<GLfloat>()) as GLsizeiptr, // number of vertices * new block for spacing * number of values in each * size of float 32 bits
                 ptr::null() as *const f32 as *const c_void,
                 gl::DYNAMIC_DRAW,
             ); // dynamic draw since content will be altered constantly
 
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,
-                (6 * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                (12 * mem::size_of::<GLfloat>()) as GLsizeiptr,
                 ptr::null() as *const u32 as *const c_void,
                 gl::DYNAMIC_DRAW,
             );
@@ -363,13 +368,13 @@ impl CharacterSet {
     /// * `&self` - Obtain character struct for a given character to access it's properties.
     /// * `text` - A text string to parse and display on screen. Every character has to be in the original font (CharacterSet).
     ///
-    fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> Result<(Vec<[f32; 20]>, Vec<[u32; 6]>),Error> {
+    fn get_vertices_from_text<A: AsRef<str>>(&self, text: A) -> Result<(Vec<[f32; 30]>, Vec<[u32; 12]>),Error> {
         // Split text into chars. Should be feasible given the fact that we only operate with the alphabet, numbers and some special symbols such as '?','!'
         // Range of utf-8 values: 0,2^21 (given that there are at most 11 bits of metadata in a 4 bytes sequence)
         let text_vec: Vec<char> = text.as_ref().chars().collect();
         // Initialize vertices and indices vectors
-        let mut vertices: Vec<[f32; 20]> = Vec::new();
-        let mut indices: Vec<[u32; 6]> = Vec::new();
+        let mut vertices: Vec<[f32; 30]> = Vec::new();
+        let mut indices: Vec<[u32; 12]> = Vec::new();
 
         // Obtain subset of characters from CharacterSet HashMap
         text_vec
@@ -379,21 +384,22 @@ impl CharacterSet {
                 match character_struct {
                     Some(character) => {
                         // vertices obtained from character
-                        let width = width + character.size.0;
+                        let new_advance = character.xadvance / 4.0;
+                        let width = width + character.size.0 + new_advance;
                         let height = character.size.1;
                         // Point order:
 
                         //   start ---->
                         //   ^         |
-                        //   |         |
+                        //   |         |     +  space quad
                         //   |         |
                         //   |         ˇ
                         //    <--------
 
-                        let new_vertices: [f32; 20] = [
+                        let new_vertices: [f32; 30] = [
                             // First point
                             // Coordinate
-                            width - character.size.0,
+                            width - character.size.0 - new_advance,
                             height,
                             0.0,
                             // Texture
@@ -401,7 +407,7 @@ impl CharacterSet {
                             (character.origin.1) / (self.texture_size.1 as f32),
                             // Second point
                             // Coordinate
-                            width,
+                            width - new_advance,
                             height,
                             0.0,
                             // Texture
@@ -409,7 +415,7 @@ impl CharacterSet {
                             (character.origin.1) / (self.texture_size.1 as f32),
                             // Third point
                             // Coordinate
-                            width,
+                            width - new_advance,
                             0.0,
                             0.0,
                             // Texture
@@ -417,19 +423,40 @@ impl CharacterSet {
                             (character.origin.1 + character.size.1) / (self.texture_size.1 as f32),
                             // Fourth point
                             // Coordinate
-                            width - character.size.0,
+                            width - character.size.0 - new_advance,
                             0.0, // y always starts on 0.0
                             0.0, // z will always be 0.0 initially
                             // Texture
                             (character.origin.0) / (self.texture_size.0 as f32),
                             (character.origin.1 + character.size.1) / (self.texture_size.1 as f32),
+                            // Space quad missing vertices
+                            // uper vertex
+                            width,
+                            height,
+                            0.0,
+                            0.0,
+                            0.0,
+                            // lower vertex
+                            width,
+                            0.0,
+                            0.0,
+                            0.0,
+                            0.0,
+
                         ];
-                        let new_indices: [u32; 6] = [
+                        let new_indices: [u32; 12] = [
                             // First index is the one passed from last iteration.
                             // There are six indices total
                             // First triangle
-                            0, 1, 2, // Second triangle
-                            2, 3, 0,
+                            0, 1, 2,
+                            // Second triangle
+                            2, 3, 0, 
+                            // space triangles
+                            //first
+                            1, 2, 5,
+                            // second
+                            1, 4, 5,
+
                         ];
 
                         vertices.push(new_vertices);
@@ -543,9 +570,9 @@ mod test {
         let set = CharacterSet::new("./assets/dzahui-font_test.fnt").unwrap();
         let should_be_set = CharacterSet {
             characters: HashMap::from([
-                ('{', Character::new(123,(0.0,0.0),(21.0,61.0),(1.0,13.0))),
-                (' ',Character::new(32, (0.0,0.0), (0.0,0.0), (5.0,18.0))),
-                ('a',Character::new(97, (211.0,153.0), (35.0,37.0), (2.0,25.0))),
+                ('{', Character::new(123,(0.0,0.0),(21.0,61.0),(1.0,13.0),21.)),
+                (' ',Character::new(32, (0.0,0.0), (0.0,0.0), (5.0,18.0),4.)),
+                ('a',Character::new(97, (211.0,153.0), (35.0,37.0), (2.0,25.0),36.)),
             ]),
             font_type: "Liberation Sans".to_string(),
             font_size: 12,
