@@ -27,7 +27,7 @@ pub(crate) struct Shader {
 impl Shader {
     /// # General information
     ///
-    /// Creates a new shader program composed of both a vertex and a frament shader. Since it uses `gl` crate, it's necessary that an openGL context has
+    /// Creates a new shader program composed of both a vertex and a fragment shader. Since it uses `gl` crate, it's necessary that an openGL context has
     /// been initialized. Unsafe part stops rust from caching errors while compiling shaders, therefore print statements will be sent to the terminal containing
     /// a message in case an error has happened. Later use of faulty shaders will stop the program from running, but debbuging becomes hard since little
     /// information is provided by the `gl` crate. Should enable logging errors at a later date.
