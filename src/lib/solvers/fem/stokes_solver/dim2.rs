@@ -5,6 +5,14 @@
 use ndarray::{Array1, Array2};
 use std::fmt::Debug;
 
+/// # General Information
+/// 
+/// Stokes params in 2D. Equation not yet implemented
+/// 
+/// # Fields
+/// 
+/// Not repetead since they're the same as `StokesParams2DBuilder`
+/// 
 pub struct StokesParams2D {
     pub boundary_conditions: Vec<[f64;2]>,
     pub hydrostatic_pressure: f64,

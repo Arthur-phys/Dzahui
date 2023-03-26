@@ -1,5 +1,6 @@
 use dzahui::{DzahuiWindow, DzahuiWindowBuilder, DiffussionParams};
 
+/// Simple time-independent diffussion example.
 fn main() {
     /* TIME INDEPENDENT DIFFUSSION */
     let diffussion_params = DiffussionParams::time_independent()

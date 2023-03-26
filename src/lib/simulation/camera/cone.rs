@@ -5,6 +5,8 @@ use ndarray::{Array1, ArrayView1, Axis};
 use crate::Error;
 
 /// # General Information
+/// 
+/// NOT BEIGN USED AT THE MOMENT
 ///
 /// A cone first serves as an object with 'ray casting'-like functionality to be able to click elements from screen.
 /// It transforms viewport coordinates to object coordinates and projects a cone inside this viewport. Then, an intersectrion can ben done to obtain closest

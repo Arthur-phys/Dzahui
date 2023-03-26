@@ -42,7 +42,7 @@ use gl;
 /// * `timer` - Gives current time since creation of window. Call with `timer.elapsed()`
 /// * `camera` - Camera configuration creates view and projetion matrices, which directly tells OpenGL what to and not to render
 /// * `solver` - Solver enum representing the kind of equation to simmulate
-/// * `time_tep` - How much to forward a time-dependent solution 
+/// * `time_step` - How much to forward a time-dependent solution 
 /// * `mesh` - A mesh to draw to screen. Represents an object tessellated into triangles/traingular prisms
 /// * `write_location` - Where to write values from solved equation of needed
 /// * `file_prefix`- If writing files require a prefix to identify them
@@ -851,6 +851,8 @@ impl DzahuiWindow {
 
         // Keep last result
         let mut solution: Vec<f64> = vec![];
+        // to fill or not mesh
+        let mut fill = true;
 
         event_loop.run(move |event, _, control_flow| {
 
@@ -869,8 +871,8 @@ impl DzahuiWindow {
                     } => self.update_mouse_coordinates(position.x as f32, position.y as f32),
 
                     WindowEvent::KeyboardInput { input, .. } => match input.scancode {
-                        1 => *control_flow = ControlFlow::Exit,
-                        31 => {
+                        53 => *control_flow = ControlFlow::Exit,
+                        1 => {
                             match input.state {
                                 
                                 ElementState::Pressed => {
@@ -885,8 +887,19 @@ impl DzahuiWindow {
                                 _ => {}
                             }
 
+                        },
+                        17 => {
+                            match input.state {
+
+                                ElementState::Pressed => {
+                                    fill = false;
+                                },
+                                
+                                _ => fill = true
+
+                            }
                         }
-                        _ => {},
+                        _ => {log::info!("Code: {}",input.scancode)},
                     },
 
                     _ => (),
@@ -940,7 +953,7 @@ impl DzahuiWindow {
                     unsafe {
                         // Update to some color
                         // Clear Screen
-                        gl::ClearColor(0.33, 0.33, 0.33, 0.8);
+                        gl::ClearColor(0.45, 0.45, 0.45, 0.8);
                         gl::Clear(gl::COLOR_BUFFER_BIT);
                         gl::Clear(gl::DEPTH_BUFFER_BIT);
                     }
@@ -1000,9 +1013,9 @@ impl DzahuiWindow {
                     }
 
                     // Draw filled or not filled
-                    match self.solver {
-                        Solver::None => {}
-                        _ => unsafe {
+                    match fill {
+                        false => {}
+                        true => unsafe {
                             gl::PolygonMode(gl::FRONT_AND_BACK, gl::FILL);
                         }
                     }

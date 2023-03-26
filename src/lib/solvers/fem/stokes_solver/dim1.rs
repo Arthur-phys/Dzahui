@@ -73,6 +73,7 @@ pub struct StokesSolver1D {
 
 impl StokesSolver1D {
 
+    /// Creates a new instance of solver from params
     pub fn new(params: &StokesParams1D, mesh: Vec<f64>, gauss_step: usize) -> Result<Self,Error> {
 
         let (stiffness_matrix, b_vector) = Self::gauss_legendre_integration(
@@ -92,6 +93,24 @@ impl StokesSolver1D {
 
     }
 
+    /// # General Information
+    ///
+    /// First, it generates the basis for a solver from the linear basis constructor.
+    /// Then the stiffnes matrix and vector b are generated based on linear basis integration via Gauss-Legendre and returned.
+    /// Note that vector and matrix will have one on their diagonals' boundaries and zero on other boundary elements to make boundary conditions permanent. 
+    ///
+    /// # Parameters
+    ///
+    /// * `rho` - density
+    /// * `hydrostatic_pressure`
+    /// * `mesh` - Vector of f64 representing a line
+    /// * `gauss_step` - How many nodes will be calculated for a given integration
+    /// * `function` - Force acting on the fluid
+    ///
+    /// # Returns
+    ///
+    /// A tuple with both the stiffness matrix and the vector b.
+    ///
     pub fn gauss_legendre_integration(rho: f64, hydrostatic_pressure: f64, mesh: &Vec<f64>, gauss_step: usize, function: &Box<dyn Fn(f64) -> f64>) -> Result<(Array2<f64>, Array1<f64>),Error> {
 
         let basis = LinearBasis::new(mesh)?;

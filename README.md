@@ -34,21 +34,33 @@ speed (or pressure in the case of the hydrostatic pressure equation).
 
 * 1D time-dependent diffussion equation
 * 1D time-independent diffussion equation
-* Hysrostatic pressure equation (Or simplified 1D time-independent Navier-Stokes for newtonian fluids)
+* Hysrostatic pressure equation (Or simplified 1D time-independent Stokes)
 
 For now, only three equations with Dirichlet boundaries are implemented, but more will be added in the future, including two an three-dimensional cases of Navier Stokes.
 
 ## How to use
 Dzahui is available on [crates.io](https://crates.io/crates/Dzahui). Only add it as a dependency and follow one of the many binaries available in the crate to generate a simulation.
 
+### Controls
+Dzahui has a few ways to interact with the GUI:
+On MacOS:
+* You can press `esc` to quit simulation
+* Press `s` to save current result
+* Hold `t` to view triangles of mesh
+* Left-click and move mouse or trackpad to move camera
+
 ## Future implementations
 
 * Simmulate various types of curves akin to the problem being solved (like streamlines, pathlines and streaklines).
 * Improve GUI by adding buttons and graphs.
-* Improve method to create boundary conditions via GUI and
+* Improve method to create boundary conditions via GUI (vertex selector) and
  function-defined boundaries.
 * Include Newmann conditions.
-* Implement 2D and 3D integtration algorithms.
+* Homogenize controls for view on different OS.
+* Implement 2D and 3D integration algorithms.
+* Improve crate structure and access modifiers.
+* Improve matrix algorithms (more stable ones).
+* Change/create traits to be directly implemented by the user.
 * Correct some implementations to improve performance.
 * Increase polynomial degree to be used on problems.
 * Use macros to embed newly user-created equations into the

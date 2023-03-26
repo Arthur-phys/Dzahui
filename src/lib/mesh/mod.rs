@@ -19,19 +19,10 @@ use mesh_builder::MeshBuilder;
 ///
 /// # Fields
 ///
-/// ## Numerical Integration Fields
-///
-/// * `conditions` - Kind a given vertex has. Can be a boundary or internal vertex. Also contains the possible initial/boundary condition.
-///
-/// ## Drawing Fields
-///
 /// * `max_length` - Maximum length of figure. Used to center camera arround objective.
 /// * `model_matrix` - Translates and rotates object to final world position.
 /// * `binder` - vao, vbo and ebo variables bound to mesh drawable in GPU.
 /// * `indices` - Indices that map to vertices. Normally used in triads. Specified in gl configuration.
-///
-/// ## Shared Fields
-///
 /// * `vertices` -  Vertices in 3d space. Normally used in sextuples (coordinate and color). Specified in gl configuration.
 ///
 #[allow(dead_code)]
@@ -76,7 +67,7 @@ impl Mesh {
             .collect()
     }
 
-    /// Temporary solution to move gradient updating out of dzahui window. Probably will be changed in the future.
+    /// Improvable solution to move gradient updating out of dzahui window. Probably will be changed in the future.
     /// Obtains max and min of solution (normallly some sort of rate of change), divides every element by the difference and then multiplies them by
     /// pi/2 so that, when calculating their sine and cosine, there's a mapping between max velocity <-> red and min velocity <-> blue
     pub(crate) fn update_gradient_1d(&mut self, velocity_norm: Vec<f64>) {

@@ -31,7 +31,7 @@ pub fn solve_by_thomas(matrix: &Array2<f64>, b: &Array1<f64>) -> Result<Vec<f64>
         
         c[i] = matrix[[i, i + 1]] / (matrix[[i, i]] - matrix[[i, i - 1]] * c[i - 1]);
         d[i] = (b[i] - matrix[[i, i - 1]] * d[i - 1])
-            / (matrix[[i, i]] - matrix[[i, i - 1]] * c[i - 1]);
+        / (matrix[[i, i]] - matrix[[i, i - 1]] * c[i - 1]);
     }
 
     d[b.len() - 1] = (b[b.len() - 1] - matrix[[b.len() - 1, b.len() - 2]] * d[b.len() - 2])
@@ -45,4 +45,46 @@ pub fn solve_by_thomas(matrix: &Array2<f64>, b: &Array1<f64>) -> Result<Vec<f64>
     }
     
     Ok(solution)
+}
+
+#[cfg(test)]
+mod test {
+    use ndarray::{Array2, Array1};
+
+    use super::solve_by_thomas;
+
+
+    #[test]
+    fn solve_3x3() {
+
+        let matrix: Array2<f64> = Array2::from(vec![[1.,2.,0.],[1.,1.,2.],[0.,2.,1.]]);
+        let b: Array1<f64> = Array1::from(vec![1.,0.,0.]);
+
+        let res = solve_by_thomas(&matrix, &b).unwrap();
+
+        assert!(res[0] <= 0.7 && res[0] >= 0.5);
+        assert!(res[1] <= 0.3 && res[1] >= 0.1);
+        assert!(res[2] <= -0.3 && res[2] >= -0.5);
+
+    }
+
+    #[test]
+    fn solve_5x5() {
+
+        let matrix: Array2<f64> = Array2::from(vec![[1.,2.,0.,0.,0.],
+            [2.,1.,1.,0.,0.],[0.,1.,2.,1.,0.],[0.,0.,2.,2.,1.],[0.,0.,0.,1.,2.]]);
+        let b: Array1<f64> = Array1::from(vec![1.,0.,0.,0.,0.]);
+
+        let res = solve_by_thomas(&matrix, &b).unwrap();
+
+        println!("{:?}",res);
+
+        assert!(res[0] <= 0.13 && res[0] >= 0.09);
+        assert!(res[1] <= 0.46 && res[1] >= 0.43);
+        assert!(res[2] <= -0.60 && res[2] >= -0.70);
+        assert!(res[3] <= 0.90 && res[3] >= 0.86);
+        assert!(res[4] <= -0.42 && res[4] >= -0.46);
+
+    }
+
 }

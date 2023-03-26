@@ -9,7 +9,7 @@ use std::time::Instant;
 
 /// # General Information
 /// 
-/// Writer struct writes solution of equation to a given file.
+/// Writes solution of equation to a given file.
 /// Can take a path to write to, names of variables and a prefix for all files.
 /// Struct is meant to run on it's own thread to block as little as possible the execution of DzahuiWindow
 /// 
@@ -92,7 +92,7 @@ impl Writer {
     /// 
     /// # Parameters
     /// 
-    /// * `&self` - A reference to itsel to use write path and file prefix
+    /// * `&self` - A reference to itself to use `write_path` and `file_prefix`
     /// * `id` - A unique id for a file
     /// * `vals` - a vector with values to write to file
     /// 

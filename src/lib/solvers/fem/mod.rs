@@ -12,7 +12,7 @@ use super::solver_trait::DiffEquationSolver;
 /// # General Information
 ///
 /// An enum representing every equation implemented by this library.
-/// Used as a way of representing the equation without having to create an instance of a solver of it. May be deprecated in the future in favor of a intercative
+/// Used as a way of representing an equation without having to create an instance of a solver of it. May be deprecated in the future in favor of a intercative
 /// approach from window interface.
 ///
 /// # Arms

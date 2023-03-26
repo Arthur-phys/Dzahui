@@ -115,8 +115,8 @@ impl Bindable for CharacterSet {
 impl CharacterSet {
     /// # General Information
     ///
-    /// New character set given a character file. It reads every line, substracting information neccesary to get every struct property and later
-    /// create every character and associating it to it's char. It also loads the image and generates a vector with it inside.
+    /// Creates new character set given a character file (fnt). It reads every line, substracting information neccesary to create every struct and later
+    /// create every character struct associating them to their char version. It also loads the image and generates a vector with it inside.
     ///
     /// # Parameters
     ///
@@ -361,7 +361,7 @@ impl CharacterSet {
 
     /// # General Information
     ///
-    /// Obtain every letter given an entry of text, generating everything necessary to send each one to the gpu: indices, texture coordinates.
+    /// Obtains every letter given an entry of text, generating everything necessary to send each one to the gpu: indices, coordinates and texture coordinates.
     ///
     /// # Parameters
     ///

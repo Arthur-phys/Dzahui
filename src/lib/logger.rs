@@ -269,7 +269,7 @@ impl Log for DzahuiLogger {
 impl DzahuiLogger {
     /// # General Information
     /// 
-    /// Creates a new instance of the logger
+    /// Creates a new instance of a logger. Will print to term if file is not provided
     /// 
     /// # Parameters
     /// 

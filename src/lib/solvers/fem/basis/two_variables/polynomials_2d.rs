@@ -27,6 +27,7 @@ pub struct FirstDegreePolynomial2D {
 ///
 /// * `x_quadratic_coefficient` - constant that multiplies x quadratic term.
 /// * `y_quadratic_coefficient` - constant that multiplies y quadratic term.
+/// * `xy_coefficient` - constant that multiplies xy term.
 /// * `x_linear_coefficient` - constant that multiplies x linear term.
 /// * `y_linear_coefficient` - constant that multiplies y linear term.
 /// * `independent_term` - constant that is added to varaibles.

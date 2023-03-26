@@ -14,13 +14,35 @@ pub type StaticPressureParamsBuilder = StokesParams1DBuilder;
 pub struct StokesParams();
 
 #[derive(Default)]
+/// # General Information
+/// 
+/// Builder for stokes params in 1D
+/// 
+/// # Fields
+/// 
+/// * `hydrostatic_pressure` - hydrostatic pressure
+/// * `rho` - density
+/// * `force_function` - force applied on the fluid
+/// 
 pub struct StokesParams1DBuilder {
-    pressure: Option<f64>,
+    hydrostatic_pressure: Option<f64>,
     rho: Option<f64>,
     force_function: Option<Box<dyn Fn(f64) -> f64>>
 }
 
 #[derive(Default)]
+/// # General Information
+/// 
+/// Builder for stokes params in 2D. Equation not implemented
+/// 
+/// # Fields
+/// 
+/// * `boundary_condtions` - conditions on 2D boundary
+/// * `hydrostatic_pressure` - hydrostatic pressure
+/// * `force_function` - force applied on the fluid
+/// * `rho` - density
+/// * `nu` - viscosity
+/// 
 pub struct StokesParams2DBuilder {
     boundary_conditions: Option<Vec<[f64;2]>>,
     hydrostatic_pressure: Option<f64>,
@@ -49,7 +71,7 @@ impl StokesParams1DBuilder {
     /// Set pressure
     pub fn hydrostatic_pressure(self, pressure_value: f64) -> Self {
         Self {
-            pressure: Some(pressure_value),
+            hydrostatic_pressure: Some(pressure_value),
             ..self
         }
     }
@@ -70,7 +92,7 @@ impl StokesParams1DBuilder {
     /// Build StokesParams1D
     pub fn build(self) -> StokesParams1D {
         
-        let hydrostatic_pressure = if let Some(hydrostatic_pressure) = self.pressure {
+        let hydrostatic_pressure = if let Some(hydrostatic_pressure) = self.hydrostatic_pressure {
             hydrostatic_pressure
         } else {
             panic!("Params lack 'pressure' term!");

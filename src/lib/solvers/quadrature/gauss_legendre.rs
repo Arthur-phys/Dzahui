@@ -5675,7 +5675,7 @@ const EVEN_WEIGHTS: [&[f64]; 50] = [
 /// # General Information
 /// 
 /// Obtains the values of the Bessel function of zeroth order on a certain node given by k.
-/// Either is calculated or obtained from previous calculation according to the constants on the same module and the value of k
+/// Value is either calculated or obtained from previous calculation according to the constants on the same module and the value of k
 /// 
 /// # Parameters
 /// 
@@ -5704,7 +5704,7 @@ fn bessel_j_zero(k: usize) -> f64 {
 /// # General Information
 /// 
 /// Obtains the values of the Bessel function of first order on a certain node given by k.
-/// Either is calculated or obtained from previous calculation according to the constants on the same module and the value of k
+/// Value is either is calculated or obtained from previous calculation according to the constants on the same module and the value of k
 /// 
 /// # Parameters
 /// 
@@ -5733,7 +5733,7 @@ fn bessel_j1_squared(k: usize) -> f64 {
 /// 
 /// Calculation of quad-pair for Gauss-Legendre integration.
 /// in contrast to it's tabulated version, these are calculated via the hardcoded constants and a series of approximations.
-/// Returns the j-th zero of the n-th Legendre function alongside the domain element which would result in such a zero.
+/// Returns the j-th zero of the n-th Legendre polynomial alongside the domain element which, upon evaluation of the polynomial, would result in such a zero.
 /// 
 /// # Parameters
 /// 

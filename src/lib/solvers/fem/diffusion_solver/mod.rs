@@ -11,6 +11,17 @@ pub use time_independent::{DiffussionParamsTimeIndependent, DiffussionSolverTime
 pub struct DiffussionParams();
 
 #[derive(Default)]
+/// # General Information
+/// 
+/// Builder for diffussion params in 1D with time-dependance
+/// 
+/// # Fields
+/// 
+/// * `mu` - Movement term
+/// * `b` - Velocity term
+/// * `boundary_conditions` - Dirichlet conditions
+/// * `initial_conditions` - Internal initial conditions
+/// 
 pub struct DiffussionParamsTimeDependentBuilder {
     mu: Option<f64>,
     b: Option<f64>,
@@ -19,6 +30,16 @@ pub struct DiffussionParamsTimeDependentBuilder {
 }
 
 #[derive(Default)]
+/// # General Information
+/// 
+/// Builder for diffussion params in 1D
+/// 
+/// # Fields
+/// 
+/// * `mu` - Movement term
+/// * `b` - Velocity term
+/// * `boundary_conditions` - Dirichlet conditions
+/// 
 pub struct DiffussionParamsTimeIndependentBuilder {
     mu: Option<f64>,
     b: Option<f64>,
