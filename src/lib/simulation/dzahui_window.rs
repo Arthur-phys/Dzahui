@@ -79,6 +79,7 @@ pub struct DzahuiWindow {
 /// * `geometry_vertex_shader` - Shader used to render text. Defaults to assets/geometry_vertex_shader.vs
 /// * `text_fragment_shader` - Shader used to render triangulated 3D and 2D meshes. Defaults to assets/text_fragment_shader.fs
 /// * `text_vertex_shader` - Shader used to render text. Defaults to assets/text_vertex_shader.vs
+/// * `height_multiplier` - Makes height of mesh bigger. Useful for 1D mesh.
 /// * `integration_iteration` - Amount of elements to sum to approximate integral
 /// * `opengl_version` - opengl version to use. Tested with 3.3, latter versions should work too
 /// * `initial_time_step` - When solving a time-dependent problem and not specifiying a time, an initial time should be given while enough information is collected
@@ -102,6 +103,7 @@ pub struct DzahuiWindowBuilder {
     geometry_vertex_shader: Option<String>,
     text_fragment_shader: Option<String>,
     text_vertex_shader: Option<String>,
+    height_multiplier: Option<f64>,
     integration_iteration: Option<usize>,
     opengl_version: Option<(u8, u8)>,
     initial_time_step: Option<f64>,
@@ -138,6 +140,7 @@ impl DzahuiWindowBuilder {
             text_fragment_shader: None,
             camera: Camera::builder(),
             text_vertex_shader: None,
+            height_multiplier: None,
             window_text_scale: None,
             initial_time_step: None,
             vertex_selector: None,
@@ -173,6 +176,13 @@ impl DzahuiWindowBuilder {
         Self {
             text_vertex_shader: Some(vertex_shader.as_ref().to_string()),
             text_fragment_shader: Some(fragment_shader.as_ref().to_string()),
+            ..self
+        }
+    }
+    /// Makes height larger for 1D mesh
+    pub fn enable_height_multiplier(self, height_multiplier: f64) -> Self {
+        Self {
+            height_multiplier: Some(height_multiplier),
             ..self
         }
     }
@@ -459,7 +469,7 @@ impl DzahuiWindowBuilder {
         let mesh = match match self.mesh_dimension {
             MeshDimension::One => {
                 log::info!("Creating a 1D Mesh");
-                self.mesh.build_mesh_1d()
+                self.mesh.build_mesh_1d(self.height_multiplier)
             },
             MeshDimension::Two => {
                 log::info!("Creating a 2D Mesh");
@@ -899,7 +909,7 @@ impl DzahuiWindow {
 
                             }
                         }
-                        _ => {log::info!("Code: {}",input.scancode)},
+                        _ => {},
                     },
 
                     _ => (),

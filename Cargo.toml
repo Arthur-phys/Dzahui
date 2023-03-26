@@ -40,5 +40,25 @@ name = "diffusion_time_independent"
 src = "src/bin/diffusion_time_dependent.rs"
 
 [[bin]]
+name = "irregular_mesh"
+src = "src/bin/irregular_mesh.rs"
+
+[[bin]]
+name = "irregular_mesh_time_dependent"
+src = "src/bin/irregular_mesh_time_dependent.rs"
+
+[[bin]]
+name = "many_divisions_mesh"
+src = "src/bin/many_divisions_mesh.rs"
+
+[[bin]]
+name = "many_divisions_irregular_mesh"
+src = "src/bin/many_divisions_irregular_mesh.rs"
+
+[[bin]]
+name = "many_divisions_irregular_time_dependent"
+src = "src/bin/many_divisions_irregular_time_dependent.rs"
+
+[[bin]]
 name = "main"
 src = "src/bin/main.rs"

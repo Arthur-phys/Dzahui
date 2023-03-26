@@ -201,7 +201,7 @@ impl MeshBuilder {
     ///
     /// `self` - Consumes builder.
     ///
-    pub fn build_mesh_1d(self) -> Result<Mesh, Error> {
+    pub fn build_mesh_1d(self, height_multiplier: Option<f64>) -> Result<Mesh, Error> {
         // Generate every element needed at a functional scope.
         let binder = Binder::new();
         let mut vertices: Vec<f64> = vec![];
@@ -270,7 +270,12 @@ impl MeshBuilder {
         // Obtain max_length easily once vertices are ordered
         max_length = -vertices[0] + vertices[vertices_len as usize - 6];
         // Prom width serves to give height to bar
-        let prom_width = max_length * 6.0 / (vertices_len as f64 - 6.);
+        let multiplier = if let Some(n) = height_multiplier {
+            n
+        } else {
+            1_f64
+        };
+        let prom_width = (max_length * 6.0 / (vertices_len as f64 - 6.)) * multiplier;
         // Create a second vector of vertices above the first one to make a bar (to be seen on screen, it serves no other purpose) and append it to the first.
         vertices.append(
             &mut vertices
