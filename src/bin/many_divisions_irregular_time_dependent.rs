@@ -395,7 +395,7 @@ fn main() {
     //Creating window with predetermined configuration
     let window_builder: DzahuiWindowBuilder = DzahuiWindow::builder("./assets/1dbar_many_divisions_irregular.obj")
         .solve_1d_time_dependent_diffussion(diffussion_params)
-        .with_integration_iteration(150).with_time_step(0.000000001).enable_height_multiplier(40_f64);
+        .with_integration_iteration(150).with_time_step(0.00000001).enable_height_multiplier(40_f64);
 
     let window = window_builder.build();
     window.run();

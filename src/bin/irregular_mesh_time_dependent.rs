@@ -1,12 +1,12 @@
 use dzahui::{DzahuiWindow, DzahuiWindowBuilder, DiffussionParams};
 
-/// Simple time-dependent diffussion example with irregular nesh
+/// Simple time-dependent diffussion example with irregular mesh
 fn main() {
     /* TIME DEPENDENT DIFFUSSION */
     let diffussion_params = DiffussionParams::time_dependent()
     .b(1.0)
     .mu(1.0)
-    .boundary_conditions(1.0, 2400.0)
+    .boundary_conditions(1.0, 500.0)
     .initial_conditions([
         0_f64,5_f64,12_f64,
         22_f64,21_f64,23_f64,

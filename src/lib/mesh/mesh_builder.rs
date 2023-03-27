@@ -307,7 +307,7 @@ impl MeshBuilder {
         }
 
         // get middle point for camera
-        middle_point[0] = max_length as f32 / 2_f32;
+        middle_point[0] = vertices[0] as f32 + max_length as f32 / 2_f32;
         middle_point[1] = prom_width as f32 / 2_f32;
 
         // Translate matrix to given point
