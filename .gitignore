@@ -1,3 +1,5 @@
 Cargo.lock
 /target
 /saved/*.csv
+biggest_num.py
+write_conditions.py
