@@ -1,6 +1,6 @@
 use dzahui::{DzahuiWindow, DzahuiWindowBuilder};
 
-/// Simple mesh visualization on 2D.
+/// Simple mesh visualization in 2D.
 fn main() {
     
     /* MESH VIEW */

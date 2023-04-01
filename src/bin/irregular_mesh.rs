@@ -1,6 +1,6 @@
 use dzahui::{DzahuiWindow, DzahuiWindowBuilder, DiffussionParams};
 
-/// Simple time-independent diffussion example with irregular mesh.
+/// Simple time independent diffussion example with irregular mesh.
 fn main() {
     /* TIME INDEPENDENT DIFFUSSION */
     let diffussion_params = DiffussionParams::time_independent()
