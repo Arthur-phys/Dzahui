@@ -34,7 +34,7 @@ speed (or pressure in the case of the hydrostatic pressure equation).
 
 * 1D time-dependent diffussion equation
 * 1D time-independent diffussion equation
-* Hysrostatic pressure equation (Or simplified 1D time-independent Stokes)
+* Hydrostatic pressure equation (Or simplified 1D time-independent Stokes)
 
 For now, only three equations with Dirichlet boundaries are implemented, but more will be added in the future, including two an three-dimensional cases of Navier Stokes.
 
