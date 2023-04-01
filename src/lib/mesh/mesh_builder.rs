@@ -457,14 +457,17 @@ impl MeshBuilder {
             .collect::<Result<Vec<_>, _>>()?;
 
         // Obtaining max and min from hashmap
-        log::info!("{:?}",max_min);
-        let len_x = max_min.get("x_max").ok_or(Error::Infallible)? - max_min.get("x_min").ok_or(Error::Infallible)?;
-        let len_y = max_min.get("y_max").ok_or(Error::Infallible)? - max_min.get("y_min").ok_or(Error::Infallible)?;
-        // Obtaining middle point
-        middle_point[0] = (max_min.get("x_max").ok_or(Error::Infallible)? + max_min.get("x_min").ok_or(Error::Infallible)?) as f32 / 2.0;
-        middle_point[1] = (max_min.get("y_max").ok_or(Error::Infallible)? + max_min.get("y_min").ok_or(Error::Infallible)?) as f32 / 2.0;
+        let x_min = max_min.get("x_min").ok_or(Error::Infallible)?;
+        let y_min = max_min.get("y_min").ok_or(Error::Infallible)?;
+        let len_x = max_min.get("x_max").ok_or(Error::Infallible)? - x_min;
+        let len_y = max_min.get("y_max").ok_or(Error::Infallible)? - y_min;
+        
         // Finally obtaining max length
         max_length = if len_x > len_y { len_x } else { len_y };
+
+        // Obtaining middle point
+        middle_point[0] = *x_min as f32 + max_length as f32 / 2.0;
+        middle_point[1] = *y_min as f32 + max_length as f32 / 2.0;
 
         // reducing boundary edges to vertices with a filter based on wether they are at the boundary or not.
         let boundary_indices: Vec<u32> = HashSet::<u32>::from_iter(
@@ -577,12 +580,14 @@ impl MeshBuilder {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let len_x = max_min.get("x_max").ok_or(Error::Infallible)? - max_min.get("x_min").ok_or(Error::Infallible)?;
-        let len_y = max_min.get("y_max").ok_or(Error::Infallible)? - max_min.get("y_min").ok_or(Error::Infallible)?;
-        let len_z = max_min.get("z_max").ok_or(Error::Infallible)? - max_min.get("z_min").ok_or(Error::Infallible)?;
-        middle_point[0] = len_x as f32 / 2.0;
-        middle_point[1] = len_y as f32 / 2.0;
-        middle_point[2] = len_z as f32 / 2.0;
+        let x_min = max_min.get("x_min").ok_or(Error::Infallible)?;
+        let y_min = max_min.get("y_min").ok_or(Error::Infallible)?;
+        let z_min = max_min.get("z_min").ok_or(Error::Infallible)?;
+        let len_x = max_min.get("x_max").ok_or(Error::Infallible)? - x_min;
+        let len_y = max_min.get("y_max").ok_or(Error::Infallible)? - y_min;
+        let len_z = max_min.get("z_max").ok_or(Error::Infallible)? - z_min;
+
+        log::info!("{:?}",middle_point);
 
         max_length = if len_x >= len_y && len_x >= len_z {
             len_x
@@ -591,6 +596,11 @@ impl MeshBuilder {
         } else {
             len_z
         };
+
+        middle_point[0] = *x_min as f32 + (max_length as f32 / 2.0);
+        middle_point[1] = *y_min as f32 + (max_length as f32 / 2.0);
+        middle_point[2] = *z_min as f32 + (max_length as f32 / 2.0);
+
         // Translate matrix to given point
         let model_matrix = Matrix4::from_translation(Vector3::new(
             middle_point[0] as f32,
